@@ -1,0 +1,174 @@
+<div class="dashboard">
+  <div class="dashboard__header">
+    <div>
+      <h1 class="dashboard__title">Farmer Dashboard</h1>
+      <p class="dashboard__subtitle">Manage your products and track orders</p>
+    </div>
+    <div class="dashboard__header-actions">
+      <button mat-stroked-button routerLink="/inputs">
+        <mat-icon>shopping_cart</mat-icon>
+        Browse Inputs
+      </button>
+      <button mat-raised-button color="primary" (click)="addProduct()">
+        <mat-icon>add</mat-icon>
+        Add Product
+      </button>
+    </div>
+  </div>
+
+  <div class="dashboard__stats">
+    <mat-card class="dashboard__stat-card">
+      <div class="dashboard__stat-icon dashboard__stat-icon--products">
+        <mat-icon>inventory_2</mat-icon>
+      </div>
+      <div class="dashboard__stat-content">
+        <span class="dashboard__stat-value">{{ totalProducts() }}</span>
+        <span class="dashboard__stat-label">Total Products</span>
+      </div>
+    </mat-card>
+    <mat-card class="dashboard__stat-card">
+      <div class="dashboard__stat-icon dashboard__stat-icon--active">
+        <mat-icon>check_circle</mat-icon>
+      </div>
+      <div class="dashboard__stat-content">
+        <span class="dashboard__stat-value">{{ activeProducts() }}</span>
+        <span class="dashboard__stat-label">Active Products</span>
+      </div>
+    </mat-card>
+    <mat-card class="dashboard__stat-card">
+      <div class="dashboard__stat-icon dashboard__stat-icon--orders">
+        <mat-icon>shopping_cart</mat-icon>
+      </div>
+      <div class="dashboard__stat-content">
+        <span class="dashboard__stat-value">{{ totalOrders() }}</span>
+        <span class="dashboard__stat-label">Total Orders</span>
+      </div>
+    </mat-card>
+    <mat-card class="dashboard__stat-card">
+      <div class="dashboard__stat-icon dashboard__stat-icon--pending">
+        <mat-icon>pending</mat-icon>
+      </div>
+      <div class="dashboard__stat-content">
+        <span class="dashboard__stat-value">{{ pendingOrders() }}</span>
+        <span class="dashboard__stat-label">Pending Orders</span>
+      </div>
+    </mat-card>
+  </div>
+
+  <mat-card class="dashboard__card">
+    <mat-card-title class="dashboard__card-title">
+      <mat-icon>inventory_2</mat-icon>
+      My Products
+    </mat-card-title>
+    <mat-card-content>
+      @if (loading()) {
+        <div class="dashboard__loading">
+          <mat-spinner diameter="36" />
+        </div>
+      } @else if (products().length === 0) {
+        <div class="dashboard__empty">
+          <mat-icon class="dashboard__empty-icon">eco</mat-icon>
+          <h3>No products listed</h3>
+          <p>Add your first product to start selling.</p>
+          <button mat-stroked-button color="primary" (click)="addProduct()">
+            <mat-icon>add</mat-icon>
+            Add Product
+          </button>
+        </div>
+      } @else {
+        <table class="dashboard__table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Rating</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (product of products(); track product.id) {
+              <tr>
+                <td class="dashboard__product-cell">
+                  <img [src]="loadImage(product)" [alt]="product.name" class="dashboard__product-img" />
+                  <span>{{ product.name }}</span>
+                </td>
+                <td>{{ product.category }}</td>
+                <td>{{ product.price | currency:'KES' }} / {{ product.unit }}</td>
+                <td>{{ product.quantity }} {{ product.unit }}</td>
+                <td>
+                  <mat-icon class="dashboard__rating-star">star</mat-icon>
+                  {{ product.rating }} ({{ product.reviewCount }})
+                </td>
+                <td>
+                  <span [class]="product.available ? 'dashboard__status--active' : 'dashboard__status--inactive'">
+                    {{ product.available ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td>
+                  <button mat-icon-button (click)="editProduct(product.id)" aria-label="Edit">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="toggleProductAvailability(product)" aria-label="Toggle availability">
+                    <mat-icon>{{ product.available ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="deleteProduct(product.id)" aria-label="Delete">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="dashboard__card">
+    <mat-card-title class="dashboard__card-title">
+      <mat-icon>receipt_long</mat-icon>
+      Recent Orders
+    </mat-card-title>
+    <mat-card-content>
+      @if (orders().length === 0) {
+        <div class="dashboard__orders-placeholder">
+          <mat-icon>hourglass_empty</mat-icon>
+          <p>No recent orders yet.</p>
+        </div>
+      } @else {
+        <table class="dashboard__table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Date</th>
+              <th>Items</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (order of orders().slice(0, 5); track order.id) {
+              <tr>
+                <td>{{ order.id.slice(-8).toUpperCase() }}</td>
+                <td>{{ order.createdAt | date:'short' }}</td>
+                <td>{{ order.items.length }}</td>
+                <td>{{ order.total | currency:'KES' }}</td>
+                <td>
+                  <span [class]="'dashboard__status--' + order.status.toLowerCase()">
+                    {{ order.status }}
+                  </span>
+                </td>
+                <td>
+                  <button mat-button (click)="viewOrder(order.id)">View</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

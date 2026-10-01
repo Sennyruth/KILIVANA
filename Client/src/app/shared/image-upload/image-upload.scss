@@ -1,0 +1,115 @@
+.image-upload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  &__dropzone {
+    min-height: 180px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-6);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+
+    &:hover,
+    &--dragging {
+      border-color: var(--primary);
+      background: var(--primary-50);
+    }
+
+    input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      clip-path: inset(50%);
+    }
+
+    &:focus-within {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+  }
+
+  &__icon {
+    color: var(--primary);
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+  }
+
+  &__text,
+  &__hint {
+    margin: 0;
+  }
+
+  &__text {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  &__hint {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+  }
+
+  &__previews {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  &__preview {
+    position: relative;
+    width: 96px;
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--surface-3);
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.65);
+  }
+
+  &__spinner {
+    align-self: center;
+  }
+
+  &__progress {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+  }
+
+  &__progress-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 48px;
+  }
+}

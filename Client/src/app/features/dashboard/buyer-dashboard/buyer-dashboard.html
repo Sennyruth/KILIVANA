@@ -1,0 +1,131 @@
+<div class="dashboard">
+  <header class="dashboard__header">
+    <h1 class="dashboard__title">Welcome, {{ userName() || 'Buyer' }}</h1>
+    <p class="dashboard__subtitle">View your orders and track deliveries</p>
+  </header>
+
+  @if (loading()) {
+    <div class="dashboard__state" role="status" aria-label="Loading orders">
+      <mat-spinner diameter="48" />
+      <p class="dashboard__state-text">Loading your orders…</p>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="dashboard__state dashboard__state--error" role="alert" aria-live="polite">
+      <mat-icon>error</mat-icon>
+      <p class="dashboard__state-text">{{ error() }}</p>
+      <button
+        mat-stroked-button
+        (click)="loadOrders()"
+        type="button"
+        aria-label="Retry loading orders"
+      >
+        Retry
+      </button>
+    </div>
+  }
+
+  @if (showContent() && !hasOrders()) {
+    <div class="dashboard__state dashboard__state--empty" role="status" aria-label="No orders yet">
+      <mat-icon class="dashboard__empty-icon">shopping_basket</mat-icon>
+      <p class="dashboard__state-text">You haven't placed any orders yet.</p>
+      <a mat-raised-button color="primary" routerLink="/products">Start Shopping</a>
+    </div>
+  }
+
+  @if (showContent() && hasOrders()) {
+    <section class="dashboard__stats" aria-label="Order summary">
+      <mat-card class="stat-card">
+        <div class="stat-card__content">
+          <span class="stat-card__value">{{ stats().total }}</span>
+          <span class="stat-card__label">Total Orders</span>
+        </div>
+      </mat-card>
+      <mat-card class="stat-card">
+        <div class="stat-card__content">
+          <span class="stat-card__value">{{ stats().pending }}</span>
+          <span class="stat-card__label">Pending</span>
+        </div>
+      </mat-card>
+      <mat-card class="stat-card">
+        <div class="stat-card__content">
+          <span class="stat-card__value">{{ stats().packed }}</span>
+          <span class="stat-card__label">Packed</span>
+        </div>
+      </mat-card>
+      <mat-card class="stat-card">
+        <div class="stat-card__content">
+          <span class="stat-card__value">{{ stats().shipped }}</span>
+          <span class="stat-card__label">Shipped</span>
+        </div>
+      </mat-card>
+      <mat-card class="stat-card">
+        <div class="stat-card__content">
+          <span class="stat-card__value">{{ stats().outForDelivery }}</span>
+          <span class="stat-card__label">Out for Delivery</span>
+        </div>
+      </mat-card>
+      <mat-card class="stat-card">
+        <div class="stat-card__content">
+          <span class="stat-card__value">{{ stats().delivered }}</span>
+          <span class="stat-card__label">Delivered</span>
+        </div>
+      </mat-card>
+      <mat-card class="stat-card">
+        <div class="stat-card__content">
+          <span class="stat-card__value">{{ stats().cancelled }}</span>
+          <span class="stat-card__label">Cancelled</span>
+        </div>
+      </mat-card>
+    </section>
+
+    <mat-card class="dashboard__section">
+      <mat-card-title>Recent Orders</mat-card-title>
+      <mat-card-content>
+        <div class="order-list">
+          @for (order of recentOrders(); track order.id) {
+            <div class="order-card">
+              <div class="order-card__header">
+                <span class="order-card__id" aria-label="Order ID">Order #{{ order.id.slice(-8).toUpperCase() }}</span>
+                <span class="order-card__status" [class]="statusClass(order.status)">
+                  {{ statusLabel(order.status) }}
+                </span>
+              </div>
+              <div class="order-card__body">
+                <span class="order-card__date" aria-label="Date">
+                  <mat-icon>calendar_today</mat-icon>
+                  {{ order.createdAt | date:'mediumDate' }}
+                </span>
+                <span class="order-card__total" aria-label="Total">
+                  <mat-icon>payments</mat-icon>
+                  {{ order.total | currency:'KES' }}
+                </span>
+                <span class="order-card__items" aria-label="Items">
+                  <mat-icon>inventory_2</mat-icon>
+                  {{ order.items.length }} item(s)
+                </span>
+              </div>
+              <a
+                mat-button
+                class="order-card__link"
+                [routerLink]="['/tracking', order.id]"
+                aria-label="Track order #{{ order.id }}"
+              >
+                Track Order
+                <mat-icon>arrow_forward</mat-icon>
+              </a>
+            </div>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <nav class="dashboard__actions" aria-label="Quick actions">
+      <a mat-raised-button color="primary" routerLink="/orders">View All Orders</a>
+      <a mat-stroked-button routerLink="/products">Browse Products</a>
+      <a mat-stroked-button routerLink="/inputs">Browse Inputs</a>
+      <a mat-stroked-button routerLink="/cart">View Cart</a>
+    </nav>
+  }
+</div>

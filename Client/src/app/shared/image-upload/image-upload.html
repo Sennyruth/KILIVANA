@@ -1,0 +1,29 @@
+<div class="image-upload">
+  <label class="image-upload__dropzone" [class.image-upload__dropzone--dragging]="dragOver()">
+    <mat-icon class="image-upload__icon">photo_camera</mat-icon>
+    <p class="image-upload__text">Click to choose images or drag &amp; drop</p>
+    <p class="image-upload__hint">PNG, JPG, WEBP up to 5MB each (max {{ maxFiles }})</p>
+    <input type="file" accept="image/*" multiple (change)="onFileChange($event)" />
+  </label>
+
+  @if (previews().length > 0) {
+    <div class="image-upload__previews">
+      @for (preview of previews(); track $index) {
+        <div class="image-upload__preview">
+          <img [src]="preview" alt="Preview" />
+          <button mat-icon-button class="image-upload__remove" (click)="remove($index)" aria-label="Remove image">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+      <button mat-button class="image-upload__clear" (click)="clear()">Clear all</button>
+    </div>
+  }
+
+  @if (uploading()) {
+    <div class="image-upload__progress">
+      <mat-progress-spinner [value]="uploadProgress()" mode="determinate" diameter="40"></mat-progress-spinner>
+      <span class="image-upload__progress-text">{{ uploadProgress() }}%</span>
+    </div>
+  }
+</div>

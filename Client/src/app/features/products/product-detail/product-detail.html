@@ -1,0 +1,95 @@
+<div class="product-detail">
+  @if (loading()) {
+    <div class="product-detail__loading">
+      <mat-spinner diameter="48" />
+      <p>Loading product...</p>
+    </div>
+  } @else if (error()) {
+    <div class="product-detail__error">
+      <mat-icon>error</mat-icon>
+      <p>{{ error() }}</p>
+      <button mat-button (click)="router.navigate(['/products'])">Back to Products</button>
+    </div>
+  } @else if (!product()) {
+    <div class="product-detail__not-found">
+      <mat-icon>search_off</mat-icon>
+      <h3>Product not found</h3>
+      <button mat-button (click)="router.navigate(['/products'])">Back to Products</button>
+    </div>
+  } @else {
+    <div class="product-grid">
+      <div class="product-gallery">
+        <div class="product-gallery__main">
+          <img [src]="primaryImage()" [alt]="product()!.name" class="product-gallery__img" />
+        </div>
+        @if (product()!.images && product()!.images.length > 1) {
+          <div class="product-gallery__thumbs">
+            @for (img of product()!.images; track img.id) {
+              <button mat-stroked-button class="product-gallery__thumb" [class.product-gallery__thumb--active]="img.isPrimary">
+                <img [src]="img.url" [alt]="product()!.name" />
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="product-info">
+        <h1 class="product-info__name">{{ product()!.name }}</h1>
+        <p class="product-info__farmer">
+          <mat-icon class="product-info__farmer-icon">person</mat-icon>
+          {{ product()!.farmerName || 'Local Farmer' }}
+          <mat-icon class="product-info__verified">verified</mat-icon>
+        </p>
+
+        <p class="product-info__price">KSh {{ product()!.price.toFixed(2) }}</p>
+        <p class="product-info__unit">/ {{ product()!.unit }}</p>
+
+        <p class="product-info__description">
+          {{ product()!.description }}
+        </p>
+
+        <div class="product-info__category">
+          <mat-chip-listbox>
+            <mat-chip-option selected>{{ product()!.category }}</mat-chip-option>
+          </mat-chip-listbox>
+        </div>
+
+        @if (product()!.available && product()!.quantity > 0) {
+          <div class="product-info__stock product-info__stock--available">
+            <mat-icon>eco</mat-icon> {{ product()!.quantity }} available
+          </div>
+        } @else {
+          <div class="product-info__stock product-info__stock--unavailable">
+            <mat-icon>block</mat-icon> Out of stock
+          </div>
+        }
+
+        <div class="product-info__actions">
+          <div class="quantity-selector">
+            <button mat-stroked-button (click)="decrease()" [disabled]="quantity() <= 1">
+              <mat-icon>remove</mat-icon>
+            </button>
+            <span class="quantity-selector__value">{{ quantity() }}</span>
+            <button mat-stroked-button (click)="increase()" [disabled]="quantity() >= availableQuantity()">
+              <mat-icon>add</mat-icon>
+            </button>
+          </div>
+
+          <button
+            mat-raised-button
+            color="primary"
+            class="product-info__add-to-cart"
+            (click)="addToCart()"
+            [disabled]="!product()!.available || product()!.quantity === 0"
+          >
+            Add to Cart
+          </button>
+        </div>
+
+        <button mat-button class="product-info__view-cart" (click)="viewCart()">
+          View Cart
+        </button>
+      </div>
+    </div>
+  }
+</div>

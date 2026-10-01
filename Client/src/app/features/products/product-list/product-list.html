@@ -1,0 +1,58 @@
+<div class="product-list-page">
+  <div class="product-list__header">
+    <h1 class="product-list__title">Fresh Products</h1>
+    <p class="product-list__subtitle">Discover quality produce from local farmers</p>
+  </div>
+
+  <div class="product-list__toolbar">
+    <div class="product-list__search">
+      <mat-form-field appearance="outline" class="product-list__search-field">
+        <mat-label>Search products</mat-label>
+        <input matInput (input)="onSearch($event)" />
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="product-list__category">
+      <mat-label>Category</mat-label>
+      <mat-select (selectionChange)="onCategory($event)">
+        <mat-option value="ALL">All Categories</mat-option>
+        <mat-option value="VEGETABLES">Vegetables</mat-option>
+        <mat-option value="FRUITS">Fruits</mat-option>
+        <mat-option value="GRAINS">Grains</mat-option>
+        <mat-option value="DAIRY">Dairy</mat-option>
+        <mat-option value="POULTRY">Poultry</mat-option>
+        <mat-option value="LIVESTOCK">Livestock</mat-option>
+        <mat-option value="HERBS">Herbs</mat-option>
+        <mat-option value="OTHER">Other</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  @if (productService.loading()) {
+    <div class="product-list__loading">
+      <mat-spinner diameter="48" />
+      <p class="muted">Loading products...</p>
+    </div>
+  } @else if (productService.error()) {
+    <div class="product-list__error">
+      <mat-icon>error</mat-icon>
+      <p>{{ productService.error() }}</p>
+    </div>
+  } @else if (filtered().length === 0) {
+    <div class="product-list__empty">
+      <mat-icon class="product-list__empty-icon">search_off</mat-icon>
+      <h3>No products found</h3>
+      <p>Try adjusting your search or filter</p>
+    </div>
+  } @else {
+    <div class="product-list__grid">
+      @for (product of filtered(); track product.id) {
+        <app-product-card
+          [product]="product"
+          (onAddToCart)="addToCart(product)"
+        />
+      }
+    </div>
+  }
+</div>

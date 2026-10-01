@@ -1,0 +1,39 @@
+<div class="tracking-stepper">
+  <div class="tracking-stepper__line"></div>
+  <div class="tracking-stepper__line-progress" [style.width.%]="progressPercent()"></div>
+
+  <div class="tracking-stepper__stages">
+    @for (stage of stages; track stage; let i = $index) {
+      <div class="tracking-stepper__stage"
+           [class.tracking-stepper__stage--completed]="i < currentIndex()"
+           [class.tracking-stepper__stage--active]="i === currentIndex()"
+           [class.tracking-stepper__stage--pending]="i > currentIndex()">
+        <div class="tracking-stepper__dot">
+          @if (i < currentIndex()) {
+            <mat-icon class="tracking-stepper__icon">check</mat-icon>
+          } @else if (i === currentIndex()) {
+            <div class="tracking-stepper__pulse"></div>
+            <mat-icon class="tracking-stepper__icon">radio_button_checked</mat-icon>
+          } @else {
+            <span class="tracking-stepper__number">{{ i + 1 }}</span>
+          }
+        </div>
+        <div class="tracking-stepper__label">
+          <span class="tracking-stepper__stage-name">{{ stageLabel(stage) }}</span>
+          <span class="tracking-stepper__stage-time">{{ stageTime(stage) }}</span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="tracking-stepper__details">
+    <h4 class="tracking-stepper__current">{{ currentLabel() }}</h4>
+    <p class="tracking-stepper__note">{{ currentNote() }}</p>
+    @if (currentLocation()) {
+      <p class="tracking-stepper__location">
+        <mat-icon>location_on</mat-icon>
+        {{ currentLocation() }}
+      </p>
+    }
+  </div>
+</div>

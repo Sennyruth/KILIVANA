@@ -1,0 +1,99 @@
+<div class="inputs-detail">
+  @if (isLoading()) {
+    <div class="inputs-detail__loading">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Loading input details...</p>
+    </div>
+  } @else if (input()) {
+    <button mat-button (click)="goBack()" class="inputs-detail__back" type="button">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Inputs
+    </button>
+
+    <div class="inputs-detail__content">
+      <div class="inputs-detail__gallery">
+        @if (input()!.images && input()!.images.length > 0) {
+          <div class="inputs-detail__main-image">
+            <img [src]="input()!.images[0].url" [alt]="input()!.images[0].alt || input()!.name" />
+          </div>
+          @if (input()!.images.length > 1) {
+            <div class="inputs-detail__thumbnails">
+              @for (image of input()!.images.slice(1); track image.id) {
+                <img [src]="image.url" [alt]="image.alt || input()!.name" class="inputs-detail__thumbnail" />
+              }
+            </div>
+          }
+        } @else {
+          <div class="inputs-detail__placeholder">
+            <mat-icon>agriculture</mat-icon>
+            <span>No image available</span>
+          </div>
+        }
+      </div>
+
+      <div class="inputs-detail__info">
+        <div class="inputs-detail__header">
+          <span class="inputs-detail__category">{{ input()!.category }}</span>
+          <span class="inputs-detail__type">Input</span>
+        </div>
+
+        <h1 class="inputs-detail__name">{{ input()!.name }}</h1>
+
+        <div class="inputs-detail__price">
+          <span class="inputs-detail__price-value">{{ input()!.price | currency:'KES' }}</span>
+          <span class="inputs-detail__price-unit">per {{ input()!.unit }}</span>
+        </div>
+
+        <div class="inputs-detail__meta">
+          <div class="inputs-detail__meta-item">
+            <mat-icon>inventory_2</mat-icon>
+            <span>{{ input()!.quantity }} {{ input()!.unit }} available</span>
+          </div>
+          <div class="inputs-detail__meta-item">
+            <mat-icon>person</mat-icon>
+            <span>{{ input()!.farmerName }}</span>
+            @if (input()!.farmerVerified) {
+              <mat-icon class="inputs-detail__verified">verified</mat-icon>
+            }
+          </div>
+          <div class="inputs-detail__meta-item">
+            <mat-icon>location_on</mat-icon>
+            <span>{{ input()!.location }}</span>
+          </div>
+        </div>
+
+        <div class="inputs-detail__description">
+          <h2>Description</h2>
+          <p>{{ input()!.description }}</p>
+        </div>
+
+        <div class="inputs-detail__rating">
+          <mat-icon>star</mat-icon>
+          <span>{{ input()!.rating.toFixed(1) }}</span>
+          <span class="inputs-detail__review-count">({{ input()!.reviewCount }} reviews)</span>
+        </div>
+
+        <div class="inputs-detail__actions">
+          @if (input()!.available && input()!.quantity > 0) {
+            <button 
+              mat-raised-button 
+              color="primary" 
+              (click)="addToCart()"
+              [disabled]="loading()"
+            >
+              @if (loading()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              }
+              Add to Cart
+            </button>
+          } @else {
+            <button mat-raised-button disabled>
+              Out of Stock
+            </button>
+          }
+          <a mat-stroked-button routerLink="/cart">View Cart</a>
+        </div>
+      </div>
+    </div>
+  }
+</div>

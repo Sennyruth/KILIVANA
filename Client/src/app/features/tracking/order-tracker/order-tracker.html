@@ -1,0 +1,45 @@
+<div class="order-tracker-page">
+  <div class="order-tracker__header">
+    <a class="order-tracker__back" routerLink="/dashboard/buyer">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Dashboard
+    </a>
+    <h1 class="order-tracker__title">Track Order</h1>
+    <p class="order-tracker__subtitle">Order #{{ orderId }}</p>
+  </div>
+
+  @if (loading()) {
+    <div class="order-tracker__loading">
+      <div class="order-tracker__spinner"></div>
+      <p>Loading tracking information…</p>
+    </div>
+  } @else if (history()) {
+    <div class="order-tracker__content">
+      <app-tracking-stepper [history]="history()" />
+
+      @if (orderInfo()) {
+        <div class="order-tracker__details">
+          <h3 class="order-tracker__details-title">Order Details</h3>
+          <div class="order-tracker__detail-row">
+            <span class="order-tracker__detail-label">Order ID</span>
+            <span class="order-tracker__detail-value">#{{ orderInfo()?.orderId }}</span>
+          </div>
+          <div class="order-tracker__detail-row">
+            <span class="order-tracker__detail-label">Current Stage</span>
+            <span class="order-tracker__detail-value">{{ orderInfo()?.currentStage }}</span>
+          </div>
+          <div class="order-tracker__detail-row">
+            <span class="order-tracker__detail-label">Events Tracked</span>
+            <span class="order-tracker__detail-value">{{ orderInfo()?.eventCount }}</span>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="order-tracker__empty">
+      <mat-icon class="order-tracker__empty-icon">search_off</mat-icon>
+      <h3>No tracking information available</h3>
+      <p>The order could not be found or tracking is not yet available.</p>
+    </div>
+  }
+</div>

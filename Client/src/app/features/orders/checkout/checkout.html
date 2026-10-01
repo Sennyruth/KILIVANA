@@ -1,0 +1,133 @@
+<div class="checkout-page">
+  <h1 class="checkout__title">Checkout</h1>
+
+  @if (cart.loading()) {
+    <div class="checkout__loading">
+      <mat-spinner diameter="48" />
+      <p>Loading cart...</p>
+    </div>
+  } @else if (cart.items().length === 0) {
+    <div class="checkout__empty">
+      <mat-icon>shopping_cart</mat-icon>
+      <h3>Your cart is empty</h3>
+      <button mat-button routerLink="/products">Browse Products</button>
+    </div>
+  } @else {
+    <div class="checkout__layout">
+      <div class="checkout__form">
+        <h2 class="checkout__section-title">Shipping Information</h2>
+        <form class="checkout-form" [formGroup]="form">
+          <div class="checkout-form__row">
+            <mat-form-field appearance="outline">
+              <mat-label>First name</mat-label>
+              <input matInput formControlName="firstName" />
+              @if (form.get('firstName')?.touched && form.get('firstName')?.invalid) {
+                <mat-error>First name is required and must be at least 2 characters</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Last name</mat-label>
+              <input matInput formControlName="lastName" />
+              @if (form.get('lastName')?.touched && form.get('lastName')?.invalid) {
+                <mat-error>Last name is required and must be at least 2 characters</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="checkout-form__full">
+            <mat-label>Delivery address</mat-label>
+            <textarea matInput rows="2" placeholder="Street, building, landmark" formControlName="address"></textarea>
+            @if (form.get('address')?.touched && form.get('address')?.invalid) {
+              <mat-error>Address is required and must be at least 10 characters</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="checkout-form__row">
+            <mat-form-field appearance="outline">
+              <mat-label>County</mat-label>
+              <mat-select formControlName="county">
+                <mat-option value="Nairobi">Nairobi</mat-option>
+                <mat-option value="Mombasa">Mombasa</mat-option>
+                <mat-option value="Kisumu">Kisumu</mat-option>
+                <mat-option value="Eldoret">Eldoret</mat-option>
+                <mat-option value="Nakuru">Nakuru</mat-option>
+                <mat-option value="Kiambu">Kiambu</mat-option>
+                <mat-option value="Machakos">Machakos</mat-option>
+                <mat-option value="Kajiado">Kajiado</mat-option>
+              </mat-select>
+              @if (form.get('county')?.touched && form.get('county')?.invalid) {
+                <mat-error>County is required</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Phone</mat-label>
+              <input matInput placeholder="+254 7xx xxx xxx" formControlName="phone" />
+              @if (form.get('phone')?.touched && form.get('phone')?.invalid) {
+                <mat-error>Phone is required and must be in format +254xxxxxxxxx</mat-error>
+              }
+            </mat-form-field>
+          </div>
+        </form>
+
+        <h2 class="checkout__section-title">Payment Method</h2>
+        <mat-radio-group class="checkout__payment" formControlName="paymentMethod">
+          <mat-radio-button value="MPESA" class="checkout__payment-item">
+            <mat-icon>payments</mat-icon>
+            <div class="checkout__payment-label">M-Pesa</div>
+          </mat-radio-button>
+          <mat-radio-button value="CARD" class="checkout__payment-item">
+            <mat-icon>credit_card</mat-icon>
+            <div class="checkout__payment-label">Card</div>
+          </mat-radio-button>
+          <mat-radio-button value="CASH" class="checkout__payment-item">
+            <mat-icon>currency_exchange</mat-icon>
+            <div class="checkout__payment-label">Cash on Delivery</div>
+          </mat-radio-button>
+        </mat-radio-group>
+
+        @if (form.get('paymentMethod')?.value === 'MPESA') {
+          <mat-form-field appearance="outline" class="checkout-form__full">
+            <mat-label>M-Pesa Phone Number</mat-label>
+            <input matInput placeholder="+254 7xx xxx xxx" formControlName="mpesaPhone" />
+            @if (form.get('mpesaPhone')?.touched && form.get('mpesaPhone')?.invalid) {
+              <mat-error>Phone must be in format +254xxxxxxxxx</mat-error>
+            }
+          </mat-form-field>
+        }
+
+        <button mat-raised-button color="primary" class="checkout__place-btn" (click)="placeOrder()" [disabled]="loading()">
+          @if (loading()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Place Order — {{ total() | currency:'KES' }}
+          }
+        </button>
+      </div>
+
+      <div class="checkout__summary">
+        <mat-card class="checkout-summary">
+          <mat-card-title class="checkout-summary__title">Order Summary</mat-card-title>
+          <mat-card-content>
+            <div class="checkout-summary__row">
+              <span>Subtotal ({{ cart.itemCount() }} items)</span>
+              <span>{{ subtotal() | currency:'KES' }}</span>
+            </div>
+            <div class="checkout-summary__row">
+              <span>Delivery fee</span>
+              <span>{{ delivery() | currency:'KES' }}</span>
+            </div>
+            <div class="checkout-summary__row">
+              <span>Tax</span>
+              <span>{{ tax() | currency:'KES' }}</span>
+            </div>
+            <div class="checkout-summary__divider"></div>
+            <div class="checkout-summary__row checkout-summary__total">
+              <span>Total</span>
+              <strong>{{ total() | currency:'KES' }}</strong>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  }
+</div>

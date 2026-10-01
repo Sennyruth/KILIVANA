@@ -1,0 +1,171 @@
+.tracking-stepper {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  position: relative;
+
+  &__line {
+    position: absolute;
+    top: 28px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--surface-3);
+    margin-inline: var(--space-6);
+  }
+
+  &__line-progress {
+    position: absolute;
+    top: 28px;
+    left: var(--space-6);
+    height: 3px;
+    background: var(--primary);
+    transition: width 0.4s ease;
+  }
+
+  &__stages {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    gap: var(--space-1);
+  }
+
+  &__stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+    position: relative;
+    z-index: 1;
+  }
+
+  &__dot {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    margin-bottom: var(--space-2);
+    transition: all 0.3s ease;
+  }
+
+  &__stage--completed &__dot {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+
+  &__stage--active &__dot {
+    background: var(--primary-50);
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.15);
+  }
+
+  &__pulse {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--primary);
+    opacity: 0.2;
+    animation: pulse 1.8s ease-out infinite;
+  }
+
+  &__icon {
+    font-size: 20px;
+    line-height: 1;
+    z-index: 1;
+  }
+
+  &__number {
+    font-size: 0.9rem;
+    font-weight: 700;
+    z-index: 1;
+  }
+
+  &__label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__stage-name {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__stage--completed &__stage-name,
+  &__stage--active &__stage-name {
+    color: var(--text-primary);
+  }
+
+  &__stage-time {
+    font-size: 0.66rem;
+    color: var(--text-muted);
+  }
+
+  &__details {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border);
+  }
+
+  &__current {
+    margin: 0 0 var(--space-1);
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  &__note {
+    margin: 0 0 var(--space-2);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  &__location {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+
+    mat-icon {
+      font-size: 16px;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .tracking-stepper {
+    &__stage-name {
+      font-size: 0.62rem;
+    }
+
+    &__dot {
+      width: 34px;
+      height: 34px;
+    }
+  }
+}

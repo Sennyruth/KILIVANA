@@ -1,0 +1,138 @@
+.dashboard {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+  background: var(--surface-1);
+}
+
+.dashboard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.dashboard__header-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.dashboard__title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--primary-dark);
+}
+
+.dashboard__subtitle {
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+  font-size: 1rem;
+}
+
+.dashboard__card {
+  margin-bottom: var(--space-8);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  background: #ffffff;
+  border: 2px solid var(--primary-100);
+}
+
+.dashboard__card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.dashboard__loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-8);
+}
+
+.dashboard__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.dashboard__empty-icon {
+  font-size: 48px;
+  color: var(--primary-300);
+}
+
+.dashboard__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dashboard__table th,
+.dashboard__table td {
+  padding: var(--space-4) var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--primary-100);
+  font-size: 0.9rem;
+}
+
+.dashboard__table th {
+  font-weight: 700;
+  color: var(--primary-dark);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.dashboard__product-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.dashboard__product-img {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+
+.dashboard__rating-star {
+  color: var(--accent);
+  font-size: 16px;
+}
+
+.dashboard__orders-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  color: var(--text-secondary);
+  text-align: center;
+
+  mat-icon {
+    font-size: 32px;
+    color: var(--primary-300);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dashboard__table {
+    display: block;
+    overflow-x: auto;
+    font-size: 0.8rem;
+  }
+}

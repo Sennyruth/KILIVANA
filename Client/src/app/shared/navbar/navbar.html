@@ -1,0 +1,76 @@
+<div class="navbar">
+  <mat-toolbar class="navbar__toolbar">
+    <button mat-icon-button class="navbar__menu" (click)="toggleMobileMenu()" aria-label="Menu">
+      <mat-icon>menu</mat-icon>
+    </button>
+
+    <a class="navbar__brand" routerLink="/products" aria-label="Kilivana">
+      <img ngSrc="logo.jpeg" alt="Kilivana logo" width="40" height="40" class="navbar__logo" />
+      <span class="navbar__title">Kilivana</span>
+    </a>
+
+    <nav class="navbar__nav" [class.navbar__nav--open]="mobileMenuOpen()">
+      @for (link of navLinks; track link.href) {
+        <a class="navbar__link" [routerLink]="link.href"
+           routerLinkActive [class.navbar__link--active]="isActive(link.href)">
+          {{ link.label }}
+        </a>
+      }
+      <a class="navbar__link" [routerLink]="dashboardHref()" routerLinkActive>
+        Dashboard
+      </a>
+    </nav>
+
+    <div class="navbar__actions">
+      <button mat-icon-button class="navbar__cart" [routerLink]="'/cart'" aria-label="Cart">
+        <mat-icon>shopping_cart</mat-icon>
+        @if (itemCount() > 0) {
+          <span matBadge [matBadge]="itemCount()" class="navbar__badge"></span>
+        }
+      </button>
+
+      @if (auth.isAuthenticated()) {
+        <button mat-button [matMenuTriggerFor]="userMenu" class="navbar__user">
+          <span class="navbar__avatar" [class.navbar__avatar--has-url]="!!user()?.avatarUrl">
+            @if (user()?.avatarUrl) {
+              <img [src]="user()?.avatarUrl" [alt]="user()?.name ?? 'User'" class="navbar__avatar-img" />
+            } @else {
+              <span class="navbar__avatar-text">{{ userInitials() }}</span>
+            }
+          </span>
+          <span class="navbar__user-name">{{ user()?.name }}</span>
+          <mat-icon class="navbar__arrow">expand_more</mat-icon>
+        </button>
+        <mat-menu #userMenu="matMenu">
+          <div class="user-menu">
+            <div class="user-menu__role">{{ roleLabel() }} Account</div>
+            <mat-divider></mat-divider>
+            <a mat-menu-item [routerLink]="dashboardHref()">Dashboard</a>
+            <a mat-menu-item routerLink="/orders">Order History</a>
+            <a mat-menu-item routerLink="/tracking/last">Track Order</a>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="logout()">Logout</button>
+          </div>
+        </mat-menu>
+      } @else {
+        <button mat-raised-button class="navbar__cta" (click)="login()">
+          Login
+        </button>
+      }
+    </div>
+  </mat-toolbar>
+
+  <div class="navbar__mobile" [class.navbar__mobile--open]="mobileMenuOpen()">
+    @for (link of navLinks; track link.href) {
+      <a class="navbar__mobile-link" [routerLink]="link.href"
+         (click)="closeMobileMenu()" routerLinkActive
+         [class.navbar__mobile-link--active]="isActive(link.href)">
+        {{ link.label }}
+      </a>
+    }
+    <a class="navbar__mobile-link" [routerLink]="dashboardHref()" (click)="closeMobileMenu()">Dashboard</a>
+    <a class="navbar__mobile-link" routerLink="/orders" (click)="closeMobileMenu()">Orders</a>
+  </div>
+</div>
+
+<div class="navbar__scrim" [class.navbar__scrim--visible]="mobileMenuOpen()" (click)="closeMobileMenu()"></div>

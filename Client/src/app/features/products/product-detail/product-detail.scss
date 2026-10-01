@@ -1,0 +1,132 @@
+.product-detail {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+.product-detail__loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-12);
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.product-gallery__main {
+  aspect-ratio: 1;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-gallery__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.product-gallery__thumbs {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.product-gallery__thumb {
+  width: 72px;
+  height: 72px;
+}
+
+.product-info__name {
+  margin: 0 0 var(--space-2);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.product-info__farmer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: var(--space-3);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.product-info__farmer-icon {
+  font-size: 16px;
+}
+
+.product-info__verified {
+  font-size: 16px;
+  color: var(--success);
+}
+
+.product-info__price {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 0 0 var(--space-1);
+}
+
+.product-info__unit {
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-4);
+  font-size: 0.95rem;
+}
+
+.product-info__description {
+  margin: 0 0 var(--space-4);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.product-info__stock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--success);
+  font-weight: 600;
+  margin-bottom: var(--space-6);
+}
+
+.product-info__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.quantity-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+}
+
+.quantity-selector__value {
+  min-width: 32px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.product-info__add-to-cart {
+  flex: 1;
+  height: 44px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .product-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+}

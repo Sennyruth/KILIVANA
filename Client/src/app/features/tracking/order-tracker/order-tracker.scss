@@ -1,0 +1,132 @@
+.order-tracker-page {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+.order-tracker__header {
+  margin-bottom: var(--space-6);
+}
+
+.order-tracker__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-decoration: none;
+  font-size: 0.88rem;
+  margin-bottom: var(--space-2);
+
+  &:hover {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+}
+
+.order-tracker__back mat-icon {
+  font-size: 18px;
+}
+
+.order-tracker__title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.order-tracker__subtitle {
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+}
+
+.order-tracker__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-12);
+  color: var(--text-secondary);
+}
+
+.order-tracker__spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--surface-3);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.order-tracker__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.order-tracker__details {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+}
+
+.order-tracker__details-title {
+  margin: 0 0 var(--space-3);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.order-tracker__detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.order-tracker__detail-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.order-tracker__detail-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.order-tracker__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-12);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.order-tracker__empty-icon {
+  font-size: 48px;
+  color: var(--text-muted);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 600px) {
+  .order-tracker-page {
+    padding: var(--space-4);
+  }
+
+  .order-tracker__title {
+    font-size: 1.4rem;
+  }
+}

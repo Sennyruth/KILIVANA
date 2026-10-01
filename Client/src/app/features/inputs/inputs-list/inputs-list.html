@@ -1,0 +1,46 @@
+<div class="inputs-list">
+  <header class="inputs-list__header">
+    <h1 class="inputs-list__title">Agricultural Inputs</h1>
+    <p class="inputs-list__subtitle">Browse fertilizers, seeds, equipment, and more from trusted suppliers</p>
+  </header>
+
+  <div class="inputs-list__filters">
+    <mat-form-field appearance="outline" class="inputs-list__search">
+      <mat-label>Search inputs</mat-label>
+      <input matInput placeholder="Search by name or description" (input)="onSearch($event)" />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="inputs-list__category">
+      <mat-label>Category</mat-label>
+      <mat-select (selectionChange)="onCategory($event)">
+        <mat-option value="ALL">All Categories</mat-option>
+        @for (category of categories(); track category) {
+          <mat-option [value]="category">{{ category }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  @if (productService.loading()) {
+    <div class="inputs-list__loading">
+      <mat-spinner diameter="48" />
+      <p>Loading inputs...</p>
+    </div>
+  } @else if (filtered().length === 0) {
+    <div class="inputs-list__empty">
+      <mat-icon class="inputs-list__empty-icon">agriculture</mat-icon>
+      <h3>No inputs found</h3>
+      <p>Try adjusting your search or filters</p>
+    </div>
+  } @else {
+    <div class="inputs-list__grid">
+      @for (input of filtered(); track input.id) {
+        <app-product-card 
+          [product]="input"
+          (addToCart)="addToCart(input)"
+        ></app-product-card>
+      }
+    </div>
+  }
+</div>
