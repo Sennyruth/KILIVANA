@@ -1,7 +1,6 @@
 import { environment } from '../../environments/environment';
 
 // API Configuration for ngrok integration
-// Uses environment.ngrokUrl if set, otherwise uses relative paths for local development
 const NGROK_URL = environment.ngrokUrl || '';
 
 export const API_BASE = NGROK_URL ? `${NGROK_URL}/api/v1` : '/api/v1';

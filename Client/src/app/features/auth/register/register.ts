@@ -36,8 +36,10 @@ export class Register {
 
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
+    username: ['', [Validators.required, Validators.minLength(3)]],
     email: ['', [Validators.required, Validators.email]],
     phone: ['', [Validators.required, Validators.pattern(/^\+254\d{9}$/)]],
+    region: ['', [Validators.required]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     role: ['BUYER', [Validators.required]],
   });
@@ -51,19 +53,26 @@ export class Register {
       return;
     }
 
-    const { name, email, phone, password, role } = this.form.value;
-    this.auth.register(name, email, phone, password, role).subscribe({
+    const { name, email, phone, password, role, username, region } = this.form.value;
+    this.auth.register(name, email, phone, password, role, username, region).subscribe({
       next: (res) => {
         if (res.success) {
           this.snackBar.open('Account created successfully!', 'Close', { duration: 3000 });
-          this.router.navigate(['/products']);
+          this.router.navigate([this.getDashboardRoute()]);
         } else {
           this.snackBar.open(res.message || 'Registration failed', 'Close', { duration: 5000 });
         }
       },
       error: () => {
-        this.snackBar.open('An error occurred. Please try again.', 'Close', { duration: 5000 });
+        this.snackBar.open(this.auth.error() || 'An error occurred. Please try again.', 'Close', { duration: 5000 });
       },
     });
+  }
+
+  private getDashboardRoute(): string {
+    const role = this.auth.role();
+    if (role === 'FARMER') return '/dashboard/farmer';
+    if (role === 'SUPPLIER') return '/dashboard/supplier';
+    return '/dashboard/buyer';
   }
 }

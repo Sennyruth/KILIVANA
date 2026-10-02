@@ -48,14 +48,21 @@ export class Login {
       next: (res) => {
         if (res.success) {
           this.snackBar.open('Welcome back!', 'Close', { duration: 3000 });
-          this.router.navigate(['/products']);
+          this.router.navigate([this.getDashboardRoute()]);
         } else {
           this.snackBar.open(res.message || 'Login failed', 'Close', { duration: 5000 });
         }
       },
       error: () => {
-        this.snackBar.open('An error occurred. Please try again.', 'Close', { duration: 5000 });
+        this.snackBar.open(this.auth.error() || 'An error occurred. Please try again.', 'Close', { duration: 5000 });
       },
     });
+  }
+
+  private getDashboardRoute(): string {
+    const role = this.auth.role();
+    if (role === 'FARMER') return '/dashboard/farmer';
+    if (role === 'SUPPLIER') return '/dashboard/supplier';
+    return '/dashboard/buyer';
   }
 }

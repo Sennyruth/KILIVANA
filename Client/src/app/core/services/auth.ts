@@ -1,15 +1,18 @@
-import { Service, inject, computed } from '@angular/core';
-import { BehaviorSubject, Observable, EMPTY, of, switchMap, tap, map, shareReplay, filter, take, firstValueFrom } from 'rxjs';
+import { Injectable, inject, computed } from '@angular/core';
+import { BehaviorSubject, Observable, throwError, switchMap, tap, finalize, firstValueFrom } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { HttpErrorResponse } from '@angular/common/http';
 
 import { HttpService } from './http';
 import { ApiEndpoints } from '../../shared/api.config';
-import { User, AuthTokens, AuthUserResponse, UserRole } from '../../shared/user.model';
+import { ApiResponse } from '../../shared/api-response';
+import { AuthTokenResponse, User, UserResponse, UserRole, toUser } from '../../shared/user.model';
 
 const ACCESS_KEY = 'kilivana_access_token';
 const REFRESH_KEY = 'kilivana_refresh_token';
 const USER_KEY = 'kilivana_user';
 
-@Service()
+@Injectable({ providedIn: 'root' })
 export class Auth {
   private readonly http = inject(HttpService);
 
@@ -26,7 +29,7 @@ export class Auth {
   readonly loading = computed(() => this._loading.value);
   readonly error = computed(() => this._error.value);
 
-  readonly isAuthenticated = computed(() => this._user.value !== null);
+  readonly isAuthenticated = computed(() => this._user.value !== null && this.token !== null);
   readonly role = computed<UserRole | null>(() => this._user.value?.role ?? null);
   readonly isFarmer = computed(() => this._user.value?.role === 'FARMER');
   readonly isBuyer = computed(() => this._user.value?.role === 'BUYER');
@@ -42,47 +45,41 @@ export class Auth {
     return localStorage.getItem(REFRESH_KEY);
   }
 
+  login(email: string, password: string): Observable<ApiResponse<AuthTokenResponse>> {
+    this._loading.next(true);
+    this._error.next(null);
+    return this.http.post<AuthTokenResponse>(ApiEndpoints.AUTH.LOGIN, { email, password }).pipe(
+      tap((res) => {
+        if (res.success && res.data?.accessToken) {
+          this.storeAuth(res.data);
+        }
+      }),
+      catchError((err: HttpErrorResponse) => this.fail(err)),
+      finalize(() => this._loading.next(false)),
+    );
+  }
+
   register(
     name: string,
     email: string,
     phone: string,
     password: string,
     role: UserRole,
-  ): Observable<import('../../shared/api-response').ApiResponse<AuthUserResponse>> {
+    username: string,
+    region: string,
+  ): Observable<ApiResponse<UserResponse>> {
     this._loading.next(true);
     this._error.next(null);
     return this.http
-      .post<AuthUserResponse>(ApiEndpoints.AUTH.REGISTER, { name, email, phone, password, role })
-      .pipe(
-        tap((res) => {
-          if (res.success && res.data) this.storeAuth(res.data);
-          this._loading.next(false);
-        }),
-      );
+      .post<UserResponse>(ApiEndpoints.AUTH.REGISTER, { name, email, phone, password, role, username, region })
+      .pipe(catchError((err: HttpErrorResponse) => this.fail(err)), finalize(() => this._loading.next(false)));
   }
 
-  login(
-    email: string,
-    password: string,
-  ): Observable<import('../../shared/api-response').ApiResponse<AuthUserResponse>> {
-    this._loading.next(true);
-    this._error.next(null);
-    return this.http
-      .post<AuthUserResponse>(ApiEndpoints.AUTH.LOGIN, { email, password })
-      .pipe(
-        tap((res) => {
-          if (res.success && res.data) this.storeAuth(res.data);
-          this._loading.next(false);
-        }),
-      );
-  }
-
-  fetchProfile(): Observable<import('../../shared/api-response').ApiResponse<{ user: User }>> {
-    return this.http.get<{ user: User }>(ApiEndpoints.AUTH.PROFILE).pipe(
+  fetchProfile(): Observable<ApiResponse<UserResponse>> {
+    return this.http.get<UserResponse>(ApiEndpoints.AUTH.PROFILE).pipe(
       tap((res) => {
-        if (res.success && res.data?.user) {
-          this._user.next(res.data.user);
-          localStorage.setItem(USER_KEY, JSON.stringify(res.data.user));
+        if (res.success && res.data) {
+          this.storeUser(res.data);
         }
       }),
     );
@@ -95,16 +92,25 @@ export class Auth {
     if (!rt) return Promise.reject('No refresh token');
 
     this.refreshPromise$ = firstValueFrom(
-      this.http.post<AuthTokens>(ApiEndpoints.AUTH.REFRESH, { refreshToken: rt }),
-    ).then((res) => {
-      if (res.success && res.data) {
-        this.storeTokens(res.data);
-        return res.data.accessToken;
-      }
-      throw new Error(res.message || 'Refresh failed');
-    }).finally(() => {
-      this.refreshPromise$ = null;
-    });
+      this.http.post<AuthTokenResponse>(ApiEndpoints.AUTH.REFRESH, { refreshToken: rt }),
+    )
+      .then((res) => {
+        if (res.success && res.data?.accessToken) {
+          localStorage.setItem(ACCESS_KEY, res.data.accessToken);
+          if (res.data.refreshToken) {
+            localStorage.setItem(REFRESH_KEY, res.data.refreshToken);
+          }
+          return res.data.accessToken;
+        }
+        throw new Error(res.message || 'Refresh failed');
+      })
+      .catch((err) => {
+        this.logout();
+        return Promise.reject(err);
+      })
+      .finally(() => {
+        this.refreshPromise$ = null;
+      });
     return this.refreshPromise$;
   }
 
@@ -116,15 +122,28 @@ export class Auth {
     this._error.next(null);
   }
 
-  private storeAuth(data: AuthUserResponse): void {
-    this.storeTokens(data.tokens);
-    this._user.next(data.user);
-    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+  private storeAuth(data: AuthTokenResponse): void {
+    localStorage.setItem(ACCESS_KEY, data.accessToken);
+    localStorage.setItem(REFRESH_KEY, data.refreshToken);
+    this.storeUser(data.user);
   }
 
-  private storeTokens(tokens: AuthTokens): void {
-    localStorage.setItem(ACCESS_KEY, tokens.accessToken);
-    localStorage.setItem(REFRESH_KEY, tokens.refreshToken);
+  private storeUser(response: UserResponse): void {
+    const user = toUser(response);
+    this._user.next(user);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  }
+
+  private fail(err: HttpErrorResponse): Observable<never> {
+    const body = err.error as Partial<ApiResponse<unknown>> | string | null;
+    const message =
+      typeof body === 'object' && body?.message
+        ? body.message
+        : err.status === 0
+          ? 'Cannot reach the server. Check your connection.'
+          : 'Something went wrong. Please try again.';
+    this._error.next(message);
+    return throwError(() => err);
   }
 
   private loadUser(): User | null {

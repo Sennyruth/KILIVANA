@@ -17,6 +17,14 @@
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="auth__field">
+        <mat-label>Username</mat-label>
+        <input matInput placeholder="janewanjiru" formControlName="username" />
+        @if (form.get('username')?.touched && form.get('username')?.invalid) {
+          <mat-error>Username is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="auth__field">
         <mat-label>Email address</mat-label>
         <input matInput type="email" placeholder="you@example.com" autocomplete="email" formControlName="email" />
         @if (form.get('email')?.touched && form.get('email')?.invalid) {
@@ -29,6 +37,14 @@
         <input matInput placeholder="+254 712 345 678" formControlName="phone" />
         @if (form.get('phone')?.touched && form.get('phone')?.invalid) {
           <mat-error>Phone is required and must be in format +254xxxxxxxxx</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="auth__field">
+        <mat-label>Region</mat-label>
+        <input matInput placeholder="Murang'a County" formControlName="region" />
+        @if (form.get('region')?.touched && form.get('region')?.invalid) {
+          <mat-error>Region is required</mat-error>
         }
       </mat-form-field>
 
