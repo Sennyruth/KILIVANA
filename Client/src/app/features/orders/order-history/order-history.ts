@@ -2,7 +2,6 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { Order as OrderService } from '../../../core/services/order';
 import { Order, OrderStatus } from '../../../shared/order.model';
 
@@ -17,9 +16,9 @@ type OrderFilter = 'ALL' | 'IN_PROGRESS' | 'DELIVERED' | 'CANCELLED';
 export class OrderHistory implements OnInit {
   private readonly orderService = inject(OrderService);
 
-  protected readonly orders = toSignal(this.orderService.orders$, { initialValue: [] as Order[] });
-  protected readonly loading = toSignal(this.orderService.loading$, { initialValue: false });
-  protected readonly error = toSignal(this.orderService.error$, { initialValue: null });
+  protected readonly orders = this.orderService.orders;
+  protected readonly loading = this.orderService.loading;
+  protected readonly error = this.orderService.error;
   protected readonly filter = signal<OrderFilter>('ALL');
 
   protected readonly visibleOrders = computed(() => {
