@@ -3,30 +3,47 @@
   max-width: var(--container);
   margin: 0 auto;
   padding: var(--space-8) var(--space-6);
-  background: var(--surface-1);
+  background: linear-gradient(180deg, var(--surface-1) 0%, #ffffff 100%);
   min-height: calc(100vh - 140px);
 }
 
 .product-list__header {
-  padding: var(--space-8) var(--space-4);
+  padding: var(--space-10) var(--space-6);
   margin-bottom: var(--space-8);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-accent) 50%, var(--primary-dark) 100%);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(13, 74, 45, 0.2), 0 2px 8px rgba(13, 74, 45, 0.1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 60%;
+    height: 200%;
+    background: radial-gradient(ellipse, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
 }
 
 .product-list__title {
-  font-size: 2.5rem;
+  font-size: 2.75rem;
   font-weight: 800;
   color: #ffffff;
-  margin: 0 0 var(--space-2);
-  letter-spacing: -0.02em;
+  margin: 0 0 var(--space-3);
+  letter-spacing: -0.03em;
+  position: relative;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .product-list__subtitle {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.15rem;
   margin: 0;
+  position: relative;
+  font-weight: 400;
 }
 
 .product-list__toolbar {
@@ -35,10 +52,11 @@
   margin-bottom: var(--space-8);
   flex-wrap: wrap;
   align-items: center;
-  padding: var(--space-5);
-  background: #ffffff;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
+  padding: var(--space-6);
+  background: linear-gradient(135deg, #ffffff 0%, var(--surface-2) 100%);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px rgba(13, 74, 45, 0.08), 0 1px 3px rgba(13, 74, 45, 0.05);
+  border: 1px solid var(--primary-100);
 }
 
 .product-list__search-field {
@@ -56,6 +74,7 @@
 .product-list__category {
   ::ng-deep .mat-mdc-text-field-wrapper {
     height: 56px;
+    background: linear-gradient(135deg, #ffffff 0%, var(--surface-2) 100%);
   }
 
   ::ng-deep .mat-mdc-form-field-infix {
@@ -80,7 +99,7 @@
 .product-list__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-6);
+  gap: var(--space-8);
 }
 
 .product-list__loading {
@@ -92,6 +111,8 @@
   padding: var(--space-16) var(--space-4);
   color: var(--text-secondary);
   text-align: center;
+  background: linear-gradient(135deg, var(--surface-2) 0%, var(--primary-50) 100%);
+  border-radius: var(--radius-lg);
 }
 
 .product-list__error {
@@ -101,9 +122,10 @@
   gap: var(--space-3);
   padding: var(--space-12);
   color: var(--danger);
-  background: #ffebee;
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
   border: 2px solid var(--danger);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.15);
 }
 
 .product-list__empty {
@@ -114,10 +136,12 @@
   padding: var(--space-16) var(--space-4);
   text-align: center;
   color: var(--text-secondary);
+  background: linear-gradient(135deg, var(--surface-2) 0%, var(--primary-50) 100%);
+  border-radius: var(--radius-lg);
 }
 
 .product-list__empty-icon {
-  font-size: 64px;
+  font-size: 72px;
   color: var(--primary-300);
 }
 
@@ -127,16 +151,21 @@
   }
 
   .product-list__header {
-    padding: var(--space-5) var(--space-4);
+    padding: var(--space-6) var(--space-4);
   }
 
   .product-list__title {
-    font-size: 2rem;
+    font-size: 2.25rem;
+  }
+
+  .product-list__subtitle {
+    font-size: 1rem;
   }
 
   .product-list__toolbar {
     flex-direction: column;
     align-items: stretch;
+    padding: var(--space-5);
   }
 
   .product-list__search-field {
@@ -149,12 +178,17 @@
 
   .product-list__grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: var(--space-4);
+    gap: var(--space-6);
   }
 }
 
 @media (max-width: 480px) {
   .product-list__grid {
     grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
+
+  .product-list__title {
+    font-size: 1.75rem;
   }
 }

@@ -4,10 +4,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { CurrencyPipe } from '@angular/common';
 import { Product } from '../../../core/services/product';
 import { Cart } from '../../../core/services/cart';
+import { NotificationService } from '../../../shared/notification/notification.service';
 
 @Component({
   selector: 'app-inputs-detail',
@@ -27,7 +27,7 @@ export class InputsDetail implements OnInit {
   protected readonly cartService = inject(Cart);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notification = inject(NotificationService);
 
   protected readonly inputId = this.route.snapshot.paramMap.get('id') ?? '';
   protected readonly input = computed(() => this.productService.products().find(p => p.id === this.inputId));
@@ -44,12 +44,12 @@ export class InputsDetail implements OnInit {
         if (res.success && res.data) {
           this.isLoading.set(false);
         } else {
-          this.snackBar.open(res.message || 'Failed to load input', 'Close', { duration: 5000 });
+          this.notification.error(res.message || 'Failed to load input');
           this.router.navigate(['/inputs']);
         }
       },
       error: () => {
-        this.snackBar.open('Failed to load input', 'Close', { duration: 5000 });
+        this.notification.error('Failed to load input');
         this.router.navigate(['/inputs']);
       },
     });
@@ -60,20 +60,20 @@ export class InputsDetail implements OnInit {
     if (!currentInput) return;
 
     if (!currentInput.available || currentInput.quantity === 0) {
-      this.snackBar.open('Input is out of stock', 'Close', { duration: 2000 });
+      this.notification.warning('Input is out of stock');
       return;
     }
 
-    this.cartService.addItem(currentInput.id, 1).subscribe({
+    this.cartService.addItem(currentInput, 1).subscribe({
       next: (res) => {
         if (res.success) {
-          this.snackBar.open('Added to cart!', 'Close', { duration: 2000 });
+          this.notification.success('Added to cart!');
         } else {
-          this.snackBar.open(res.message || 'Failed to add to cart', 'Close', { duration: 3000 });
+          this.notification.error(res.message || 'Failed to add to cart');
         }
       },
-      error: () => {
-        this.snackBar.open('Failed to add to cart', 'Close', { duration: 3000 });
+      error: (error) => {
+        this.notification.error(error.error?.message || error.error?.error || error.message || 'Failed to add to cart');
       }
     });
   }

@@ -14,12 +14,12 @@
       <div class="inputs-detail__gallery">
         @if (input()!.images && input()!.images.length > 0) {
           <div class="inputs-detail__main-image">
-            <img [src]="input()!.images[0].url" [alt]="input()!.images[0].alt || input()!.name" />
+            <img [src]="input()!.images[0].url" [alt]="input()!.name" />
           </div>
           @if (input()!.images.length > 1) {
             <div class="inputs-detail__thumbnails">
               @for (image of input()!.images.slice(1); track image.id) {
-                <img [src]="image.url" [alt]="image.alt || input()!.name" class="inputs-detail__thumbnail" />
+                <img [src]="image.url" [alt]="input()!.name" class="inputs-detail__thumbnail" />
               }
             </div>
           }

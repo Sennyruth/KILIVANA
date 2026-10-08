@@ -4,11 +4,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { ProductCard } from '../../../shared/product-card/product-card';
 import { Product } from '../../../core/services/product';
 import { Cart } from '../../../core/services/cart';
-import type { ProductCategory } from '../../../shared/product.model';
+import { NotificationService } from '../../../shared/notification/notification.service';
+import type { Product as ProductModel, ProductCategory } from '../../../shared/product.model';
 
 @Component({
   selector: 'app-product-list',
@@ -26,7 +26,7 @@ import type { ProductCategory } from '../../../shared/product.model';
 export class ProductList implements OnInit {
   protected readonly productService = inject(Product);
   protected readonly cartService = inject(Cart);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notification = inject(NotificationService);
 
   protected readonly searchQuery = signal('');
   protected readonly selectedCategory = signal<ProductCategory | 'ALL'>('ALL');
@@ -45,7 +45,7 @@ export class ProductList implements OnInit {
   ngOnInit(): void {
     this.productService.loadAll().subscribe({
       error: () => {
-        this.snackBar.open('Failed to load products', 'Close', { duration: 3000 });
+        this.notification.error('Failed to load products');
       }
     });
   }
@@ -59,22 +59,22 @@ export class ProductList implements OnInit {
     this.selectedCategory.set(event.value as ProductCategory | 'ALL');
   }
 
-  protected addToCart(product: any): void {
+  protected addToCart(product: ProductModel): void {
     if (!product.available || product.quantity === 0) {
-      this.snackBar.open('Product is out of stock', 'Close', { duration: 2000 });
+      this.notification.warning('Product is out of stock');
       return;
     }
-    
-    this.cartService.addItem(product.id, 1).subscribe({
+
+    this.cartService.addItem(product, 1).subscribe({
       next: (res) => {
         if (res.success) {
-          this.snackBar.open('Added to cart!', 'Close', { duration: 2000 });
+          this.notification.success('Added to cart!');
         } else {
-          this.snackBar.open(res.message || 'Failed to add to cart', 'Close', { duration: 3000 });
+          this.notification.error(res.message || 'Failed to add to cart');
         }
       },
-      error: () => {
-        this.snackBar.open('Failed to add to cart', 'Close', { duration: 3000 });
+      error: (error) => {
+        this.notification.error(error.error?.message || error.error?.error || error.message || 'Failed to add to cart');
       }
     });
   }

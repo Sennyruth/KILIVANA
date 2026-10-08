@@ -5,9 +5,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { Product } from '../../../core/services/product';
 import { Cart } from '../../../core/services/cart';
+import { NotificationService } from '../../../shared/notification/notification.service';
+import type { Product as ProductModel } from '../../../shared/product.model';
 
 @Component({
   selector: 'app-product-detail',
@@ -26,14 +27,14 @@ export class ProductDetail implements OnInit {
   protected readonly router = inject(Router);
   private readonly productService = inject(Product);
   private readonly cartService = inject(Cart);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notification = inject(NotificationService);
   
   protected readonly productId = this.route.snapshot.paramMap.get('id') ?? '';
   protected readonly quantity = signal(1);
   protected readonly loading = computed(() => this.productService.loading());
   protected readonly error = computed(() => this.productService.error());
 
-  protected readonly product = computed(() => {
+  protected readonly product = computed((): ProductModel | null => {
     const products = this.productService.products();
     return products.find(p => p.id === this.productId) || null;
   });
@@ -59,7 +60,7 @@ export class ProductDetail implements OnInit {
   ngOnInit(): void {
     this.productService.getById(this.productId).subscribe({
       error: () => {
-        this.snackBar.open('Failed to load product', 'Close', { duration: 3000 });
+        this.notification.error('Failed to load product');
       }
     });
   }
@@ -74,18 +75,19 @@ export class ProductDetail implements OnInit {
   }
 
   protected addToCart(): void {
-    if (!this.product()) return;
-    
-    this.cartService.addItem(this.productId, this.quantity()).subscribe({
+    const product = this.product();
+    if (!product) return;
+
+    this.cartService.addItem(product, this.quantity()).subscribe({
       next: (res) => {
         if (res.success) {
-          this.snackBar.open('Added to cart!', 'Close', { duration: 2000 });
+          this.notification.success('Added to cart!');
         } else {
-          this.snackBar.open(res.message || 'Failed to add to cart', 'Close', { duration: 3000 });
+          this.notification.error(res.message || 'Failed to add to cart');
         }
       },
-      error: () => {
-        this.snackBar.open('Failed to add to cart', 'Close', { duration: 3000 });
+      error: (error) => {
+        this.notification.error(error.error?.message || error.error?.error || error.message || 'Failed to add to cart');
       }
     });
   }
