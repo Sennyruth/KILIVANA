@@ -17,16 +17,16 @@
   </div>
 
   <div class="dashboard__stats">
-    <mat-card class="dashboard__stat-card">
+    <div class="dashboard__stat-card">
       <div class="dashboard__stat-icon dashboard__stat-icon--products">
-        <mat-icon>inventory_2</mat-icon>
+        <mat-icon>store</mat-icon>
       </div>
       <div class="dashboard__stat-content">
         <span class="dashboard__stat-value">{{ totalProducts() }}</span>
         <span class="dashboard__stat-label">Total Products</span>
       </div>
-    </mat-card>
-    <mat-card class="dashboard__stat-card">
+    </div>
+    <div class="dashboard__stat-card">
       <div class="dashboard__stat-icon dashboard__stat-icon--active">
         <mat-icon>check_circle</mat-icon>
       </div>
@@ -34,30 +34,30 @@
         <span class="dashboard__stat-value">{{ activeProducts() }}</span>
         <span class="dashboard__stat-label">Active Products</span>
       </div>
-    </mat-card>
-    <mat-card class="dashboard__stat-card">
+    </div>
+    <div class="dashboard__stat-card">
       <div class="dashboard__stat-icon dashboard__stat-icon--orders">
         <mat-icon>shopping_cart</mat-icon>
       </div>
       <div class="dashboard__stat-content">
-        <span class="dashboard__stat-value">{{ totalOrders() }}</span>
+        <span class="dashboard__stat-value">{{ ordersError() ? '—' : totalOrders() }}</span>
         <span class="dashboard__stat-label">Total Orders</span>
       </div>
-    </mat-card>
-    <mat-card class="dashboard__stat-card">
+    </div>
+    <div class="dashboard__stat-card">
       <div class="dashboard__stat-icon dashboard__stat-icon--pending">
         <mat-icon>pending</mat-icon>
       </div>
       <div class="dashboard__stat-content">
-        <span class="dashboard__stat-value">{{ pendingOrders() }}</span>
+        <span class="dashboard__stat-value">{{ ordersError() ? '—' : pendingOrders() }}</span>
         <span class="dashboard__stat-label">Pending Orders</span>
       </div>
-    </mat-card>
+    </div>
   </div>
 
   <mat-card class="dashboard__card">
     <mat-card-title class="dashboard__card-title">
-      <mat-icon>inventory_2</mat-icon>
+      <mat-icon>inventory</mat-icon>
       My Products
     </mat-card-title>
     <mat-card-content>
@@ -92,7 +92,12 @@
             @for (product of products(); track product.id) {
               <tr>
                 <td class="dashboard__product-cell">
-                  <img [src]="loadImage(product)" [alt]="product.name" class="dashboard__product-img" />
+                  <img
+                    [src]="loadImage(product)"
+                    [alt]="product.name"
+                    class="dashboard__product-img"
+                    (error)="onProductImageError($event)"
+                  />
                   <span>{{ product.name }}</span>
                 </td>
                 <td>{{ product.category }}</td>
@@ -103,15 +108,20 @@
                   {{ product.rating }} ({{ product.reviewCount }})
                 </td>
                 <td>
-                  <span [class]="product.available ? 'dashboard__status--active' : 'dashboard__status--inactive'">
-                    {{ product.available ? 'Active' : 'Inactive' }}
+                  <span [class]="productStatusClass(product)">
+                    {{ productStatusLabel(product) }}
                   </span>
                 </td>
                 <td>
                   <button mat-icon-button (click)="editProduct(product.id)" aria-label="Edit">
                     <mat-icon>edit</mat-icon>
                   </button>
-                  <button mat-icon-button (click)="toggleProductAvailability(product)" aria-label="Toggle availability">
+                  <button
+                    mat-icon-button
+                    (click)="toggleProductAvailability(product)"
+                    [disabled]="!canToggleProduct(product)"
+                    aria-label="Toggle availability"
+                  >
                     <mat-icon>{{ product.available ? 'visibility_off' : 'visibility' }}</mat-icon>
                   </button>
                   <button mat-icon-button (click)="deleteProduct(product.id)" aria-label="Delete">
@@ -128,11 +138,16 @@
 
   <mat-card class="dashboard__card">
     <mat-card-title class="dashboard__card-title">
-      <mat-icon>receipt_long</mat-icon>
+      <mat-icon>assignment</mat-icon>
       Recent Orders
     </mat-card-title>
     <mat-card-content>
-      @if (orders().length === 0) {
+      @if (ordersError(); as error) {
+        <div class="dashboard__orders-error" role="alert">
+          <p>{{ error }}</p>
+          <button mat-stroked-button color="primary" (click)="loadOrders()">Try again</button>
+        </div>
+      } @else if (orders().length === 0) {
         <div class="dashboard__orders-placeholder">
           <mat-icon>hourglass_empty</mat-icon>
           <p>No recent orders yet.</p>
@@ -152,9 +167,9 @@
           <tbody>
             @for (order of orders().slice(0, 5); track order.id) {
               <tr>
-                <td>{{ order.id.slice(-8).toUpperCase() }}</td>
+                <td>{{ orderIdLabel(order.id) }}</td>
                 <td>{{ order.createdAt | date:'short' }}</td>
-                <td>{{ order.items.length }}</td>
+                <td>{{ order.itemCount }}</td>
                 <td>{{ order.total | currency:'KES' }}</td>
                 <td>
                   <span [class]="'dashboard__status--' + order.status.toLowerCase()">

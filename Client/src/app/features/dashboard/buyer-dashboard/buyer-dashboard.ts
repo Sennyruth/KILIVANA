@@ -4,11 +4,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Auth } from '../../../core/services/auth';
 import { Order } from '../../../core/services/order';
 import type { OrderStatus } from '../../../shared/order.model';
+import { NotificationService } from '../../../shared/notification/notification.service';
 
 @Component({
   selector: 'app-buyer-dashboard',
@@ -27,7 +27,7 @@ import type { OrderStatus } from '../../../shared/order.model';
 export class BuyerDashboard implements OnInit {
   protected readonly auth = inject(Auth);
   protected readonly order = inject(Order);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notification = inject(NotificationService);
 
   protected readonly userName = this.auth.name;
   protected readonly orders = this.order.orders;
@@ -63,9 +63,15 @@ export class BuyerDashboard implements OnInit {
   }
 
   protected loadOrders(): void {
-    this.order.loadMine().subscribe({
+    const buyerId = this.auth.user()?.id;
+    if (!buyerId || !/^\d+$/.test(buyerId)) {
+      this.notification.error('Could not identify your buyer account. Please sign in again.');
+      return;
+    }
+
+    this.order.loadMine(buyerId).subscribe({
       error: () => {
-        this.snackBar.open('Failed to load orders', 'Close', { duration: 3000 });
+        this.notification.error('Failed to load orders');
       }
     });
   }

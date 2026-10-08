@@ -4,14 +4,20 @@
       <h1 class="dashboard__title">Supplier Dashboard</h1>
       <p class="dashboard__subtitle">Manage supplies and view your orders</p>
     </div>
-    <button mat-raised-button color="primary" (click)="addSupply()">
-      <mat-icon>add</mat-icon>
-      New Supply Listing
-    </button>
+    <div class="dashboard__header-actions">
+      <a mat-stroked-button routerLink="/dashboard/supplier/orders">
+        <mat-icon>receipt_long</mat-icon>
+        View Orders
+      </a>
+      <button mat-raised-button color="primary" (click)="addSupply()">
+        <mat-icon>add</mat-icon>
+        New Supply Listing
+      </button>
+    </div>
   </div>
 
   <div class="dashboard__stats">
-    <mat-card class="dashboard__stat-card">
+    <div class="dashboard__stat-card">
       <div class="dashboard__stat-icon dashboard__stat-icon--revenue">
         <mat-icon>payments</mat-icon>
       </div>
@@ -19,8 +25,8 @@
         <span class="dashboard__stat-value">{{ totalRevenue() | currency:'KES' }}</span>
         <span class="dashboard__stat-label">Total Revenue</span>
       </div>
-    </mat-card>
-    <mat-card class="dashboard__stat-card">
+    </div>
+    <div class="dashboard__stat-card">
       <div class="dashboard__stat-icon dashboard__stat-icon--orders">
         <mat-icon>shopping_cart</mat-icon>
       </div>
@@ -28,8 +34,8 @@
         <span class="dashboard__stat-value">{{ totalOrders() }}</span>
         <span class="dashboard__stat-label">Total Orders</span>
       </div>
-    </mat-card>
-    <mat-card class="dashboard__stat-card">
+    </div>
+    <div class="dashboard__stat-card">
       <div class="dashboard__stat-icon dashboard__stat-icon--pending">
         <mat-icon>pending</mat-icon>
       </div>
@@ -37,8 +43,8 @@
         <span class="dashboard__stat-value">{{ pendingOrders() }}</span>
         <span class="dashboard__stat-label">Pending Orders</span>
       </div>
-    </mat-card>
-    <mat-card class="dashboard__stat-card">
+    </div>
+    <div class="dashboard__stat-card">
       <div class="dashboard__stat-icon dashboard__stat-icon--delivered">
         <mat-icon>check_circle</mat-icon>
       </div>
@@ -46,7 +52,7 @@
         <span class="dashboard__stat-value">{{ deliveredOrders() }}</span>
         <span class="dashboard__stat-label">Delivered Orders</span>
       </div>
-    </mat-card>
+    </div>
   </div>
 
   <mat-card class="dashboard__card">
@@ -60,7 +66,7 @@
         <div class="dashboard__loading">
           <mat-spinner diameter="36" />
         </div>
-      } @else if (products().filter(p => p.type === 'INPUT').length === 0) {
+      } @else if (products().length === 0) {
         <div class="dashboard__empty">
           <mat-icon class="dashboard__empty-icon">eco</mat-icon>
           <h3>No supplies listed</h3>
@@ -83,24 +89,29 @@
             </tr>
           </thead>
           <tbody>
-            @for (supply of products().filter(p => p.type === 'INPUT'); track supply.id) {
+            @for (supply of products(); track supply.id) {
               <tr>
                 <td class="dashboard__product-cell">
-                  <img [src]="loadImage(supply)" [alt]="supply.name" class="dashboard__product-img" />
+                  <img
+                    [src]="loadImage(supply)"
+                    [alt]="supply.name"
+                    class="dashboard__product-img"
+                    (error)="onSupplyImageError($event)"
+                  />
                   <span>{{ supply.name }}</span>
                 </td>
                 <td>{{ supply.category }}</td>
                 <td>{{ supply.price | currency:'KES' }}/{{ supply.unit }}</td>
                 <td>{{ supply.quantity }} {{ supply.unit }}</td>
                 <td>
-                  <span [class]="'dashboard__status--' + (supply.available ? 'available' : 'unavailable')">
-                    {{ supply.available ? 'Available' : 'Unavailable' }}
+                  <span [class]="supplyStatusClass(supply)">
+                    {{ supplyStatusLabel(supply) }}
                   </span>
                 </td>
                 <td>
                   <button mat-button (click)="editSupply(supply.id)">Edit</button>
-                  <button mat-button (click)="toggleSupplyAvailability(supply)">
-                    {{ supply.available ? 'Hide' : 'Show' }}
+                  <button mat-button (click)="toggleSupplyAvailability(supply)" [disabled]="!canToggleSupply(supply)">
+                    {{ supplyAvailabilityActionLabel(supply) }}
                   </button>
                   <button mat-button color="warn" (click)="deleteSupply(supply.id)">Delete</button>
                 </td>
@@ -116,9 +127,10 @@
     <mat-card-title class="dashboard__card-title">
       <mat-icon>receipt_long</mat-icon>
       Recent Orders
+      <a mat-button routerLink="/dashboard/supplier/orders">View all</a>
     </mat-card-title>
     <mat-card-content>
-      @if (loading()) {
+      @if (ordersLoading()) {
         <div class="dashboard__loading">
           <mat-spinner diameter="36" />
         </div>
@@ -126,7 +138,7 @@
         <div class="dashboard__empty">
           <mat-icon class="dashboard__empty-icon">shopping_cart</mat-icon>
           <h3>No orders yet</h3>
-          <p>Orders will appear here once customers place them.</p>
+          <p>Orders containing your supplies will appear here once customers place them.</p>
         </div>
       } @else {
         <table class="dashboard__table">
@@ -137,23 +149,19 @@
               <th>Items</th>
               <th>Total</th>
               <th>Status</th>
-              <th>Action</th>
             </tr>
           </thead>
           <tbody>
             @for (order of orders().slice(0, 5); track order.id) {
               <tr>
-                <td>{{ order.id.slice(-8).toUpperCase() }}</td>
+                <td>{{ orderIdLabel(order.id) }}</td>
                 <td>{{ order.createdAt | date:'short' }}</td>
-                <td>{{ order.items.length }}</td>
+                <td>{{ order.itemCount }}</td>
                 <td>{{ order.total | currency:'KES' }}</td>
                 <td>
                   <span [class]="'dashboard__status--' + order.status.toLowerCase()">
                     {{ statusLabel(order.status) }}
                   </span>
-                </td>
-                <td>
-                  <button mat-button (click)="viewOrder(order.id)">View</button>
                 </td>
               </tr>
             }

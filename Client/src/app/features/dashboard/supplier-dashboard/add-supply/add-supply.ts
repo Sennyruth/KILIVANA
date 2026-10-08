@@ -6,22 +6,11 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Product } from '../../../../core/services/product';
+import { Product, ListingFormData } from '../../../../core/services/product';
 import { ImageUpload } from '../../../../shared/image-upload/image-upload';
-import type { ProductCategory, ProductImage, ProductType } from '../../../../shared/product.model';
-
-const INPUT_CATEGORIES: ProductCategory[] = [
-  'FERTILIZERS',
-  'SEEDS',
-  'PESTICIDES',
-  'EQUIPMENT',
-  'TOOLS',
-  'OTHER',
-] as ProductCategory[];
+import { NotificationService } from '../../../../shared/notification/notification.service';
 
 @Component({
   selector: 'app-add-supply',
@@ -32,7 +21,6 @@ const INPUT_CATEGORIES: ProductCategory[] = [
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatCheckboxModule,
     MatProgressSpinnerModule,
     ReactiveFormsModule,
     ImageUpload,
@@ -43,26 +31,42 @@ const INPUT_CATEGORIES: ProductCategory[] = [
 export class AddSupply implements OnInit {
   protected readonly productService = inject(Product);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
 
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
     description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500)]],
-    category: ['', [Validators.required]],
-    price: ['', [Validators.required, Validators.min(1)]],
-    quantity: ['', [Validators.required, Validators.min(1)]],
+    category: [null as number | null, [Validators.required]], // holds the category ID
+    price: ['', [Validators.required, Validators.min(0.01)]],
+    quantity: ['', [Validators.required, Validators.min(1)]], // sent as stockQty
+    minimumOrderQty: [1, [Validators.required, Validators.min(1)]],
     unit: ['', [Validators.required]],
-    available: [true],
   });
 
-  protected readonly categories = signal(INPUT_CATEGORIES);
+  /** The backend category type identifies which options suppliers may select. */
+  protected readonly categories = computed(() =>
+    this.productService.categories().filter((category) => category.type === 'SUPPLIER'),
+  );
+  protected readonly categoriesLoading = this.productService.categoriesLoading;
+  protected readonly categoriesError = this.productService.categoriesError;
+
   protected readonly units = ['kg', 'liters', 'pieces', 'bags', 'boxes', 'units'];
-  protected readonly loading = computed(() => this.productService.loading());
+  protected readonly submitting = signal<boolean>(false);
   protected readonly selectedImages = signal<File[]>([]);
 
+  protected get canSubmit(): boolean {
+    return !this.submitting() && this.form.valid && this.selectedImages().length > 0;
+  }
+
   ngOnInit(): void {
-    // No need to load categories for inputs - we use a fixed set
+    if (!this.productService.categoriesLoading() && this.productService.categories().length === 0) {
+      this.productService.reloadCategories();
+    }
+  }
+
+  protected reloadCategories(): void {
+    this.productService.reloadCategories();
   }
 
   protected onFilesSelected(files: File[]): void {
@@ -70,59 +74,77 @@ export class AddSupply implements OnInit {
   }
 
   protected submit(): void {
+    if (this.submitting()) return;
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.snackBar.open('Please fill in all required fields', 'Close', { duration: 3000 });
+      this.notification.warning('Please fill in all required fields');
       return;
     }
 
     if (this.selectedImages().length === 0) {
-      this.snackBar.open('Please add at least one supply image', 'Close', { duration: 3000 });
+      this.notification.warning('Please add at least one supply image');
       return;
     }
 
-    // Upload images first
-    this.productService.uploadImages(this.selectedImages()).subscribe({
+    this.submitting.set(true);
+    this.createSupply();
+  }
+
+  private createSupply(): void {
+    const v = this.form.value;
+    const selected = this.categories().find((c) => c.id === v.category);
+
+    if (!selected) {
+      this.submitting.set(false);
+      this.notification.error('Please choose a valid category');
+      return;
+    }
+
+    const data: ListingFormData = {
+      categoryId: selected.id,
+      name: v.name,
+      description: v.description,
+      unit: v.unit,
+      price: Number(v.price),
+      stockQty: Number(v.quantity),
+      minimumOrderQty: Number(v.minimumOrderQty),
+    };
+
+    this.productService.createListingWithImages('supplier', data, this.selectedImages()).subscribe({
       next: (res) => {
-        if (res.success && res.data) {
-          this.createSupply(res.data.urls);
-        } else {
-          this.snackBar.open(res.message || 'Failed to upload images', 'Close', { duration: 5000 });
+        if (!res.success || !res.data) {
+          this.submitting.set(false);
+          this.notification.error(res.message || 'Failed to add supply');
+          return;
         }
+
+        this.submitting.set(false);
+        this.notification.success('Supply added successfully!');
+        this.router.navigate(['/dashboard/supplier']);
       },
-      error: () => {
-        this.snackBar.open('Failed to upload images', 'Close', { duration: 5000 });
+      error: (err) => {
+        this.submitting.set(false);
+        this.notification.error(this.errorMessage(err));
       },
     });
   }
 
-  private createSupply(imageUrls: string[]): void {
-    const formValue = this.form.value;
-    const supplyData = {
-      name: formValue.name,
-      description: formValue.description,
-      category: formValue.category as ProductCategory,
-      price: Number(formValue.price),
-      quantity: Number(formValue.quantity),
-      unit: formValue.unit,
-      available: formValue.available,
-      images: imageUrls.map((url, i) => ({ id: `img-${i}`, url, alt: formValue.name, isPrimary: i === 0 })) as ProductImage[],
-      type: 'INPUT' as ProductType, // Mark as input type
-    };
+  private errorMessage(err: any): string {
+    const body = err?.error;
+    if (typeof body === 'string') return body.length > 200 ? 'Failed to add supply' : body;
 
-    this.productService.create(supplyData).subscribe({
-      next: (res) => {
-        if (res.success) {
-          this.snackBar.open('Supply added successfully!', 'Close', { duration: 3000 });
-          this.router.navigate(['/dashboard/supplier']);
-        } else {
-          this.snackBar.open(res.message || 'Failed to add supply', 'Close', { duration: 5000 });
-        }
-      },
-      error: () => {
-        this.snackBar.open('Failed to add supply', 'Close', { duration: 5000 });
-      },
-    });
+    // Validation errors list the failing fields in `data`
+    if (body?.error?.code === 'VALIDATION_ERROR' && body.data && typeof body.data === 'object') {
+      return Object.values(body.data).join('. ');
+    }
+    if (body?.error?.code === 'DATA_INTEGRITY_VIOLATION') {
+      return body.error.details || 'The server rejected this supply.';
+    }
+    if (body?.error?.code === 'CONFLICT') {
+      return body.error.details || 'A supply with these details already exists.';
+    }
+    return body?.message || 'Failed to add supply';
   }
 
   protected cancel(): void {

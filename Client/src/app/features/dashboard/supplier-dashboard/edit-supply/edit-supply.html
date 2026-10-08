@@ -49,11 +49,25 @@
 
             <mat-form-field appearance="outline" class="edit-supply__field">
               <mat-label>Category *</mat-label>
-              <mat-select formControlName="category" required>
-                @for (category of categories(); track category) {
-                  <mat-option [value]="category">{{ category }}</mat-option>
+              <mat-select
+                formControlName="category"
+                required
+                [disabled]="categoriesLoading() || categories().length === 0"
+              >
+                @for (category of categories(); track category.id) {
+                  <mat-option [value]="category.id">{{ category.name }}</mat-option>
                 }
               </mat-select>
+              @if (categoriesLoading()) {
+                <mat-hint>Loading supplier categories...</mat-hint>
+              } @else if (categoriesError()) {
+                <mat-error>{{ categoriesError() }}</mat-error>
+              } @else if (categories().length === 0) {
+                <mat-hint>
+                  No supplier categories are available.
+                  <button mat-button type="button" (click)="reloadCategories()">Retry</button>
+                </mat-hint>
+              }
               @if (form.get('category')?.hasError('required')) {
                 <mat-error>Category is required</mat-error>
               }
@@ -97,9 +111,13 @@
               }
             </mat-form-field>
 
-            <mat-checkbox formControlName="available" class="edit-supply__checkbox">
-              Available for sale
-            </mat-checkbox>
+            <mat-form-field appearance="outline" class="edit-supply__field">
+              <mat-label>Minimum Order Quantity *</mat-label>
+              <input matInput type="number" formControlName="minimumOrderQty" min="1" required />
+              @if (form.get('minimumOrderQty')?.hasError('min')) {
+                <mat-error>Minimum order quantity must be at least 1</mat-error>
+              }
+            </mat-form-field>
           </div>
 
           <div class="edit-supply__section">
@@ -110,9 +128,9 @@
               <div class="edit-supply__existing-images">
                 <h3>Current Images</h3>
                 <div class="edit-supply__image-grid">
-                  @for (imageUrl of existingImages(); track $index) {
+                  @for (image of existingImages(); track image.id) {
                     <div class="edit-supply__image-item">
-                      <img [src]="imageUrl" alt="Supply image" />
+                      <img [src]="image.url" alt="Supply image" />
                       <button 
                         mat-icon-button 
                         class="edit-supply__image-remove"
@@ -132,13 +150,13 @@
 
           <div class="edit-supply__actions">
             <button mat-stroked-button type="button" (click)="cancel()">Cancel</button>
-            <button 
-              mat-raised-button 
-              color="primary" 
-              type="submit" 
-              [disabled]="loading() || form.invalid"
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="!canSubmit"
             >
-              @if (loading()) {
+              @if (submitting()) {
                 <mat-spinner diameter="20"></mat-spinner>
               }
               Save Changes

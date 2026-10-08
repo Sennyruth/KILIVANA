@@ -12,7 +12,7 @@
       <form [formGroup]="form" (ngSubmit)="submit()">
         <div class="add-supply__section">
           <h2 class="add-supply__section-title">Supply Information</h2>
-          
+
           <mat-form-field appearance="outline" class="add-supply__field">
             <mat-label>Supply Name *</mat-label>
             <input matInput formControlName="name" placeholder="e.g., NPK Fertilizer" required />
@@ -43,11 +43,25 @@
 
           <mat-form-field appearance="outline" class="add-supply__field">
             <mat-label>Category *</mat-label>
-            <mat-select formControlName="category" required>
-              @for (category of categories(); track category) {
-                <mat-option [value]="category">{{ category }}</mat-option>
+            <mat-select
+              formControlName="category"
+              required
+              [disabled]="categoriesLoading() || categories().length === 0"
+            >
+              @for (category of categories(); track category.id) {
+                <mat-option [value]="category.id">{{ category.name }}</mat-option>
               }
             </mat-select>
+            @if (categoriesLoading()) {
+              <mat-hint>Loading supplier categories...</mat-hint>
+            } @else if (categoriesError()) {
+              <mat-error>{{ categoriesError() }}</mat-error>
+            } @else if (categories().length === 0) {
+              <mat-hint>
+                No supplier categories are available.
+                <button mat-button type="button" (click)="reloadCategories()">Retry</button>
+              </mat-hint>
+            }
             @if (form.get('category')?.hasError('required')) {
               <mat-error>Category is required</mat-error>
             }
@@ -68,10 +82,10 @@
 
         <div class="add-supply__section">
           <h2 class="add-supply__section-title">Pricing & Inventory</h2>
-          
+
           <mat-form-field appearance="outline" class="add-supply__field">
             <mat-label>Price (KES) *</mat-label>
-            <input matInput type="number" formControlName="price" placeholder="0" min="1" required />
+            <input matInput type="number" formControlName="price" placeholder="0" min="0.01" step="0.01" required />
             @if (form.get('price')?.hasError('required')) {
               <mat-error>Price is required</mat-error>
             }
@@ -91,27 +105,35 @@
             }
           </mat-form-field>
 
-          <mat-checkbox formControlName="available" class="add-supply__checkbox">
-            Available for sale
-          </mat-checkbox>
+          <mat-form-field appearance="outline" class="add-supply__field">
+            <mat-label>Minimum Order Quantity *</mat-label>
+            <input matInput type="number" formControlName="minimumOrderQty" placeholder="1" min="1" required />
+            @if (form.get('minimumOrderQty')?.hasError('required')) {
+              <mat-error>Minimum order quantity is required</mat-error>
+            }
+            @if (form.get('minimumOrderQty')?.hasError('min')) {
+              <mat-error>Minimum order quantity must be at least 1</mat-error>
+            }
+          </mat-form-field>
+
         </div>
 
         <div class="add-supply__section">
           <h2 class="add-supply__section-title">Supply Images</h2>
           <p class="add-supply__hint">Add clear photos of your supply. Images will be compressed automatically.</p>
-          
+
           <app-image-upload (filesSelected)="onFilesSelected($event)"></app-image-upload>
         </div>
 
         <div class="add-supply__actions">
           <button mat-stroked-button type="button" (click)="cancel()">Cancel</button>
-          <button 
-            mat-raised-button 
-            color="primary" 
-            type="submit" 
-            [disabled]="loading() || form.invalid"
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            [disabled]="!canSubmit"
           >
-            @if (loading()) {
+            @if (submitting()) {
               <mat-spinner diameter="20"></mat-spinner>
             }
             Add Supply
