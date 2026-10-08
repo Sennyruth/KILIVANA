@@ -1,0 +1,41 @@
+.logout-page {
+  min-height: calc(100vh - 72px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: linear-gradient(135deg, var(--primary-50) 0%, var(--surface-1) 100%);
+}
+
+.logout__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  text-align: center;
+  background: #ffffff;
+  border: 2px solid var(--primary-100);
+  border-radius: var(--radius-lg);
+  padding: var(--space-10);
+  box-shadow: 0 8px 32px rgba(27, 94, 32, 0.15);
+}
+
+.logout__icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: var(--accent);
+}
+
+.logout__title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--primary-dark);
+}
+
+.logout__subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}

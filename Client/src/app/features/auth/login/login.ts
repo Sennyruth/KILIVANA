@@ -5,9 +5,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Auth } from '../../../core/services/auth';
+import { NotificationService } from '../../../shared/notification/notification.service';
 
 @Component({
   selector: 'app-login',
@@ -26,7 +26,7 @@ import { Auth } from '../../../core/services/auth';
 export class Login {
   private readonly auth = inject(Auth);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
 
   protected readonly form: FormGroup = this.fb.group({
@@ -47,14 +47,14 @@ export class Login {
     this.auth.login(email, password).subscribe({
       next: (res) => {
         if (res.success) {
-          this.snackBar.open('Welcome back!', 'Close', { duration: 3000 });
+          this.notification.success('Welcome back!');
           this.router.navigate([this.getDashboardRoute()]);
         } else {
-          this.snackBar.open(res.message || 'Login failed', 'Close', { duration: 5000 });
+          this.notification.error(res.message || 'Login failed');
         }
       },
       error: () => {
-        this.snackBar.open(this.auth.error() || 'An error occurred. Please try again.', 'Close', { duration: 5000 });
+        this.notification.error(this.auth.error() || 'An error occurred. Please try again.');
       },
     });
   }
