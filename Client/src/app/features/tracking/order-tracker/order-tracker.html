@@ -1,45 +1,155 @@
-<div class="order-tracker-page">
-  <div class="order-tracker__header">
-    <a class="order-tracker__back" routerLink="/dashboard/buyer">
+<main class="order-tracker-page">
+  <header class="order-tracker__header">
+    <a class="order-tracker__back" routerLink="/orders">
       <mat-icon>arrow_back</mat-icon>
-      Back to Dashboard
+      Back to my orders
     </a>
-    <h1 class="order-tracker__title">Track Order</h1>
-    <p class="order-tracker__subtitle">Order #{{ orderId }}</p>
-  </div>
+    <div class="order-tracker__heading">
+      <div>
+        <p class="order-tracker__eyebrow">YOUR DELIVERY</p>
+        <h1 class="order-tracker__title">Track your order</h1>
+        <p class="order-tracker__subtitle">
+          Order #{{ order()?.id ?? orderId() }}
+          @if (order()?.createdAt) {
+            <span> · Placed {{ order()?.createdAt | date:'mediumDate' }}</span>
+          }
+        </p>
+      </div>
+      <button mat-stroked-button type="button" (click)="retry()" [disabled]="loading()">
+        <mat-icon>refresh</mat-icon>
+        Refresh status
+      </button>
+    </div>
+  </header>
 
-  @if (loading()) {
-    <div class="order-tracker__loading">
+  @if (loading() && !history()) {
+    <div class="order-tracker__message" role="status">
       <div class="order-tracker__spinner"></div>
-      <p>Loading tracking information…</p>
+      <p>Getting the latest shipment update…</p>
+    </div>
+  } @else if (error()) {
+    <div class="order-tracker__message order-tracker__message--error" role="alert">
+      <mat-icon>local_shipping</mat-icon>
+      <h2>Tracking update unavailable</h2>
+      <p>{{ error() }}</p>
+      <button mat-raised-button color="primary" type="button" (click)="retry()">Try again</button>
     </div>
   } @else if (history()) {
-    <div class="order-tracker__content">
-      <app-tracking-stepper [history]="history()" />
+    <section class="order-tracker__status-card" aria-label="Current shipment status">
+      <div class="order-tracker__status-icon">
+        <mat-icon>local_shipping</mat-icon>
+      </div>
+      <div class="order-tracker__status-copy">
+        <span class="order-tracker__status-caption">LATEST UPDATE</span>
+        <h2>{{ currentStatus() ? statusLabel(currentStatus()!) : 'Order received' }}</h2>
+        @if (timelineEvents().length) {
+          <p>{{ timelineEvents()[0].note || 'Your shipment progress is shown below.' }}</p>
+        } @else {
+          <p>We’ll show each shipment update here as it becomes available.</p>
+        }
+      </div>
+      @if (timelineEvents()[0]?.timestamp; as updatedAt) {
+        <time class="order-tracker__updated" [attr.datetime]="updatedAt">
+          {{ updatedAt | date:'medium' }}
+        </time>
+      }
+    </section>
 
-      @if (orderInfo()) {
-        <div class="order-tracker__details">
-          <h3 class="order-tracker__details-title">Order Details</h3>
-          <div class="order-tracker__detail-row">
-            <span class="order-tracker__detail-label">Order ID</span>
-            <span class="order-tracker__detail-value">#{{ orderInfo()?.orderId }}</span>
-          </div>
-          <div class="order-tracker__detail-row">
-            <span class="order-tracker__detail-label">Current Stage</span>
-            <span class="order-tracker__detail-value">{{ orderInfo()?.currentStage }}</span>
-          </div>
-          <div class="order-tracker__detail-row">
-            <span class="order-tracker__detail-label">Events Tracked</span>
-            <span class="order-tracker__detail-value">{{ orderInfo()?.eventCount }}</span>
+    <section class="order-tracker__progress panel" aria-labelledby="progress-title">
+      <div class="order-tracker__section-heading">
+        <div>
+          <h2 id="progress-title">Shipment progress</h2>
+          <p>Follow your order from confirmation to delivery.</p>
+        </div>
+        @if (order()?.status === 'CANCELLED') {
+          <span class="order-tracker__cancelled">Order cancelled</span>
+        }
+      </div>
+      <app-tracking-stepper [history]="history()" />
+    </section>
+
+    <div class="order-tracker__lower">
+      <section class="order-tracker__timeline panel" aria-labelledby="timeline-title">
+        <div class="order-tracker__section-heading">
+          <div>
+            <h2 id="timeline-title">Shipment updates</h2>
+            <p>Latest activity appears first.</p>
           </div>
         </div>
-      }
+
+        @if (timelineEvents().length) {
+          <ol class="order-tracker__events">
+            @for (event of timelineEvents(); track event.id) {
+              <li class="order-tracker__event" [class.order-tracker__event--pending]="event.status === 'PENDING'">
+                <span class="order-tracker__event-marker">
+                  <mat-icon>{{ event.status === 'COMPLETED' ? 'check' : event.status === 'IN_PROGRESS' ? 'radio_button_checked' : 'schedule' }}</mat-icon>
+                </span>
+                <div class="order-tracker__event-content">
+                  <div class="order-tracker__event-heading">
+                    <h3>{{ stageLabel(event.stage) }}</h3>
+                    <span>{{ eventStatusLabel(event) }}</span>
+                  </div>
+                  @if (event.note) {
+                    <p>{{ event.note }}</p>
+                  }
+                  @if (event.location) {
+                    <p class="order-tracker__event-location">
+                      <mat-icon>location_on</mat-icon>
+                      {{ event.location }}
+                    </p>
+                  }
+                  <time [attr.datetime]="event.timestamp">{{ event.timestamp | date:'medium' }}</time>
+                </div>
+              </li>
+            }
+          </ol>
+        } @else {
+          <p class="order-tracker__no-events">No detailed scan updates have been recorded yet.</p>
+        }
+      </section>
+
+      <aside class="order-tracker__side">
+        <section class="panel order-tracker__delivery" aria-labelledby="delivery-title">
+          <h2 id="delivery-title"><mat-icon>location_on</mat-icon> Delivery details</h2>
+          @if (order()?.deliveryAddress) {
+            <p>{{ order()?.deliveryAddress }}</p>
+            @if (order()?.phone) {
+              <span>Contact: {{ order()?.phone }}</span>
+            }
+          } @else if (detailError()) {
+            <p class="order-tracker__detail-error">{{ detailError() }}</p>
+          } @else {
+            <p>Delivery address is not available.</p>
+          }
+        </section>
+
+        <section class="panel order-tracker__order-summary" aria-labelledby="summary-title">
+          <h2 id="summary-title"><mat-icon>receipt_long</mat-icon> Order summary</h2>
+          @if (order()) {
+            @for (item of order()?.items ?? []; track item.id) {
+              <div class="order-tracker__item">
+                <span>{{ item.name }} <small>× {{ item.quantity }} {{ item.unit }}</small></span>
+                <strong>{{ item.lineTotal | currency:'KES' }}</strong>
+              </div>
+            }
+            <div class="order-tracker__total">
+              <span>Order total</span>
+              <strong>{{ order()?.total | currency:'KES' }}</strong>
+            </div>
+          } @else if (detailError()) {
+            <p class="order-tracker__detail-error">{{ detailError() }}</p>
+          } @else {
+            <p>Loading order details…</p>
+          }
+        </section>
+      </aside>
     </div>
   } @else {
-    <div class="order-tracker__empty">
-      <mat-icon class="order-tracker__empty-icon">search_off</mat-icon>
-      <h3>No tracking information available</h3>
-      <p>The order could not be found or tracking is not yet available.</p>
+    <div class="order-tracker__message" role="status">
+      <mat-icon>search_off</mat-icon>
+      <h2>No tracking information available</h2>
+      <p>The order could not be found or tracking has not started yet.</p>
+      <a mat-stroked-button routerLink="/orders">Return to my orders</a>
     </div>
   }
-</div>
+</main>

@@ -1,0 +1,258 @@
+.supplier-orders {
+  width: min(100% - 2rem, 1100px);
+  margin: 0 auto;
+  padding: 2rem 0 3.5rem;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.supplier-orders__header,
+.supplier-orders__list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.supplier-orders__header {
+  margin-bottom: 1.5rem;
+
+  h1 {
+    margin: 0.35rem 0;
+    color: var(--primary-dark, #0d4a2d);
+    font-size: clamp(1.7rem, 4vw, 2.25rem);
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-secondary, #666);
+  }
+}
+
+.supplier-orders__eyebrow {
+  color: var(--primary, #1f7132) !important;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.supplier-orders__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 2rem;
+  border: 1px solid #d7e6db;
+  border-radius: 0.75rem;
+  background: #f4f8f4;
+
+  div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+  }
+
+  div + div {
+    border-left: 1px solid #d7e6db;
+  }
+
+  span {
+    color: var(--text-secondary, #666);
+  }
+
+  strong {
+    color: var(--primary-dark, #0d4a2d);
+    font-size: 1.6rem;
+  }
+}
+
+.supplier-orders__list {
+  padding: 1.25rem;
+  border: 1px solid #e1e8e2;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 0.25rem 1rem #16391e0d;
+}
+
+.supplier-orders__list-header {
+  margin-bottom: 1rem;
+
+  h2 {
+    margin: 0 0 0.25rem;
+    color: var(--primary-dark, #0d4a2d);
+    font-size: 1.2rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-secondary, #666);
+    font-size: 0.875rem;
+  }
+}
+
+.supplier-orders__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+
+  button {
+    padding: 0.45rem 0.7rem;
+    border: 1px solid #d7e6db;
+    border-radius: 999px;
+    background: #fff;
+    color: #45604c;
+    cursor: pointer;
+  }
+
+  button.is-active {
+    border-color: var(--primary, #1f7132);
+    background: #eaf4ed;
+    color: var(--primary-dark, #0d4a2d);
+    font-weight: 700;
+  }
+}
+
+.supplier-orders__table-wrap {
+  overflow-x: auto;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  th,
+  td {
+    padding: 0.9rem 0.75rem;
+    border-bottom: 1px solid #edf0ed;
+  }
+
+  th {
+    color: #5b685e;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  td {
+    color: #27372b;
+  }
+}
+
+.supplier-orders__status {
+  display: inline-block;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: #fff3dc;
+  color: #875400;
+  font-size: 0.8rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.supplier-orders__status--delivered,
+.supplier-orders__status--completed {
+  background: #e5f5e8;
+  color: #17652a;
+}
+
+.supplier-orders__status--cancelled,
+.supplier-orders__status--failed {
+  background: #fde9e7;
+  color: #9e2d22;
+}
+
+.supplier-orders__status--shipped,
+.supplier-orders__status--in-transit,
+.supplier-orders__status--out-for-delivery {
+  background: #e8f1ff;
+  color: #24548e;
+}
+
+.supplier-orders__message {
+  display: flex;
+  min-height: 220px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--text-secondary, #666);
+  text-align: center;
+
+  mat-icon {
+    color: var(--primary, #1f7132);
+  }
+
+  h3,
+  p {
+    margin: 0;
+  }
+}
+
+.supplier-orders__message--error mat-icon {
+  color: #b3261e;
+}
+
+@media (max-width: 680px) {
+  .supplier-orders__header,
+  .supplier-orders__list-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .supplier-orders__summary div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.85rem;
+  }
+
+  .supplier-orders__summary strong {
+    font-size: 1.35rem;
+  }
+
+  .supplier-orders__list {
+    padding: 0.85rem;
+  }
+
+  .supplier-orders__table-wrap {
+    overflow: visible;
+
+    thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+    }
+
+    table,
+    tbody,
+    tr,
+    td {
+      display: block;
+      width: 100%;
+    }
+
+    tr {
+      padding: 0.45rem 0;
+      border-bottom: 1px solid #dfe8e1;
+    }
+
+    td {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.45rem 0;
+      border: 0;
+      text-align: right;
+    }
+
+    td::before {
+      content: attr(data-label);
+      color: #5b685e;
+      font-weight: 650;
+      text-align: left;
+    }
+  }
+}

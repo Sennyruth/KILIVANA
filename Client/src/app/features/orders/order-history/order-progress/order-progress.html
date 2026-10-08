@@ -1,0 +1,37 @@
+<section class="order-progress" aria-label="Shipment progress">
+  <div class="order-progress__heading">
+    <div>
+      <h4>Shipment progress</h4>
+      <p>{{ summary() }}</p>
+    </div>
+    @if (!terminal()) {
+      <a class="order-progress__refresh" [routerLink]="['/tracking', orderId()]">
+        Track shipment <mat-icon>arrow_forward</mat-icon>
+      </a>
+    }
+  </div>
+  @if (!terminal()) {
+    <div class="order-progress__track" role="list" aria-label="Order stages">
+      <div class="order-progress__rail"></div>
+      <div class="order-progress__rail-fill" [style.width.%]="progressWidth()"></div>
+      @for (stage of stages; track stage; let i = $index) {
+        <div [class]="stageClass(i)" role="listitem"
+          [attr.aria-current]="i === activeIndex() ? 'step' : null">
+          <span class="order-progress__dot">
+            @if (i < activeIndex()) {
+              <mat-icon>check</mat-icon>
+            } @else {
+              <span>{{ i + 1 }}</span>
+            }
+          </span>
+          <span class="order-progress__label">{{ stage }}</span>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="order-progress__terminal" [class.order-progress__terminal--failed]="status() === 'FAILED'">
+      <mat-icon>{{ status() === 'CANCELLED' ? 'cancel' : 'error_outline' }}</mat-icon>
+      <span>{{ statusLabel(status()) }}</span>
+    </div>
+  }
+</section>

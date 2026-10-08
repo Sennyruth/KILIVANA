@@ -1,0 +1,97 @@
+<main class="supplier-orders" aria-labelledby="supplier-orders-title">
+  <header class="supplier-orders__header">
+    <div>
+      <p class="supplier-orders__eyebrow">SUPPLIER ACCOUNT</p>
+      <h1 id="supplier-orders-title">Orders</h1>
+      <p>Track the orders that include your supplies and follow their latest status.</p>
+    </div>
+    <a mat-stroked-button routerLink="/dashboard/supplier">
+      <mat-icon>arrow_back</mat-icon>
+      My Supplies
+    </a>
+  </header>
+
+  <section class="supplier-orders__summary" aria-label="Order summary">
+    <div>
+      <span>Total orders</span>
+      <strong>{{ orders().length }}</strong>
+    </div>
+    <div>
+      <span>In progress</span>
+      <strong>{{ activeCount() }}</strong>
+    </div>
+    <div>
+      <span>Completed</span>
+      <strong>{{ completedCount() }}</strong>
+    </div>
+  </section>
+
+  <section class="supplier-orders__list" aria-label="Supplier order tracking">
+    <div class="supplier-orders__list-header">
+      <div>
+        <h2>Order tracking</h2>
+        <p>Order status and summary for your listings.</p>
+      </div>
+      <div class="supplier-orders__filters" aria-label="Filter orders">
+        <button type="button" [class.is-active]="filter() === 'ALL'" (click)="setFilter('ALL')">All</button>
+        <button type="button" [class.is-active]="filter() === 'ACTIVE'" (click)="setFilter('ACTIVE')">In progress</button>
+        <button type="button" [class.is-active]="filter() === 'COMPLETED'" (click)="setFilter('COMPLETED')">Completed</button>
+        <button type="button" [class.is-active]="filter() === 'CANCELLED'" (click)="setFilter('CANCELLED')">Cancelled</button>
+      </div>
+    </div>
+
+    @if (loading() && orders().length === 0) {
+      <div class="supplier-orders__message" role="status">
+        <mat-spinner diameter="36" />
+        <p>Loading your orders...</p>
+      </div>
+    } @else if (error()) {
+      <div class="supplier-orders__message supplier-orders__message--error" role="alert">
+        <mat-icon>cloud_off</mat-icon>
+        <h3>Orders could not be loaded</h3>
+        <p>{{ error() }}</p>
+        <button mat-stroked-button type="button" (click)="loadOrders()">Try again</button>
+      </div>
+    } @else if (visibleOrders().length > 0) {
+      <div class="supplier-orders__table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Date</th>
+              <th>Your items</th>
+              <th>Order total</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (order of visibleOrders(); track order.id) {
+              <tr>
+                <td data-label="Order">{{ orderNumber(order.id) }}</td>
+                <td data-label="Date">{{ order.createdAt | date:'mediumDate' }}</td>
+                <td data-label="Your items">{{ order.itemCount }}</td>
+                <td data-label="Order total">{{ order.total | currency:'KES' }}</td>
+                <td data-label="Status">
+                  <span [class]="setStatusClass(order.status)">{{ statusLabel(order.status) }}</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else if (orders().length === 0) {
+      <div class="supplier-orders__message">
+        <mat-icon>receipt_long</mat-icon>
+        <h3>No orders yet</h3>
+        <p>Orders containing your supplies will appear here when customers place them.</p>
+      </div>
+    } @else {
+      <div class="supplier-orders__message">
+        <mat-icon>filter_list</mat-icon>
+        <h3>No matching orders</h3>
+        <p>There are no orders for this status filter.</p>
+        <button mat-stroked-button type="button" (click)="setFilter('ALL')">Show all orders</button>
+      </div>
+    }
+  </section>
+</main>

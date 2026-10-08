@@ -9,12 +9,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { CurrencyPipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Cart } from '../../../core/services/cart';
 import { Order as OrderService } from '../../../core/services/order';
-import { Payment } from '../../../core/services/payment';
+import { NotificationService } from '../../../shared/notification/notification.service';
 
 @Component({
   selector: 'app-checkout',
@@ -37,9 +36,8 @@ import { Payment } from '../../../core/services/payment';
 export class Checkout implements OnInit {
   protected readonly cart = inject(Cart);
   private readonly orderService = inject(OrderService);
-  private readonly paymentService = inject(Payment);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
 
   protected readonly form: FormGroup = this.fb.group({
@@ -48,7 +46,6 @@ export class Checkout implements OnInit {
     address: ['', [Validators.required, Validators.minLength(10)]],
     county: ['', [Validators.required]],
     phone: ['', [Validators.required, Validators.pattern(/^\+254\d{9}$/)]],
-    mpesaPhone: ['', [Validators.pattern(/^\+254\d{9}$/)]],
     paymentMethod: ['MPESA', [Validators.required]],
   });
 
@@ -62,7 +59,7 @@ export class Checkout implements OnInit {
   ngOnInit(): void {
     this.cart.load().subscribe({
       error: () => {
-        this.snackBar.open('Failed to load cart', 'Close', { duration: 3000 });
+        this.notification.error('Failed to load cart');
       }
     });
   }
@@ -70,57 +67,45 @@ export class Checkout implements OnInit {
   protected placeOrder(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.snackBar.open('Please fill in all required fields', 'Close', { duration: 3000 });
+      this.notification.warning('Please fill in all required fields');
       return;
     }
 
     if (this.cart.items().length === 0) {
-      this.snackBar.open('Your cart is empty', 'Close', { duration: 3000 });
+      this.notification.warning('Your cart is empty');
       return;
     }
 
-    const { address, county, phone, paymentMethod } = this.form.value;
-
+    const { firstName, lastName, address, county, phone, paymentMethod } = this.form.value;
     const orderData = {
-      items: this.cart.items().map(({ productId, quantity }) => ({ productId, quantity })),
+      recipientName: `${firstName} ${lastName}`.trim(),
       deliveryAddress: `${address}, ${county}`,
       phone,
       paymentMethod,
     };
 
-    this.orderService.create(orderData).subscribe({
-      next: (res) => {
-        if (res.success && res.data?.order) {
-          if (paymentMethod === 'MPESA') {
-            this.initiateMpesaPayment(res.data.order.id, res.data.order.total);
-          } else {
-            this.snackBar.open('Order placed successfully!', 'Close', { duration: 3000 });
+    this.cart.syncMockCartForCheckout().subscribe({
+      next: () => this.orderService.create(orderData).subscribe({
+        next: (res) => {
+          if (res.success && res.data) {
+            this.cart.resetAfterCheckout();
+            const message = paymentMethod === 'CASH'
+              ? 'Order placed successfully. Payment is due on delivery.'
+              : 'Order placed successfully. Payment is pending.';
+            this.notification.success(message);
             this.router.navigate(['/orders']);
+          } else {
+            this.notification.error(res.message || 'Failed to place order');
           }
-        } else {
-          this.snackBar.open(res.message || 'Failed to place order', 'Close', { duration: 5000 });
-        }
-      },
-      error: () => {
-        this.snackBar.open('Failed to place order', 'Close', { duration: 5000 });
+        },
+        error: () => {
+          this.notification.error('Failed to place order');
+        },
+      }),
+      error: (error: Error) => {
+        this.notification.error(error.message || 'Could not prepare cart for checkout');
       },
     });
   }
 
-  private initiateMpesaPayment(orderId: string, amount: number): void {
-    const { mpesaPhone } = this.form.value;
-    this.paymentService.initiateMpesa({ orderId, phone: mpesaPhone, amount }).subscribe({
-      next: (res) => {
-        if (res.success) {
-          this.snackBar.open('Please complete M-Pesa payment on your phone', 'Close', { duration: 5000 });
-          this.router.navigate(['/orders']);
-        } else {
-          this.snackBar.open(res.message || 'Failed to initiate payment', 'Close', { duration: 5000 });
-        }
-      },
-      error: () => {
-        this.snackBar.open('Failed to initiate payment', 'Close', { duration: 5000 });
-      },
-    });
-  }
 }

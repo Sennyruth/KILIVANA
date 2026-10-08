@@ -85,14 +85,8 @@
           </mat-radio-button>
         </mat-radio-group>
 
-        @if (form.get('paymentMethod')?.value === 'MPESA') {
-          <mat-form-field appearance="outline" class="checkout-form__full">
-            <mat-label>M-Pesa Phone Number</mat-label>
-            <input matInput placeholder="+254 7xx xxx xxx" formControlName="mpesaPhone" />
-            @if (form.get('mpesaPhone')?.touched && form.get('mpesaPhone')?.invalid) {
-              <mat-error>Phone must be in format +254xxxxxxxxx</mat-error>
-            }
-          </mat-form-field>
+        @if (form.get('paymentMethod')?.value !== 'CASH') {
+          <p class="checkout__payment-note">Online payment is recorded as pending; payment processing is not connected yet.</p>
         }
 
         <button mat-raised-button color="primary" class="checkout__place-btn" (click)="placeOrder()" [disabled]="loading()">

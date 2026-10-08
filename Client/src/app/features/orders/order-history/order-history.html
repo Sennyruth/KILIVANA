@@ -51,11 +51,11 @@
 			<span class="orders-message__spinner"></span>
 			<p>Loading your orders...</p>
 		</div>
-	} @else if (error()) {
+	} @else if (loadError() || error()) {
 		<div class="orders-message orders-message--error" role="alert">
 			<mat-icon>cloud_off</mat-icon>
 			<h3>We couldn't load your orders</h3>
-			<p>{{ error() }}</p>
+			<p>{{ loadError() || error() }}</p>
 			<button type="button" class="orders-retry" (click)="loadOrders()">Try again</button>
 		</div>
 	} @else if (visibleOrders().length > 0) {
@@ -78,6 +78,8 @@
 						<span><mat-icon>payments</mat-icon>{{ order.paymentMethod }}</span>
 					</div>
 
+					<app-order-progress [status]="order.status" [orderId]="order.id" />
+
 					<div class="order-card__items">
 						@for (item of order.items; track item.id) {
 							<div class="order-item">
@@ -96,9 +98,9 @@
 							<span class="order-card__caption">ORDER TOTAL</span>
 							<strong class="order-card__total">{{ formatTotal(order.total) }}</strong>
 						</div>
-						@if (order.status !== 'CANCELLED') {
-							  <a class="order-track-link" [routerLink]="['/tracking', order.id]">
-								Track order <mat-icon>arrow_forward</mat-icon>
+						@if (order.status !== 'CANCELLED' && order.status !== 'FAILED') {
+							<a class="order-track-link" [routerLink]="['/tracking', order.id]">
+								Track shipment <mat-icon>arrow_forward</mat-icon>
 							</a>
 						}
 					</footer>

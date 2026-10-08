@@ -119,7 +119,7 @@
   border-radius: var(--radius);
   padding: var(--space-5);
   margin-bottom: var(--space-6);
-  box-shadow: 0 2px 8px rgba(27, 94, 32, 0.1);
+  box-shadow: 0 2px 8px rgba(13, 74, 45, 0.1);
 }
 
 .cart-summary__row {
@@ -160,11 +160,11 @@
 
   .mat-raised-button {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-    box-shadow: 0 2px 8px rgba(27, 94, 32, 0.25);
+    box-shadow: 0 2px 8px rgba(13, 74, 45, 0.25);
 
     &:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(27, 94, 32, 0.35);
+      box-shadow: 0 4px 12px rgba(13, 74, 45, 0.35);
     }
   }
 }

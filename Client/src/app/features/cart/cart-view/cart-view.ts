@@ -6,9 +6,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { CurrencyPipe } from '@angular/common';
 import { Cart } from '../../../core/services/cart';
+import { NotificationService } from '../../../shared/notification/notification.service';
 
 @Component({
   selector: 'app-cart-view',
@@ -27,7 +27,7 @@ import { Cart } from '../../../core/services/cart';
 export class CartView implements OnInit {
   protected readonly cart = inject(Cart);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notification = inject(NotificationService);
 
   protected readonly subtotal = computed(() => this.cart.totalPrice());
 
@@ -45,45 +45,50 @@ export class CartView implements OnInit {
 
   ngOnInit(): void {
     this.cart.load().subscribe({
+      next: (response) => {
+        if (!response.success) {
+          this.notification.error(response.message || 'Failed to load cart');
+        }
+      },
       error: () => {
-        this.snackBar.open('Failed to load cart', 'Close', { duration: 3000 });
+        this.notification.error('Failed to load cart');
       }
     });
   }
 
-  protected updateQuantity(itemId: string, newQuantity: number): void {
+  protected updateQuantity(itemId: string | number, newQuantity: number): void {
     if (newQuantity < 1) return;
-    
-    this.cart.updateItem(itemId, newQuantity).subscribe({
+
+    this.cart.updateItem(String(itemId), newQuantity).subscribe({
       next: (res) => {
         if (!res.success) {
-          this.snackBar.open(res.message || 'Failed to update quantity', 'Close', { duration: 3000 });
+          this.notification.error(res.message || 'Failed to update quantity');
         }
       },
       error: () => {
-        this.snackBar.open('Failed to update quantity', 'Close', { duration: 3000 });
+        this.notification.error('Failed to update quantity');
       }
     });
   }
 
-  protected removeItem(itemId: string): void {
-    this.cart.removeItem(itemId).subscribe({
+  protected removeItem(itemId: string | number): void {
+    this.cart.removeItem(String(itemId)).subscribe({
       next: (res) => {
         if (res.success) {
-          this.snackBar.open('Item removed from cart', 'Close', { duration: 2000 });
+          this.notification.success('Item removed from cart');
         } else {
-          this.snackBar.open(res.message || 'Failed to remove item', 'Close', { duration: 3000 });
+          this.notification.error(res.message || 'Failed to remove item');
         }
       },
       error: () => {
-        this.snackBar.open('Failed to remove item', 'Close', { duration: 3000 });
+        this.notification.error('Failed to remove item');
       }
     });
   }
 
   protected proceedToCheckout(): void {
     if (this.cart.items().length === 0) {
-      this.snackBar.open('Your cart is empty', 'Close', { duration: 2000 });
+      this.notification.warning('Your cart is empty');
       return;
     }
     this.router.navigate(['/checkout']);
