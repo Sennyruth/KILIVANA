@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -33,6 +33,27 @@ export class Navbar {
   protected readonly cart = inject(Cart);
   private readonly router = inject(Router);
 
+  constructor() {
+    effect((onCleanup) => {
+      const user = this.auth.user();
+      if (!user || (!this.auth.isBuyer() && !this.auth.isFarmer())) {
+        this.cart.resetAfterLogout();
+        return;
+      }
+
+      this.cart.resetAfterLogout();
+      const subscription = this.cart.load().subscribe({
+        next: (response) => {
+          if (!response.success) {
+            console.error(response.message || 'Failed to load cart');
+          }
+        },
+        error: (error: unknown) => console.error('Failed to load cart', error),
+      });
+      onCleanup(() => subscription.unsubscribe());
+    });
+  }
+
   protected readonly user = this.auth.user;
   protected readonly roleLabel = computed(() => {
     const r = this.auth.role();
@@ -48,12 +69,22 @@ export class Navbar {
   protected readonly itemCount = this.cart.itemCount;
   protected readonly mobileMenuOpen = signal(false);
 
-  protected readonly navLinks = [
-    { label: 'Products', href: '/products' },
-    { label: 'Inputs', href: '/inputs' },
-    { label: 'Cart', href: '/cart' },
-    { label: 'Orders', href: '/orders' },
-  ];
+  protected readonly canShop = computed(() => this.auth.isBuyer() || this.auth.isFarmer());
+  protected readonly showDashboardLink = computed(() => !this.auth.isSupplier());
+  protected readonly navLinks = computed(() => {
+    if (this.auth.isSupplier()) {
+      return [
+        { label: 'My Supplies', href: '/dashboard/supplier' },
+        { label: 'Orders', href: '/dashboard/supplier/orders' },
+      ];
+    }
+
+    const links = [{ label: 'Products', href: '/products' }];
+    if (this.auth.isBuyer() || this.auth.isFarmer()) {
+      links.push({ label: 'Inputs', href: '/inputs' }, { label: 'Cart', href: '/cart' }, { label: 'Orders', href: '/orders' });
+    }
+    return links;
+  });
 
   protected readonly dashboardHref = computed(() => {
     const r = this.auth.role();
@@ -81,7 +112,6 @@ export class Navbar {
 
   protected logout(): void {
     this.closeMobileMenu();
-    this.auth.logout();
-    this.router.navigate(['/products']);
+    this.router.navigate(['/logout']);
   }
 }

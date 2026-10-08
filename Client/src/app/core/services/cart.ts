@@ -1,116 +1,189 @@
-import { Service, inject, computed } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { Observable, concatMap, from, map, of, switchMap, throwError, toArray } from 'rxjs';
 
 import { HttpService } from './http';
 import { ApiEndpoints } from '../../shared/api.config';
 import { Cart as CartModel, CartItem } from '../../shared/cart.model';
 import { ApiResponse } from '../../shared/api-response';
+import { Product } from '../../shared/product.model';
+import { Auth } from './auth';
 
-@Service()
+const CART_STORAGE_KEY = 'kilivana_mock_cart';
+
+@Injectable({ providedIn: 'root' })
 export class Cart {
+  private readonly auth = inject(Auth);
   private readonly http = inject(HttpService);
+  private readonly _cart = signal<CartModel | null>(this.loadSavedCart());
 
-  private readonly _cart = new BehaviorSubject<CartModel | null>(null);
-  private readonly _loading = new BehaviorSubject<boolean>(false);
-
-  readonly cart$ = this._cart.asObservable();
-  readonly loading$ = this._loading.asObservable();
-
-  readonly cart = computed(() => this._cart.value);
-  readonly loading = computed(() => this._loading.value);
-  readonly itemCount = computed(() => this._cart.value?.totalItems ?? 0);
-  readonly totalPrice = computed(() => this._cart.value?.totalPrice ?? 0);
-  readonly items = computed(() => this._cart.value?.items ?? []);
+  readonly cart = this._cart.asReadonly();
+  readonly loading = signal(false).asReadonly();
+  readonly itemCount = computed(() => this._cart()?.totalItems ?? 0);
+  readonly totalPrice = computed(() => this._cart()?.totalPrice ?? 0);
+  readonly items = computed(() => this._cart()?.items ?? []);
 
   load(): Observable<ApiResponse<CartModel>> {
-    this._loading.next(true);
-    return this.http.get<CartModel>(ApiEndpoints.CART.GET).pipe(
-      tap((res) => {
-        if (res.success && res.data) this._cart.next(res.data);
-        this._loading.next(false);
-      }),
-    );
+    const cart = this.loadSavedCart() ?? this.emptyCart();
+    this._cart.set(cart);
+    return of(this.response(cart, 'Cart loaded'));
   }
 
-  addItem(
-    productId: string,
-    quantity: number,
-  ): Observable<ApiResponse<CartModel>> {
-    this._loading.next(true);
-    return this.http.post<CartModel>(ApiEndpoints.CART.ADD, { productId, quantity }).pipe(
-      tap((res) => {
-        if (res.success && res.data) this._cart.next(res.data);
-        this._loading.next(false);
-      }),
-    );
+  addItem(product: Product, quantity: number): Observable<ApiResponse<CartModel>> {
+    const current = this.currentCart();
+    if (!product.available || product.quantity < quantity || quantity < 1) {
+      return of(this.response(current, 'This product is unavailable or has insufficient stock.', false));
+    }
+
+    const itemId = `mock-${product.id}`;
+    const existing = current.items.find((item) => item.productId === product.id);
+    const nextQuantity = (existing?.quantity ?? 0) + quantity;
+    if (nextQuantity > product.quantity) {
+      return of(this.response(current, 'The requested quantity exceeds available stock.', false));
+    }
+
+    const image = product.images.find((candidate) => candidate.isPrimary) ?? product.images[0];
+    const item: CartItem = {
+      id: itemId,
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      unit: product.unit,
+      quantity: nextQuantity,
+      imageUrl: image?.url ?? '',
+      sellerName: product.farmerName,
+      lineTotal: product.price * nextQuantity,
+    };
+    const items = existing
+      ? current.items.map((cartItem) => cartItem.productId === product.id ? item : cartItem)
+      : [...current.items, item];
+
+    const cart = this.withItems(current, items);
+    this.saveCart(cart);
+    return of(this.response(cart, 'Added to cart'));
   }
 
   updateItem(itemId: string, quantity: number): Observable<ApiResponse<CartModel>> {
-    this._loading.next(true);
-    return this.http.patch<CartModel>(ApiEndpoints.CART.UPDATE(itemId), { quantity }).pipe(
-      tap((res) => {
-        if (res.success && res.data) this._cart.next(res.data);
-        this._loading.next(false);
+    const current = this.currentCart();
+    if (quantity < 1 || !current.items.some((item) => String(item.id) === itemId)) {
+      return of(this.response(current, 'Invalid cart item or quantity.', false));
+    }
+
+    const items = current.items.map((item) =>
+      String(item.id) === itemId
+        ? { ...item, quantity, lineTotal: item.price * quantity }
+        : item,
+    );
+    const cart = this.withItems(current, items);
+    this.saveCart(cart);
+    return of(this.response(cart, 'Cart updated'));
+  }
+
+  removeItem(itemId: string): Observable<ApiResponse<void>> {
+    const current = this.currentCart();
+    const cart = this.withItems(
+      current,
+      current.items.filter((item) => String(item.id) !== itemId),
+    );
+    this.saveCart(cart);
+    return of({ success: true, message: 'Item removed from cart', data: undefined });
+  }
+
+  clear(): Observable<ApiResponse<void>> {
+    this.resetAfterCheckout();
+    return of({ success: true, message: 'Cart cleared', data: undefined });
+  }
+
+  syncMockCartForCheckout(): Observable<void> {
+    const items = this.currentCart().items;
+    return this.http.delete<void>(ApiEndpoints.CART.CLEAR).pipe(
+      switchMap((response) => {
+        if (!response.success) {
+          return throwError(() => new Error(response.message || 'Could not prepare cart for checkout.'));
+        }
+        return from(items).pipe(
+          concatMap((item) =>
+            this.http.post<CartModel>(ApiEndpoints.CART.ADD, {
+              productId: Number(item.productId),
+              quantity: item.quantity,
+            }).pipe(
+              switchMap((addResponse) =>
+                addResponse.success
+                  ? of(undefined)
+                  : throwError(() => new Error(addResponse.message || `Could not add ${item.name} for checkout.`)),
+              ),
+            ),
+          ),
+          toArray(),
+          map(() => undefined),
+        );
       }),
     );
   }
 
-  removeItem(itemId: string): Observable<ApiResponse<CartModel>> {
-    this._loading.next(true);
-    return this.http.delete<CartModel>(ApiEndpoints.CART.REMOVE(itemId)).pipe(
-      tap((res) => {
-        if (res.success && res.data) this._cart.next(res.data);
-        this._loading.next(false);
-      }),
-    );
+  resetAfterCheckout(): void {
+    this._cart.set(null);
+    localStorage.removeItem(this.storageKey());
   }
 
-  clear(): Observable<ApiResponse<CartModel>> {
-    this._loading.next(true);
-    return this.http.delete<CartModel>(ApiEndpoints.CART.CLEAR).pipe(
-      tap((res) => {
-        if (res.success && res.data) this._cart.next(res.data);
-        this._loading.next(false);
-      }),
-    );
+  resetAfterLogout(): void {
+    this._cart.set(null);
   }
 
-  addLocal(product: Omit<CartItem, 'id' | 'lineTotal'>): void {
-    const current = this._cart.value;
-    if (!current) return;
-    const existing = current.items.find((i) => i.productId === product.productId);
-    const items = existing
-      ? current.items.map((i) =>
-          i.productId === product.productId
-            ? { ...i, quantity: i.quantity + product.quantity, lineTotal: i.price * (i.quantity + product.quantity) }
-            : i,
-        )
-      : [
-          ...current.items,
-          {
-            id: 'local-' + Math.random().toString(36).slice(2),
-            lineTotal: product.price * product.quantity,
-            ...product,
-          },
-        ];
-    this._cart.next({
-      ...current,
+  private currentCart(): CartModel {
+    return this._cart() ?? this.emptyCart();
+  }
+
+  private emptyCart(): CartModel {
+    const now = new Date().toISOString();
+    return {
+      id: 'mock-cart',
+      buyerId: 0,
+      status: 'ACTIVE',
+      createdAt: now,
+      updatedAt: now,
+      items: [],
+      totalItems: 0,
+      totalPrice: 0,
+    };
+  }
+
+  private withItems(cart: CartModel, items: CartItem[]): CartModel {
+    return {
+      ...cart,
       items,
-      totalItems: items.reduce((s, i) => s + i.quantity, 0),
-      totalPrice: items.reduce((s, i) => s + i.lineTotal, 0),
-    });
+      totalItems: items.reduce((total, item) => total + item.quantity, 0),
+      totalPrice: items.reduce((total, item) => total + item.lineTotal, 0),
+      updatedAt: new Date().toISOString(),
+    };
   }
 
-  removeLocal(productId: string): void {
-    const current = this._cart.value;
-    if (!current) return;
-    const items = current.items.filter((i) => i.productId !== productId);
-    this._cart.next({
-      ...current,
-      items,
-      totalItems: items.reduce((s, i) => s + i.quantity, 0),
-      totalPrice: items.reduce((s, i) => s + i.lineTotal, 0),
-    });
+  private response<T>(data: T, message: string, success = true): ApiResponse<T> {
+    return { success, message, data };
+  }
+
+  private saveCart(cart: CartModel): void {
+    this._cart.set(cart);
+    localStorage.setItem(this.storageKey(), JSON.stringify(cart));
+  }
+
+  private loadSavedCart(): CartModel | null {
+    const key = this.storageKey();
+    const saved = localStorage.getItem(key);
+    if (!saved) return null;
+
+    try {
+      const cart = JSON.parse(saved) as CartModel;
+      if (!Array.isArray(cart.items)) throw new Error('Saved cart has an invalid items list.');
+      return this.withItems(cart, cart.items);
+    } catch (error) {
+      console.error('Could not restore the saved mock cart.', error);
+      localStorage.removeItem(key);
+      return null;
+    }
+  }
+
+  private storageKey(): string {
+    const user = this.auth.user();
+    return user ? `${CART_STORAGE_KEY}_${user.role.toLowerCase()}_${user.id}` : `${CART_STORAGE_KEY}_guest`;
   }
 }

@@ -1,6 +1,5 @@
-import { Service, inject, computed } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { Injectable, inject, computed, signal } from '@angular/core';
+import { Observable, finalize, tap } from 'rxjs';
 
 import { HttpService } from './http';
 import { ApiEndpoints } from '../../shared/api.config';
@@ -16,26 +15,28 @@ export const STAGE_ORDER: TrackingStage[] = [
   'DELIVERED',
 ];
 
-@Service()
+@Injectable({ providedIn: 'root' })
 export class Tracking {
   private readonly http = inject(HttpService);
 
-  private readonly _history = new BehaviorSubject<TrackingHistory | null>(null);
-  private readonly _loading = new BehaviorSubject<boolean>(false);
+  private readonly _history = signal<TrackingHistory | null>(null);
+  private readonly _loading = signal<boolean>(false);
 
-  readonly history$ = this._history.asObservable();
-  readonly loading$ = this._loading.asObservable();
+  readonly history = this._history.asReadonly();
+  readonly loading = this._loading.asReadonly();
 
-  readonly history = computed(() => this._history.value);
-  readonly loading = computed(() => this._loading.value);
+  clear(): void {
+    this._history.set(null);
+    this._loading.set(false);
+  }
 
   load(orderId: string): Observable<ApiResponse<TrackingHistory>> {
-    this._loading.next(true);
+    this._loading.set(true);
     return this.http.get<TrackingHistory>(ApiEndpoints.TRACKING.HISTORY(orderId)).pipe(
       tap((res) => {
-        if (res.success && res.data) this._history.next(res.data);
-        this._loading.next(false);
+        if (res.success && res.data) this._history.set(res.data);
       }),
+      finalize(() => this._loading.set(false)),
     );
   }
 

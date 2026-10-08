@@ -1,0 +1,11 @@
+<div class="notification notification--{{ data.type }}">
+  <div class="notification__icon-wrapper">
+    <mat-icon class="notification__icon {{ iconClass }}">{{ icon }}</mat-icon>
+  </div>
+  <div class="notification__content">
+    <p class="notification__message">{{ data.message }}</p>
+  </div>
+  <button class="notification__close" (click)="dismiss()" aria-label="Close notification">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>

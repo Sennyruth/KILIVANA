@@ -66,6 +66,7 @@ export class ImageUpload {
     }
 
     this.files.update((prev) => [...prev, ...compressedFiles]);
+    this.filesSelected.emit(this.files());
     
     // Generate previews from compressed files
     compressedFiles.forEach((f) => {
@@ -76,7 +77,6 @@ export class ImageUpload {
       reader.readAsDataURL(f);
     });
 
-    this.filesSelected.emit(compressedFiles);
     this.uploading.set(false);
     this.uploadProgress.set(0);
   }
@@ -136,10 +136,12 @@ export class ImageUpload {
   protected remove(index: number): void {
     this.files.update((prev) => prev.filter((_, i) => i !== index));
     this.previews.update((prev) => prev.filter((_, i) => i !== index));
+    this.filesSelected.emit(this.files());
   }
 
   protected clear(): void {
     this.files.set([]);
     this.previews.set([]);
+    this.filesSelected.emit([]);
   }
 }

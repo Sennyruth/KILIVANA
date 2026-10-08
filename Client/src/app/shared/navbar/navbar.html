@@ -10,24 +10,28 @@
     </a>
 
     <nav class="navbar__nav" [class.navbar__nav--open]="mobileMenuOpen()">
-      @for (link of navLinks; track link.href) {
+      @for (link of navLinks(); track link.href) {
         <a class="navbar__link" [routerLink]="link.href"
            routerLinkActive [class.navbar__link--active]="isActive(link.href)">
           {{ link.label }}
         </a>
       }
-      <a class="navbar__link" [routerLink]="dashboardHref()" routerLinkActive>
-        Dashboard
-      </a>
+      @if (showDashboardLink()) {
+        <a class="navbar__link" [routerLink]="dashboardHref()" routerLinkActive>
+          Dashboard
+        </a>
+      }
     </nav>
 
     <div class="navbar__actions">
-      <button mat-icon-button class="navbar__cart" [routerLink]="'/cart'" aria-label="Cart">
-        <mat-icon>shopping_cart</mat-icon>
-        @if (itemCount() > 0) {
-          <span matBadge [matBadge]="itemCount()" class="navbar__badge"></span>
-        }
-      </button>
+      @if (canShop()) {
+        <button mat-icon-button class="navbar__cart" [routerLink]="'/cart'" aria-label="Cart">
+          <mat-icon>shopping_cart</mat-icon>
+          @if (itemCount() > 0) {
+            <span matBadge [matBadge]="itemCount()" class="navbar__badge"></span>
+          }
+        </button>
+      }
 
       @if (auth.isAuthenticated()) {
         <button mat-button [matMenuTriggerFor]="userMenu" class="navbar__user">
@@ -46,8 +50,13 @@
             <div class="user-menu__role">{{ roleLabel() }} Account</div>
             <mat-divider></mat-divider>
             <a mat-menu-item [routerLink]="dashboardHref()">Dashboard</a>
-            <a mat-menu-item routerLink="/orders">Order History</a>
-            <a mat-menu-item routerLink="/tracking/last">Track Order</a>
+            @if (canShop()) {
+              <a mat-menu-item routerLink="/orders">Order History</a>
+              <a mat-menu-item routerLink="/tracking/last">Track Order</a>
+            }
+            @if (auth.isSupplier()) {
+              <a mat-menu-item routerLink="/dashboard/supplier/orders">Supplier Orders</a>
+            }
             <mat-divider></mat-divider>
             <button mat-menu-item (click)="logout()">Logout</button>
           </div>
@@ -61,15 +70,16 @@
   </mat-toolbar>
 
   <div class="navbar__mobile" [class.navbar__mobile--open]="mobileMenuOpen()">
-    @for (link of navLinks; track link.href) {
+    @for (link of navLinks(); track link.href) {
       <a class="navbar__mobile-link" [routerLink]="link.href"
          (click)="closeMobileMenu()" routerLinkActive
          [class.navbar__mobile-link--active]="isActive(link.href)">
         {{ link.label }}
       </a>
     }
-    <a class="navbar__mobile-link" [routerLink]="dashboardHref()" (click)="closeMobileMenu()">Dashboard</a>
-    <a class="navbar__mobile-link" routerLink="/orders" (click)="closeMobileMenu()">Orders</a>
+    @if (showDashboardLink()) {
+      <a class="navbar__mobile-link" [routerLink]="dashboardHref()" (click)="closeMobileMenu()">Dashboard</a>
+    }
   </div>
 </div>
 

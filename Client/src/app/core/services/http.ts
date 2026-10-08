@@ -1,11 +1,11 @@
-import { Service, inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, tap, shareReplay, catchError } from 'rxjs/operators';
 import { ApiResponse } from '../../shared/api-response';
 import { API_BASE } from '../../shared/api.config';
 
-@Service()
+@Injectable({ providedIn: 'root' })
 export class HttpService {
   private readonly http = inject(HttpClient);
   private readonly cache = new Map<string, Observable<unknown>>();
@@ -17,14 +17,22 @@ export class HttpService {
     return this.http.get<ApiResponse<T>>(fullUrl, { params: httpParams });
   }
 
-  post<T>(url: string, body: unknown): Observable<ApiResponse<T>> {
+  post<T>(
+    url: string,
+    body: unknown,
+    params?: Record<string, string | number | boolean>,
+  ): Observable<ApiResponse<T>> {
     const fullUrl = this.buildUrl(url);
-    return this.http.post<ApiResponse<T>>(fullUrl, body);
+    return this.http.post<ApiResponse<T>>(fullUrl, body, { params: this.buildParams(params) });
   }
 
-  put<T>(url: string, body: unknown): Observable<ApiResponse<T>> {
+  put<T>(
+    url: string,
+    body: unknown,
+    params?: Record<string, string | number | boolean>,
+  ): Observable<ApiResponse<T>> {
     const fullUrl = this.buildUrl(url);
-    return this.http.put<ApiResponse<T>>(fullUrl, body);
+    return this.http.put<ApiResponse<T>>(fullUrl, body, { params: this.buildParams(params) });
   }
 
   patch<T>(url: string, body: unknown): Observable<ApiResponse<T>> {
@@ -53,6 +61,7 @@ export class HttpService {
 
   private buildUrl(url: string): string {
     if (url.startsWith('http')) return url;
+    if (url === this.baseUrl || url.startsWith(`${this.baseUrl}/`)) return url;
     return url.startsWith('/') ? `${this.baseUrl}${url}` : `${this.baseUrl}/${url}`;
   }
 

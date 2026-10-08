@@ -42,6 +42,7 @@ export class ProductCard {
 
   addToCart(event: Event): void {
     event.preventDefault();
+    event.stopPropagation();
     this.onAddToCart.emit();
   }
 }

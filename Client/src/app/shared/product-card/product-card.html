@@ -1,34 +1,54 @@
-<a class="product-card" [routerLink]="['/products', product()?.id]" (click)="false">
+<a class="product-card" [routerLink]="['/products', product()?.id]">
   <div class="product-card__image">
     @if (primaryImage) {
       <img [src]="primaryImage" [alt]="product()?.name ?? 'Product'" loading="lazy" />
+      <div class="product-card__image-overlay"></div>
     } @else {
       <div class="product-card__placeholder">
         <mat-icon>image</mat-icon>
       </div>
     }
     <span class="product-card__stock" [class]="stockClass">{{ stockLabel }}</span>
+    @if (product(); as currentProduct) {
+      @if (currentProduct.rating && currentProduct.rating > 0) {
+        <div class="product-card__rating">
+          <mat-icon class="product-card__star">star</mat-icon>
+          <span>{{ currentProduct.rating.toFixed(1) }}</span>
+          @if (currentProduct.reviewCount && currentProduct.reviewCount > 0) {
+            <span class="product-card__reviews">({{ currentProduct.reviewCount }})</span>
+          }
+        </div>
+      }
+    }
   </div>
 
   <div class="product-card__body">
-    <div class="product-card__category">{{ product()?.category | titlecase }}</div>
+    <div class="product-card__category-badge">{{ product()?.category | titlecase }}</div>
     <h3 class="product-card__name">{{ product()?.name }}</h3>
+    
     <div class="product-card__farmer">
-      <mat-icon class="product-card__farmer-icon">person</mat-icon>
+      <mat-icon class="product-card__farmer-icon">agriculture</mat-icon>
       <span>{{ product()?.farmerName }}</span>
       @if (product()?.farmerVerified) {
         <mat-icon class="product-card__verified">verified</mat-icon>
       }
     </div>
 
+    @if (product()?.location) {
+      <div class="product-card__location">
+        <mat-icon class="product-card__location-icon">location_on</mat-icon>
+        <span>{{ product()?.location }}</span>
+      </div>
+    }
+
     <div class="product-card__footer">
       <div class="product-card__price">
         <span class="product-card__amount">{{ product()?.price | currency:'KES' }}</span>
         <span class="product-card__unit">/{{ product()?.unit }}</span>
       </div>
-      <button mat-icon-button class="product-card__add" (click)="$event.preventDefault(); onAddToCart.emit()"
+      <button mat-icon-button class="product-card__add" (click)="addToCart($event)"
               [disabled]="!product()?.available" aria-label="Add to cart">
-        <mat-icon>add</mat-icon>
+        <mat-icon>add_shopping_cart</mat-icon>
       </button>
     </div>
   </div>

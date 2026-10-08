@@ -4,7 +4,7 @@
   z-index: 100;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
   border-bottom: 1px solid var(--primary-300);
-  box-shadow: 0 4px 12px rgba(27, 94, 32, 0.3);
+  box-shadow: 0 4px 12px rgba(13, 74, 45, 0.3);
 
   &__toolbar {
     min-height: 72px;
@@ -70,7 +70,7 @@
     &--active {
       color: var(--primary-dark);
       background: var(--accent);
-      box-shadow: 0 2px 8px rgba(255, 152, 0, 0.4);
+      box-shadow: 0 2px 8px rgba(244, 157, 12, 0.4);
     }
   }
 
@@ -174,12 +174,12 @@
     padding: var(--space-3) var(--space-6);
     font-size: 0.95rem;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(244, 157, 12, 0.3);
 
     &:hover {
       background: var(--accent-light) !important;
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+      box-shadow: 0 4px 12px rgba(244, 157, 12, 0.4);
     }
 
     &:active {
@@ -258,7 +258,7 @@
   padding: var(--space-2) 0;
   background: #ffffff;
   border: 2px solid var(--primary-100);
-  box-shadow: 0 4px 16px rgba(27, 94, 32, 0.15);
+  box-shadow: 0 4px 16px rgba(13, 74, 45, 0.15);
 
   &__role {
     padding: var(--space-2) var(--space-4);

@@ -5,7 +5,13 @@ export type OrderStatus =
   | 'SHIPPED'
   | 'OUT_FOR_DELIVERY'
   | 'DELIVERED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'PREPARING'
+  | 'READY_FOR_PICKUP'
+  | 'PICKED_UP'
+  | 'IN_TRANSIT'
+  | 'COMPLETED'
+  | 'FAILED';
 
 export interface OrderItem {
   id: string;
@@ -28,17 +34,39 @@ export interface Order {
   total: number;
   deliveryAddress: string;
   phone: string;
-  paymentMethod: 'MPESA' | 'CASH' | 'CARD';
-  paymentStatus: 'PENDING' | 'PAID' | 'FAILED';
+  paymentMethod: 'MPESA' | 'CASH' | 'CARD' | null;
+  paymentStatus: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
   createdAt: string;
   updatedAt: string;
   cancelledAt?: string;
   cancelReason?: string;
 }
 
+export interface SellerOrderSummary {
+  id: number;
+  status: string;
+  total: number;
+  createdAt: string;
+  itemCount: number;
+}
+
 export interface CreateOrderRequest {
-  items: { productId: string; quantity: number }[];
+  recipientName: string;
   deliveryAddress: string;
   phone: string;
   paymentMethod: 'MPESA' | 'CASH' | 'CARD';
+}
+
+export interface CreatedOrder {
+  id: number;
+  buyerId: number;
+  status: OrderStatus;
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  paymentStatus: string;
+  addressId: number;
+  cancellationReason: string | null;
+  createdAt: string;
+  updatedAt: string;
 }

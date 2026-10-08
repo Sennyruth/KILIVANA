@@ -14,12 +14,23 @@ export type ProductCategory =
   | 'OTHER';
 
 export type ProductType = 'PRODUCE' | 'INPUT';
+export type ProductStatus =
+  | 'ACTIVE'
+  | 'INACTIVE'
+  | 'OUT_OF_STOCK'
+  | 'PENDING_APPROVAL'
+  | 'REJECTED';
+
+export const INPUT_CATEGORY_NAMES = ['FERTILIZERS', 'SEEDS', 'PESTICIDES', 'EQUIPMENT', 'TOOLS'];
 
 export interface ProductImage {
-  id: string;
+  id: number;
   url: string;
-  alt: string;
+  publicId: string;
+  assetId: string | null;
+  sortOrder: number;
   isPrimary: boolean;
+  createdAt: string;
 }
 
 export interface Product {
@@ -40,6 +51,9 @@ export interface Product {
   reviewCount: number;
   available: boolean;
   createdAt: string;
+  categoryId?: number;
+  minimumOrderQty?: number;
+  status?: ProductStatus;
 }
 
 export interface ProductFilters {
@@ -49,4 +63,24 @@ export interface ProductFilters {
   maxPrice?: number;
   inStock?: boolean;
   farmerId?: string;
+}
+
+/** Shape returned by GET /api/v1/sellers/{sellerId}/products and POST /api/v1/products. */
+export interface ProductResponse {
+  id: number;
+  sellerId: number;
+  sellerType: 'farmer' | 'supplier';
+  categoryId: number;
+  name: string;
+  description: string;
+  unit: string;
+  price: number;
+  stockQty: number;
+  reservedQty: number;
+  soldQty: number;
+  minimumOrderQty: number;
+  status: ProductStatus | Lowercase<ProductStatus>;
+  createdAt: string;
+  updatedAt: string;
+  images: ProductImage[] | null;
 }

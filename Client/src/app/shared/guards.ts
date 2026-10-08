@@ -9,6 +9,21 @@ export const authGuard: CanActivateFn = () => {
   return router.createUrlTree(['/login']);
 };
 
+export const shoppingGuard: CanActivateFn = () => {
+  const auth = inject(Auth);
+  const router = inject(Router);
+  if (auth.isBuyer() || auth.isFarmer()) return true;
+  if (auth.isAuthenticated()) return router.createUrlTree(['/dashboard/supplier']);
+  return router.createUrlTree(['/login']);
+};
+
+export const produceCatalogGuard: CanActivateFn = () => {
+  const auth = inject(Auth);
+  const router = inject(Router);
+  if (auth.isSupplier()) return router.createUrlTree(['/dashboard/supplier']);
+  return true;
+};
+
 export const farmerGuard: CanActivateFn = () => {
   const auth = inject(Auth);
   const router = inject(Router);

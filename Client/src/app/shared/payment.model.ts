@@ -12,7 +12,7 @@ export interface MpesaInitiateResponse {
 
 export interface PaymentStatus {
   orderId: string;
-  paymentStatus: 'PENDING' | 'PAID' | 'FAILED';
+  paymentStatus: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
   mpesaReceipt?: string;
   transactionId?: string;
   completedAt?: string;
