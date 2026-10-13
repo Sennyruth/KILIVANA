@@ -59,18 +59,22 @@
     border-radius: var(--radius);
     font-weight: 600;
     font-size: 0.95rem;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     position: relative;
+    transform: translateY(0);
 
     &:hover {
       background: rgba(255, 255, 255, 0.15);
       color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
     }
 
     &--active {
       color: var(--primary-dark);
       background: var(--accent);
       box-shadow: 0 2px 8px rgba(244, 157, 12, 0.4);
+      transform: translateY(-2px);
     }
   }
 

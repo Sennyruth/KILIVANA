@@ -18,11 +18,9 @@ import { HttpService } from './http';
 import { API_BASE, ApiEndpoints } from '../../shared/api.config';
 import {
   Product as ProductModel,
-  ProductCategory,
   ProductImage,
   ProductResponse,
   ProductStatus,
-  INPUT_CATEGORY_NAMES,
 } from '../../shared/product.model';
 import { ApiResponse } from '../../shared/api-response';
 
@@ -408,10 +406,7 @@ export class Product {
       status: normalizeStatus(response.status),
       type: categoryType
         ? categoryType === 'SUPPLIER' ? 'INPUT' : 'PRODUCE'
-        : response.sellerType.toUpperCase() === 'SUPPLIER' ||
-            (response.sellerType.toUpperCase() !== 'FARMER' &&
-              (INPUT_CATEGORY_NAMES.includes(category.toUpperCase()) ||
-                category.toUpperCase() === 'OTHER'))
+        : response.sellerType?.toUpperCase() === 'SUPPLIER'
           ? 'INPUT'
           : 'PRODUCE',
       images: (response.images ?? [])
@@ -428,9 +423,9 @@ export class Product {
     };
   }
 
-  private categoryName(categoryId: number): ProductCategory {
+  private categoryName(categoryId: number): string {
     const match = this._categories().find((c) => c.id === categoryId);
-    return (match?.name?.toUpperCase() as ProductCategory) ?? 'OTHER';
+    return match?.name ?? 'Other';
   }
 
   /** Reload categories on demand (e.g. if the first request failed). */
@@ -482,7 +477,7 @@ export class Product {
             type: category
               ? category.type === 'SUPPLIER' ? 'INPUT' : 'PRODUCE'
               : product.type,
-            category: (category?.name.toUpperCase() ?? product.category) as ProductCategory,
+            category: category?.name ?? product.category,
           };
         }));
         this._categoriesLoading.set(false);

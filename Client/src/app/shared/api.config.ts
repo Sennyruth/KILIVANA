@@ -1,6 +1,6 @@
 import { environment } from '../../environments/environment';
 
-// API Configuration for ngrok integration
+
 const NGROK_URL = environment.ngrokUrl || '';
 
 export const API_BASE = NGROK_URL ? `${NGROK_URL}/api/v1` : '/api/v1';
@@ -68,10 +68,6 @@ export const ApiEndpoints = {
     REFUND: (id: string) => `${API_BASE}/payments/${id}/refund`,
     WEBHOOK: `${API_BASE}/payments/webhook`,
     BY_ORDER: (orderId: string) => `${API_BASE}/payments/order/${orderId}`,
-  },
-
-  TRACKING: {
-    HISTORY: (orderId: string) => `${API_BASE}/orders/${orderId}/tracking`,
   },
 
   USERS: {

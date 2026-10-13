@@ -74,4 +74,11 @@ describe('SupplierDashboard', () => {
     expect(fixture.nativeElement.textContent).toContain('View all');
     expect(loadSellerOrders).toHaveBeenCalledOnce();
   });
+
+  it('shows the browse-inputs link on the dashboard header', () => {
+    fixture.detectChanges();
+    const link = fixture.nativeElement.querySelector('.dashboard__browse-inputs') as HTMLAnchorElement;
+    expect(link).toBeTruthy();
+    expect(link.getAttribute('href')).toBe('/inputs');
+  });
 });

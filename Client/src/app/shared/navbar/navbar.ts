@@ -74,7 +74,7 @@ export class Navbar {
   protected readonly navLinks = computed(() => {
     if (this.auth.isSupplier()) {
       return [
-        { label: 'My Supplies', href: '/dashboard/supplier' },
+        { label: 'Dashboard', href: '/dashboard/supplier' },
         { label: 'Orders', href: '/dashboard/supplier/orders' },
       ];
     }
@@ -94,7 +94,18 @@ export class Navbar {
   });
 
   protected isActive(href: string): boolean {
-    return this.router.url === href || this.router.url.startsWith(href + '/');
+    const currentUrl = this.router.url;
+    if (currentUrl === href) return true;
+    
+    // Only use startsWith if the current URL doesn't exactly match any other link
+    const otherLinks = this.navLinks().map(l => l.href);
+    const hasExactMatch = otherLinks.some(link => link === currentUrl);
+    
+    if (!hasExactMatch) {
+      return currentUrl.startsWith(href + '/');
+    }
+    
+    return false;
   }
 
   protected toggleMobileMenu(): void {

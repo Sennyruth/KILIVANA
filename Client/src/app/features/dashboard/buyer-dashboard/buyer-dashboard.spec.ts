@@ -8,7 +8,7 @@ import { Order } from '../../../core/services/order';
 import { Auth } from '../../../core/services/auth';
 import type { Order as OrderModel, OrderStatus } from '../../../shared/order.model';
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
+const STATUS_LABELS: Partial<Record<OrderStatus, string>> & { PROCESSING: string } = {
   PENDING: 'Pending',
   CONFIRMED: 'Confirmed',
   PROCESSING: 'Processing',
@@ -126,7 +126,7 @@ describe('BuyerDashboard', () => {
             loading$: signal(false),
             error$: signal(null),
             loadMine: loadMineSpy,
-            statusLabel: (s: OrderStatus) => STATUS_LABELS[s],
+            statusLabel: (s: OrderStatus) => STATUS_LABELS[s] ?? s,
             statusColor: () => 'primary',
           },
         },
@@ -460,8 +460,17 @@ describe('BuyerDashboard', () => {
         By.css('.dashboard__actions a'),
       );
       expect(actions[0].nativeElement.textContent).toContain('View All Orders');
-      expect(actions[1].nativeElement.textContent).toContain('Browse Products');
+      expect(actions[1].nativeElement.textContent).toContain('Browse All Products');
       expect(actions[2].nativeElement.textContent).toContain('View Cart');
     });
+  });
+
+  it('keeps the browse-inputs link visible while dashboard content is loading', () => {
+    loadingSignal.set(true);
+    fixture.detectChanges();
+
+    const link = fixture.nativeElement.querySelector('.dashboard__browse-inputs') as HTMLAnchorElement;
+    expect(link).toBeTruthy();
+    expect(link.getAttribute('href')).toBe('/inputs');
   });
 });

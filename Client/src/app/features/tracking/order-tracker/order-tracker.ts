@@ -26,6 +26,10 @@ export class OrderTracker implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly detailError = signal<string | null>(null);
   protected readonly order = signal<OrderModel | null>(null);
+  protected readonly terminalStatus = computed(() => {
+    const status = this.order()?.status;
+    return status === 'CANCELLED' || status === 'FAILED' ? status : null;
+  });
   protected readonly timelineEvents = computed(() =>
     [...(this.history()?.events ?? [])].sort(
       (left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime(),
@@ -34,6 +38,21 @@ export class OrderTracker implements OnInit {
   protected readonly currentStatus = computed(
     () => this.order()?.status ?? this.history()?.currentStage ?? null,
   );
+  protected readonly terminalMessage = computed(() => {
+    const status = this.terminalStatus();
+    if (!status) return '';
+
+    const terminalEvent = this.timelineEvents().find(
+      (event) => event.label === (status === 'CANCELLED' ? 'Cancelled' : 'Delivery issue'),
+    );
+    return (
+      this.order()?.cancelReason ||
+      terminalEvent?.note ||
+      (status === 'CANCELLED'
+        ? 'This order will not continue to delivery.'
+        : 'Please contact support for help with this delivery.')
+    );
+  });
 
   ngOnInit(): void {
     this.tracking.clear();

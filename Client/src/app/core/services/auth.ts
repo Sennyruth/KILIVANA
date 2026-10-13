@@ -135,23 +135,46 @@ export class Auth {
     return this.refreshPromise$;
   }
 
-  forgotPassword(email: string): Observable<ApiResponse<null>> {
+  forgotPassword(email: string): Observable<ApiResponse<string>> {
     this._loading.set(true);
     this._error.set(null);
-    return this.http.post<null>(ApiEndpoints.AUTH.FORGOT_PASSWORD, { email }).pipe(
-      tap((res) => {
-        this._loading.set(false);
+    return this.http.post<string>(
+      ApiEndpoints.AUTH.FORGOT_PASSWORD,
+      {},
+      { email: email.trim().toLowerCase() },
+    ).pipe(
+      catchError((error: HttpErrorResponse) => {
+        const body = error.error as { message?: string } | null;
+        this._error.set(
+          body?.message ||
+            (error.status === 0
+              ? 'Unable to reach the server. Check your connection and try again.'
+              : 'Unable to request a password reset. Please try again.'),
+        );
+        return throwError(() => error);
       }),
+      finalize(() => this._loading.set(false)),
     );
   }
 
-  resetPassword(token: string, newPassword: string): Observable<ApiResponse<null>> {
+  resetPassword(email: string, newPassword: string): Observable<ApiResponse<string>> {
     this._loading.set(true);
     this._error.set(null);
-    return this.http.post<null>(ApiEndpoints.AUTH.RESET_PASSWORD, { token, newPassword }).pipe(
-      tap((res) => {
-        this._loading.set(false);
+    return this.http.post<string>(ApiEndpoints.AUTH.RESET_PASSWORD, {
+      email: email.trim().toLowerCase(),
+      newPassword,
+    }).pipe(
+      catchError((error: HttpErrorResponse) => {
+        const body = error.error as { message?: string } | null;
+        this._error.set(
+          body?.message ||
+            (error.status === 0
+              ? 'Unable to reach the server. Check your connection and try again.'
+              : 'Unable to reset your password. The link may have expired.'),
+        );
+        return throwError(() => error);
       }),
+      finalize(() => this._loading.set(false)),
     );
   }
 

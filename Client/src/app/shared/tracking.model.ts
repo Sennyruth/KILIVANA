@@ -11,6 +11,7 @@ export interface TrackingEvent {
   stage: TrackingStage;
   status: 'COMPLETED' | 'IN_PROGRESS' | 'PENDING';
   timestamp: string;
+  label?: string;
   note?: string;
   location?: string;
 }

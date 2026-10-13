@@ -11,7 +11,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Product, ListingFormData } from '../../../../core/services/product';
 import { ImageUpload } from '../../../../shared/image-upload/image-upload';
-import { INPUT_CATEGORY_NAMES } from '../../../../shared/product.model';
 import { NotificationService } from '../../../../shared/notification/notification.service';
 
 @Component({
@@ -40,19 +39,19 @@ export class AddProduct implements OnInit {
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
     description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500)]],
-    category: [null as number | null, [Validators.required]], // holds the category ID
+    category: [null as number | null, [Validators.required]], 
     price: ['', [Validators.required, Validators.min(0.01)]],
-    quantity: ['', [Validators.required, Validators.min(1)]], // sent as stockQty
+    quantity: ['', [Validators.required, Validators.min(1)]], 
     minimumOrderQty: [1, [Validators.required, Validators.min(1)]],
     unit: ['', [Validators.required]],
     available: [true], // not part of the backend schema, kept for the UI only
   });
 
-  /** Produce categories only: everything that is not a farm-input category. */
+  /** Produce categories only: filter by category type 'FARMER'. */
   protected readonly categories = computed(() =>
     this.productService
       .categories()
-      .filter((c) => !INPUT_CATEGORY_NAMES.includes(c.name.toUpperCase())),
+      .filter((c) => c.type === 'FARMER'),
   );
 
   protected readonly units = ['kg', 'g', 'liters', 'pieces', 'bunches', 'crates'];

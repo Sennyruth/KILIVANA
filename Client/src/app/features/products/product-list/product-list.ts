@@ -8,7 +8,7 @@ import { ProductCard } from '../../../shared/product-card/product-card';
 import { Product } from '../../../core/services/product';
 import { Cart } from '../../../core/services/cart';
 import { NotificationService } from '../../../shared/notification/notification.service';
-import type { Product as ProductModel, ProductCategory } from '../../../shared/product.model';
+import type { Product as ProductModel } from '../../../shared/product.model';
 
 @Component({
   selector: 'app-product-list',
@@ -29,7 +29,12 @@ export class ProductList implements OnInit {
   private readonly notification = inject(NotificationService);
 
   protected readonly searchQuery = signal('');
-  protected readonly selectedCategory = signal<ProductCategory | 'ALL'>('ALL');
+  protected readonly selectedCategory = signal<string>('ALL');
+
+  protected readonly categories = computed(() => {
+    const cats = new Set<string>(this.productService.products().filter(p => p.type === 'PRODUCE').map(p => p.category));
+    return Array.from(cats).sort();
+  });
 
   protected readonly filtered = computed(() => {
     const all = this.productService.products().filter(p => p.type === 'PRODUCE');
@@ -56,7 +61,7 @@ export class ProductList implements OnInit {
   }
 
   protected onCategory(event: any): void {
-    this.selectedCategory.set(event.value as ProductCategory | 'ALL');
+    this.selectedCategory.set(event.value as string);
   }
 
   protected addToCart(product: ProductModel): void {

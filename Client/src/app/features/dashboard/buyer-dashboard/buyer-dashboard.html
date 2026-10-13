@@ -1,7 +1,13 @@
 <div class="dashboard">
   <header class="dashboard__header">
-    <h1 class="dashboard__title">Welcome, {{ userName() || 'Buyer' }}</h1>
-    <p class="dashboard__subtitle">View your orders and track deliveries</p>
+    <div>
+      <h1 class="dashboard__title">Welcome, {{ userName() || 'Buyer' }}</h1>
+      <p class="dashboard__subtitle">View your orders and track deliveries</p>
+    </div>
+    <a mat-stroked-button class="dashboard__browse-inputs" routerLink="/inputs">
+      <mat-icon>shopping_cart</mat-icon>
+      Browse Inputs
+    </a>
   </header>
 
   @if (loading()) {
@@ -37,42 +43,63 @@
   @if (showContent() && hasOrders()) {
     <section class="dashboard__stats" aria-label="Order summary">
       <div class="stat-card">
+        <div class="dashboard__stat-icon dashboard__stat-icon--orders">
+          <mat-icon>shopping_cart</mat-icon>
+        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().total }}</span>
           <span class="stat-card__label">Total Orders</span>
         </div>
       </div>
       <div class="stat-card">
+        <div class="dashboard__stat-icon dashboard__stat-icon--pending">
+          <mat-icon>pending</mat-icon>
+        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().pending }}</span>
           <span class="stat-card__label">Pending</span>
         </div>
       </div>
       <div class="stat-card">
+        <div class="dashboard__stat-icon dashboard__stat-icon--packed">
+          <mat-icon>inventory</mat-icon>
+        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().packed }}</span>
           <span class="stat-card__label">Packed</span>
         </div>
       </div>
       <div class="stat-card">
+        <div class="dashboard__stat-icon dashboard__stat-icon--shipped">
+          <mat-icon>local_shipping</mat-icon>
+        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().shipped }}</span>
           <span class="stat-card__label">Shipped</span>
         </div>
       </div>
       <div class="stat-card">
+        <div class="dashboard__stat-icon dashboard__stat-icon--delivery">
+          <mat-icon>delivery_dining</mat-icon>
+        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().outForDelivery }}</span>
           <span class="stat-card__label">Out for Delivery</span>
         </div>
       </div>
       <div class="stat-card">
+        <div class="dashboard__stat-icon dashboard__stat-icon--delivered">
+          <mat-icon>check_circle</mat-icon>
+        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().delivered }}</span>
           <span class="stat-card__label">Delivered</span>
         </div>
       </div>
       <div class="stat-card">
+        <div class="dashboard__stat-icon dashboard__stat-icon--cancelled">
+          <mat-icon>cancel</mat-icon>
+        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().cancelled }}</span>
           <span class="stat-card__label">Cancelled</span>
@@ -118,10 +145,64 @@
       </div>
     </div>
 
+    <div class="dashboard__section">
+      <h2 class="dashboard__section-title">Browse Products by Category</h2>
+      @if (productsLoading()) {
+        <div class="dashboard__loading">
+          <mat-spinner diameter="36" />
+        </div>
+      } @else if (allProducts().length === 0) {
+        <div class="dashboard__empty">
+          <mat-icon class="dashboard__empty-icon">shopping_basket</mat-icon>
+          <h3>No products available</h3>
+          <p>Check back later for fresh produce from local farmers.</p>
+        </div>
+      } @else {
+        <nav mat-tab-nav-bar class="dashboard__category-nav" aria-label="Product categories">
+          <a
+            mat-tab-link
+            [active]="selectedCategory() === 'ALL'"
+            (click)="selectCategory('ALL')"
+            class="dashboard__category-link"
+          >
+            All Categories
+            <span class="dashboard__category-count">{{ allProducts().length }}</span>
+          </a>
+          @for (category of categories(); track category) {
+            <a
+              mat-tab-link
+              [active]="selectedCategory() === category"
+              (click)="selectCategory(category)"
+              class="dashboard__category-link"
+            >
+              {{ categoryLabel(category) }}
+              <span class="dashboard__category-count">{{ allProducts().filter(p => p.category === category).length }}</span>
+            </a>
+          }
+        </nav>
+        
+        @if (products().length === 0) {
+          <div class="dashboard__empty">
+            <mat-icon class="dashboard__empty-icon">category</mat-icon>
+            <h3>No products in this category</h3>
+            <p>Select a different category to see more products.</p>
+          </div>
+        } @else {
+          <div class="dashboard__products-grid">
+            @for (product of products(); track product.id) {
+              <app-product-card
+                [product]="product"
+                (onAddToCart)="addToCart(product)"
+              />
+            }
+          </div>
+        }
+      }
+    </div>
+
     <nav class="dashboard__actions" aria-label="Quick actions">
       <a mat-raised-button color="primary" routerLink="/orders">View All Orders</a>
-      <a mat-stroked-button routerLink="/products">Browse Products</a>
-      <a mat-stroked-button routerLink="/inputs">Browse Inputs</a>
+      <a mat-stroked-button routerLink="/products">Browse All Products</a>
       <a mat-stroked-button routerLink="/cart">View Cart</a>
     </nav>
   }

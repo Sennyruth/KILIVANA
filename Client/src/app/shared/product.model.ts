@@ -1,17 +1,4 @@
-export type ProductCategory =
-  | 'VEGETABLES'
-  | 'FRUITS'
-  | 'GRAINS'
-  | 'DAIRY'
-  | 'POULTRY'
-  | 'LIVESTOCK'
-  | 'HERBS'
-  | 'FERTILIZERS'
-  | 'SEEDS'
-  | 'PESTICIDES'
-  | 'EQUIPMENT'
-  | 'TOOLS'
-  | 'OTHER';
+export type ProductCategory = string;
 
 export type ProductType = 'PRODUCE' | 'INPUT';
 export type ProductStatus =
@@ -20,8 +7,6 @@ export type ProductStatus =
   | 'OUT_OF_STOCK'
   | 'PENDING_APPROVAL'
   | 'REJECTED';
-
-export const INPUT_CATEGORY_NAMES = ['FERTILIZERS', 'SEEDS', 'PESTICIDES', 'EQUIPMENT', 'TOOLS'];
 
 export interface ProductImage {
   id: number;

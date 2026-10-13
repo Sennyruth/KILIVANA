@@ -12,8 +12,10 @@ describe('OrderTracker', () => {
   let trackingHistory: ReturnType<typeof signal<TrackingHistory | null>>;
   let loadTracking: ReturnType<typeof vi.fn>;
   let getById: ReturnType<typeof vi.fn>;
+  let orderStatus: string;
 
   beforeEach(async () => {
+    orderStatus = 'SHIPPED';
     trackingHistory = signal<TrackingHistory | null>({
       orderId: '42',
       currentStage: 'SHIPPED',
@@ -57,7 +59,7 @@ describe('OrderTracker', () => {
                 lineTotal: 300,
               },
             ],
-            status: 'SHIPPED',
+            status: orderStatus,
             subtotal: 300,
             deliveryFee: 0,
             total: 300,
@@ -126,5 +128,16 @@ describe('OrderTracker', () => {
     ) as HTMLElement[];
     expect(events[0]?.textContent).toContain('Shipped');
     expect(events[1]?.textContent).toContain('Order placed');
+  });
+
+  it('shows a terminal message instead of active progress for cancelled orders', async () => {
+    orderStatus = 'CANCELLED';
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Cancelled');
+    expect(fixture.nativeElement.textContent).toContain('This order will not continue to delivery.');
+    expect(fixture.nativeElement.querySelector('app-tracking-stepper')).toBeNull();
   });
 });

@@ -1,9 +1,11 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTabsModule } from '@angular/material/tabs';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Product } from '../../../core/services/product';
 import { Order } from '../../../core/services/order';
@@ -14,10 +16,12 @@ import { NotificationService } from '../../../shared/notification/notification.s
 @Component({
   selector: 'app-farmer-dashboard',
   imports: [
+    RouterLink,
     MatButtonModule,
     MatIconModule,
     MatCardModule,
     MatProgressSpinnerModule,
+    MatTabsModule,
     CurrencyPipe,
     DatePipe,
   ],
@@ -31,13 +35,29 @@ export class FarmerDashboard implements OnInit {
   private readonly notification = inject(NotificationService);
   private readonly _orders = signal<SellerOrderSummary[]>([]);
   protected readonly ordersError = signal<string | null>(null);
+  private readonly _selectedCategory = signal<string>('ALL');
 
-  protected readonly products = computed(() => this.productService.products().filter(p => p.type === 'PRODUCE'));
+  protected readonly allProducts = computed(() => this.productService.products().filter(p => p.type === 'PRODUCE'));
+  protected readonly selectedCategory = this._selectedCategory.asReadonly();
+  
+  protected readonly products = computed(() => {
+    const category = this._selectedCategory();
+    if (category === 'ALL') {
+      return this.allProducts();
+    }
+    return this.allProducts().filter(p => p.category === category);
+  });
+  
   protected readonly loading = computed(() => this.productService.loading());
   protected readonly orders = this._orders.asReadonly();
+  
+  protected readonly categories = computed(() => {
+    const cats = new Set<string>(this.allProducts().map(p => p.category));
+    return Array.from(cats).sort();
+  });
 
-  protected readonly totalProducts = computed(() => this.products().length);
-  protected readonly activeProducts = computed(() => this.products().filter(p => p.available).length);
+  protected readonly totalProducts = computed(() => this.allProducts().length);
+  protected readonly activeProducts = computed(() => this.allProducts().filter(p => p.available).length);
   protected readonly totalOrders = computed(() => this.orders().length);
   protected readonly pendingOrders = computed(() => this.orders().filter(o => o.status === 'PENDING').length);
 
@@ -177,5 +197,14 @@ export class FarmerDashboard implements OnInit {
 
   protected viewOrder(orderId: number): void {
     this.router.navigate(['/orders']);
+  }
+
+  protected selectCategory(category: string): void {
+    this._selectedCategory.set(category);
+  }
+
+  protected categoryLabel(category: string): string {
+    if (category === 'ALL') return 'All Categories';
+    return category;
   }
 }

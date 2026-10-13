@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTabsModule } from '@angular/material/tabs';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Auth } from '../../../core/services/auth';
 import { Order } from '../../../core/services/order';
@@ -20,6 +21,7 @@ import { finalize } from 'rxjs';
     MatIconModule,
     MatCardModule,
     MatProgressSpinnerModule,
+    MatTabsModule,
     RouterLink,
     CurrencyPipe,
     DatePipe,
@@ -35,10 +37,13 @@ export class SupplierDashboard implements OnInit {
   private readonly notification = inject(NotificationService);
   private readonly _orders = signal<SellerOrderSummary[]>([]);
   protected readonly ordersLoading = signal(false);
+  private readonly _selectedCategory = signal<string>('ALL');
 
   protected readonly userName = this.auth.name;
   protected readonly orders = this._orders.asReadonly();
-  protected readonly products = computed(() => {
+  protected readonly selectedCategory = this._selectedCategory.asReadonly();
+  
+  protected readonly allProducts = computed(() => {
     const supplierId = Number(this.auth.user()?.id);
     return this.productService.products().filter(
       (product) =>
@@ -46,7 +51,21 @@ export class SupplierDashboard implements OnInit {
         Number(product.farmerId) === supplierId,
     );
   });
+  
+  protected readonly products = computed(() => {
+    const category = this._selectedCategory();
+    if (category === 'ALL') {
+      return this.allProducts();
+    }
+    return this.allProducts().filter(p => p.category === category);
+  });
+  
   protected readonly productsLoading = computed(() => this.productService.loading());
+  
+  protected readonly categories = computed(() => {
+    const cats = new Set<string>(this.allProducts().map(p => p.category));
+    return Array.from(cats).sort();
+  });
 
   protected readonly totalOrders = computed(() => this.orders().length);
   protected readonly pendingOrders = computed(() => this.orders().filter(o => o.status === 'PENDING').length);
@@ -54,8 +73,9 @@ export class SupplierDashboard implements OnInit {
   protected readonly shippedOrders = computed(() => this.orders().filter(o => o.status === 'SHIPPED').length);
   protected readonly deliveredOrders = computed(() => this.orders().filter(o => o.status === 'DELIVERED').length);
   protected readonly totalRevenue = computed(() => this.orders().reduce((sum, o) => sum + (o.status === 'DELIVERED' ? o.total : 0), 0));
-  protected readonly totalSupplies = computed(() => this.products().length);
-  protected readonly activeSupplies = computed(() => this.products().filter(p => p.available).length);
+  protected readonly totalSupplies = computed(() => this.allProducts().length);
+  protected readonly activeSupplies = computed(() => this.allProducts().filter(p => p.available).length);
+  protected readonly filteredSuppliesCount = computed(() => this.products().length);
 
   ngOnInit(): void {
     this.loadData();
@@ -223,5 +243,14 @@ export class SupplierDashboard implements OnInit {
   protected onSupplyImageError(event: Event): void {
     const image = event.target as HTMLImageElement;
     if (!image.src.endsWith('/placeholder.svg')) image.src = '/placeholder.svg';
+  }
+
+  protected selectCategory(category: string): void {
+    this._selectedCategory.set(category);
+  }
+
+  protected categoryLabel(category: string): string {
+    if (category === 'ALL') return 'All Categories';
+    return category;
   }
 }

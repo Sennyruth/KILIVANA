@@ -61,11 +61,21 @@
           <h2 id="progress-title">Shipment progress</h2>
           <p>Follow your order from confirmation to delivery.</p>
         </div>
-        @if (order()?.status === 'CANCELLED') {
-          <span class="order-tracker__cancelled">Order cancelled</span>
+        @if (terminalStatus(); as status) {
+          <span class="order-tracker__cancelled">{{ statusLabel(status) }}</span>
         }
       </div>
-      <app-tracking-stepper [history]="history()" />
+      @if (terminalStatus(); as status) {
+        <div class="order-tracker__terminal" role="status">
+          <mat-icon>{{ status === 'CANCELLED' ? 'cancel' : 'error_outline' }}</mat-icon>
+          <div>
+            <h3>{{ statusLabel(status) }}</h3>
+            <p>{{ terminalMessage() }}</p>
+          </div>
+        </div>
+      } @else {
+        <app-tracking-stepper [history]="history()" />
+      }
     </section>
 
     <div class="order-tracker__lower">
@@ -86,7 +96,7 @@
                 </span>
                 <div class="order-tracker__event-content">
                   <div class="order-tracker__event-heading">
-                    <h3>{{ stageLabel(event.stage) }}</h3>
+                    <h3>{{ event.label || stageLabel(event.stage) }}</h3>
                     <span>{{ eventStatusLabel(event) }}</span>
                   </div>
                   @if (event.note) {

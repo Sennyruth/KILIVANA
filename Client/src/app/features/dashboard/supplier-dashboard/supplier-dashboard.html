@@ -66,7 +66,7 @@
         <div class="dashboard__loading">
           <mat-spinner diameter="36" />
         </div>
-      } @else if (products().length === 0) {
+      } @else if (allProducts().length === 0) {
         <div class="dashboard__empty">
           <mat-icon class="dashboard__empty-icon">eco</mat-icon>
           <h3>No supplies listed</h3>
@@ -77,48 +77,79 @@
           </button>
         </div>
       } @else {
-        <table class="dashboard__table">
-          <thead>
-            <tr>
-              <th>Supply</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (supply of products(); track supply.id) {
+        <nav mat-tab-nav-bar class="dashboard__category-nav" aria-label="Supply categories">
+          <a
+            mat-tab-link
+            [active]="selectedCategory() === 'ALL'"
+            (click)="selectCategory('ALL')"
+            class="dashboard__category-link"
+          >
+            All Categories
+            <span class="dashboard__category-count">{{ totalSupplies() }}</span>
+          </a>
+          @for (category of categories(); track category) {
+            <a
+              mat-tab-link
+              [active]="selectedCategory() === category"
+              (click)="selectCategory(category)"
+              class="dashboard__category-link"
+            >
+              {{ categoryLabel(category) }}
+              <span class="dashboard__category-count">{{ allProducts().filter(p => p.category === category).length }}</span>
+            </a>
+          }
+        </nav>
+        
+        @if (products().length === 0) {
+          <div class="dashboard__empty">
+            <mat-icon class="dashboard__empty-icon">category</mat-icon>
+            <h3>No supplies in this category</h3>
+            <p>Select a different category or add more supplies.</p>
+          </div>
+        } @else {
+          <table class="dashboard__table">
+            <thead>
               <tr>
-                <td class="dashboard__product-cell">
-                  <img
-                    [src]="loadImage(supply)"
-                    [alt]="supply.name"
-                    class="dashboard__product-img"
-                    (error)="onSupplyImageError($event)"
-                  />
-                  <span>{{ supply.name }}</span>
-                </td>
-                <td>{{ supply.category }}</td>
-                <td>{{ supply.price | currency:'KES' }}/{{ supply.unit }}</td>
-                <td>{{ supply.quantity }} {{ supply.unit }}</td>
-                <td>
-                  <span [class]="supplyStatusClass(supply)">
-                    {{ supplyStatusLabel(supply) }}
-                  </span>
-                </td>
-                <td>
-                  <button mat-button (click)="editSupply(supply.id)">Edit</button>
-                  <button mat-button (click)="toggleSupplyAvailability(supply)" [disabled]="!canToggleSupply(supply)">
-                    {{ supplyAvailabilityActionLabel(supply) }}
-                  </button>
-                  <button mat-button color="warn" (click)="deleteSupply(supply.id)">Delete</button>
-                </td>
+                <th>Supply</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
-            }
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              @for (supply of products(); track supply.id) {
+                <tr>
+                  <td class="dashboard__product-cell">
+                    <img
+                      [src]="loadImage(supply)"
+                      [alt]="supply.name"
+                      class="dashboard__product-img"
+                      (error)="onSupplyImageError($event)"
+                    />
+                    <span>{{ supply.name }}</span>
+                  </td>
+                  <td>{{ supply.category }}</td>
+                  <td>{{ supply.price | currency:'KES' }}/{{ supply.unit }}</td>
+                  <td>{{ supply.quantity }} {{ supply.unit }}</td>
+                  <td>
+                    <span [class]="supplyStatusClass(supply)">
+                      {{ supplyStatusLabel(supply) }}
+                    </span>
+                  </td>
+                  <td>
+                    <button mat-button (click)="editSupply(supply.id)">Edit</button>
+                    <button mat-button (click)="toggleSupplyAvailability(supply)" [disabled]="!canToggleSupply(supply)">
+                      {{ supplyAvailabilityActionLabel(supply) }}
+                    </button>
+                    <button mat-button color="warn" (click)="deleteSupply(supply.id)">Delete</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
       }
     </mat-card-content>
   </mat-card>

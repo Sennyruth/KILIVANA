@@ -17,14 +17,9 @@
       <mat-label>Category</mat-label>
       <mat-select (selectionChange)="onCategory($event)">
         <mat-option value="ALL">All Categories</mat-option>
-        <mat-option value="VEGETABLES">Vegetables</mat-option>
-        <mat-option value="FRUITS">Fruits</mat-option>
-        <mat-option value="GRAINS">Grains</mat-option>
-        <mat-option value="DAIRY">Dairy</mat-option>
-        <mat-option value="POULTRY">Poultry</mat-option>
-        <mat-option value="LIVESTOCK">Livestock</mat-option>
-        <mat-option value="HERBS">Herbs</mat-option>
-        <mat-option value="OTHER">Other</mat-option>
+        @for (category of categories(); track category) {
+          <mat-option [value]="category">{{ category }}</mat-option>
+        }
       </mat-select>
     </mat-form-field>
   </div>

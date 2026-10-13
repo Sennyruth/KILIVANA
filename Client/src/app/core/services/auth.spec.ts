@@ -157,4 +157,63 @@ describe('Auth', () => {
     expect(auth.error()).toBe('Invalid email or password');
     expect(auth.loading()).toBe(false);
   });
+
+  it('requests a password reset using a normalized email address', () => {
+    auth.forgotPassword(' Buyer@Example.com ').subscribe();
+
+    const request = httpTesting.expectOne(
+      (candidate) =>
+        candidate.url === ApiEndpoints.AUTH.FORGOT_PASSWORD &&
+        candidate.params.get('email') === 'buyer@example.com',
+    );
+    expect(request.request.body).toEqual({});
+    request.flush({
+      success: true,
+      message: 'Success',
+      data: 'Password reset instructions have been sent if this account exists.',
+    });
+
+    expect(auth.loading()).toBe(false);
+    expect(auth.error()).toBeNull();
+  });
+
+  it('submits the one-time token and new password and clears loading', () => {
+    auth.resetPassword(' Buyer@Example.com ', 'new-password').subscribe();
+
+    const request = httpTesting.expectOne(ApiEndpoints.AUTH.RESET_PASSWORD);
+    expect(request.request.body).toEqual({
+      email: 'buyer@example.com',
+      newPassword: 'new-password',
+    });
+    request.flush({
+      success: true,
+      message: 'Success',
+      data: 'Password reset successfully',
+    });
+
+    expect(auth.loading()).toBe(false);
+    expect(auth.error()).toBeNull();
+  });
+
+  it('surfaces an expired reset link error and clears loading', () => {
+    let failed = false;
+    auth.resetPassword('buyer@example.com', 'new-password').subscribe({
+      error: () => {
+        failed = true;
+      },
+    });
+
+    httpTesting.expectOne(ApiEndpoints.AUTH.RESET_PASSWORD).flush(
+      {
+        success: false,
+        message: 'Reset link is invalid or expired',
+        data: null,
+      },
+      { status: 400, statusText: 'Bad Request' },
+    );
+
+    expect(failed).toBe(true);
+    expect(auth.error()).toBe('Reset link is invalid or expired');
+    expect(auth.loading()).toBe(false);
+  });
 });

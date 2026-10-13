@@ -1,13 +1,18 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTabsModule } from '@angular/material/tabs';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Auth } from '../../../core/services/auth';
 import { Order } from '../../../core/services/order';
+import { Product } from '../../../core/services/product';
+import { Cart } from '../../../core/services/cart';
+import { ProductCard } from '../../../shared/product-card/product-card';
 import type { OrderStatus } from '../../../shared/order.model';
+import type { Product as ProductModel } from '../../../shared/product.model';
 import { NotificationService } from '../../../shared/notification/notification.service';
 
 @Component({
@@ -18,8 +23,10 @@ import { NotificationService } from '../../../shared/notification/notification.s
     MatIconModule,
     MatCardModule,
     MatProgressSpinnerModule,
+    MatTabsModule,
     CurrencyPipe,
     DatePipe,
+    ProductCard,
   ],
   styleUrl: './buyer-dashboard.scss',
   templateUrl: './buyer-dashboard.html',
@@ -27,12 +34,35 @@ import { NotificationService } from '../../../shared/notification/notification.s
 export class BuyerDashboard implements OnInit {
   protected readonly auth = inject(Auth);
   protected readonly order = inject(Order);
+  protected readonly productService = inject(Product);
+  protected readonly cartService = inject(Cart);
   private readonly notification = inject(NotificationService);
 
   protected readonly userName = this.auth.name;
   protected readonly orders = this.order.orders;
   protected readonly loading = this.order.loading;
   protected readonly error = this.order.error;
+  private readonly _selectedCategory = signal<string>('ALL');
+  protected readonly selectedCategory = this._selectedCategory.asReadonly();
+  
+  protected readonly allProducts = computed(() => 
+    this.productService.products().filter(p => p.type === 'PRODUCE')
+  );
+  
+  protected readonly products = computed(() => {
+    const category = this._selectedCategory();
+    if (category === 'ALL') {
+      return this.allProducts();
+    }
+    return this.allProducts().filter(p => p.category === category);
+  });
+  
+  protected readonly productsLoading = computed(() => this.productService.loading());
+  
+  protected readonly categories = computed(() => {
+    const cats = new Set<string>(this.allProducts().map(p => p.category));
+    return Array.from(cats).sort();
+  });
 
   protected readonly stats = computed(() => {
     const items = this.orders();
@@ -60,6 +90,7 @@ export class BuyerDashboard implements OnInit {
 
   ngOnInit(): void {
     this.loadOrders();
+    this.loadProducts();
   }
 
   protected loadOrders(): void {
@@ -72,6 +103,14 @@ export class BuyerDashboard implements OnInit {
     this.order.loadMine(buyerId).subscribe({
       error: () => {
         this.notification.error('Failed to load orders');
+      }
+    });
+  }
+
+  protected loadProducts(): void {
+    this.productService.loadAll().subscribe({
+      error: () => {
+        this.notification.error('Failed to load products');
       }
     });
   }
@@ -99,5 +138,34 @@ export class BuyerDashboard implements OnInit {
       default:
         return 'order-status';
     }
+  }
+
+  protected selectCategory(category: string): void {
+    this._selectedCategory.set(category);
+  }
+
+  protected categoryLabel(category: string): string {
+    if (category === 'ALL') return 'All Categories';
+    return category;
+  }
+
+  protected addToCart(product: ProductModel): void {
+    if (!product.available || product.quantity === 0) {
+      this.notification.warning('Product is out of stock');
+      return;
+    }
+
+    this.cartService.addItem(product, 1).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.notification.success('Added to cart!');
+        } else {
+          this.notification.error(res.message || 'Failed to add to cart');
+        }
+      },
+      error: (error) => {
+        this.notification.error(error.error?.message || error.error?.error || error.message || 'Failed to add to cart');
+      }
+    });
   }
 }

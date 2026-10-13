@@ -162,6 +162,32 @@
   font-weight: 700;
 }
 
+.order-tracker__terminal {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #f0d2ce;
+  border-radius: 0.6rem;
+  background: #fff9f8;
+  color: #9e2d22;
+
+  > mat-icon {
+    flex: 0 0 auto;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+
+  p {
+    margin: 0.25rem 0 0;
+    color: #704740;
+    font-size: 0.85rem;
+  }
+}
+
 .order-tracker__lower {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(260px, 0.9fr);

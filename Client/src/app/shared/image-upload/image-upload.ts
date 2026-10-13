@@ -19,7 +19,7 @@ export class ImageUpload {
   protected readonly maxFileSize = 5 * 1024 * 1024; // 5MB
   protected readonly compressionQuality = 0.7; // 70% quality
   protected readonly maxWidth = 1920; // Max width for compression
-  protected readonly maxHeight = 1080; // Max height for compression
+  protected readonly maxHeight = 1080; // Max height for c
 
   protected readonly filesSelected = output<File[]>();
   protected readonly uploaded = output<string[]>();

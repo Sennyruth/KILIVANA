@@ -11,7 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Product } from '../../../../core/services/product';
 import { ImageUpload } from '../../../../shared/image-upload/image-upload';
-import { INPUT_CATEGORY_NAMES, type ProductImage } from '../../../../shared/product.model';
+import type { ProductImage } from '../../../../shared/product.model';
 import { NotificationService } from '../../../../shared/notification/notification.service';
 
 @Component({
@@ -50,7 +50,7 @@ export class EditProduct implements OnInit {
 
   protected readonly categories = computed(() =>
     this.productService.categories().filter(
-      (category) => !INPUT_CATEGORY_NAMES.includes(category.name.toUpperCase()),
+      (category) => category.type === 'FARMER',
     ),
   );
   protected readonly units = ['kg', 'g', 'liters', 'pieces', 'bunches', 'crates'];

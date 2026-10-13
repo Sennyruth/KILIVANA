@@ -10,40 +10,66 @@ $kilivana-theme: mat.define-theme((
   ),
 ));
 
+$kilivana-brand-overrides: (
+  primary: #0d4a2d,
+  on-primary: #ffffff,
+  primary-container: #cfe7d6,
+  on-primary-container: #0a3a22,
+  inverse-primary: #a4cdae,
+  primary-fixed: #2e9b42,
+  primary-fixed-dim: #1f7132,
+  on-primary-fixed: #ffffff,
+  on-primary-fixed-variant: #0d4a2d,
+  secondary: #2e9b42,
+  on-secondary: #ffffff,
+  secondary-container: #d8f0de,
+  on-secondary-container: #175a29,
+  tertiary: #f49d0c,
+  on-tertiary: #1a1a1a,
+  tertiary-container: #ffe8c2,
+  on-tertiary-container: #6b4226,
+  outline: #b6d8c1,
+  outline-variant: #d7e6db,
+);
+
 html {
   @include mat.all-component-themes($kilivana-theme);
+  @include mat.theme-overrides($kilivana-brand-overrides);
 }
 
 @import 'material-icons/iconfont/material-icons.css';
 
 :root {
-  --primary: #1b5e20;
-  --primary-dark: #0d3d12;
-  --primary-light: #2e7d32;
-  --primary-accent: #4caf50;
-  --primary-50: #e8f5e9;
-  --primary-100: #c8e6c9;
-  --primary-300: #81c784;
-  --accent: #ff9800;
-  --accent-light: #ffb74d;
-  --accent-dark: #f57c00;
-  --surface-1: #f1f8f3;
-  --surface-2: #e8f5e9;
-  --surface-3: #c8e6c9;
-  --border: #a5d6a7;
+  --primary: #0d4a2d;
+  --primary-dark: #093a22;
+  --primary-light: #2e9b42;
+  --primary-accent: #1f7132;
+  --primary-50: #eaf4ed;
+  --primary-100: #cfe7d6;
+  --primary-200: #a8d0b5;
+  --primary-300: #74b388;
+  --earth: #6b4226;
+  --earth-light: #8a5a36;
+  --accent: #f49d0c;
+  --accent-light: #f9b843;
+  --accent-dark: #d98006;
+  --surface-1: #f4f8f4;
+  --surface-2: #eaf4ed;
+  --surface-3: #cfe7d6;
+  --border: #b6d8c1;
   --text-primary: #1a1a1a;
   --text-secondary: #4a4a4a;
   --text-muted: #757575;
   --danger: #d32f2f;
-  --warn: #ff9800;
-  --success: #4caf50;
+  --warn: #f49d0c;
+  --success: #2e9b42;
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 16px;
   --radius-full: 9999px;
-  --shadow-sm: 0 1px 3px rgba(27, 94, 32, 0.1);
-  --shadow: 0 2px 8px rgba(27, 94, 32, 0.15);
-  --shadow-lg: 0 8px 24px rgba(27, 94, 32, 0.2);
+  --shadow-sm: 0 1px 3px rgba(13, 74, 45, 0.1);
+  --shadow: 0 2px 8px rgba(13, 74, 45, 0.15);
+  --shadow-lg: 0 8px 24px rgba(13, 74, 45, 0.2);
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -205,11 +231,11 @@ button {
 }
 
 .mat-mdc-raised-button {
-  box-shadow: 0 2px 8px rgba(27, 94, 32, 0.2);
+  box-shadow: 0 2px 8px rgba(13, 74, 45, 0.2);
 }
 
 .mat-mdc-raised-button:hover {
-  box-shadow: 0 4px 12px rgba(27, 94, 32, 0.3);
+  box-shadow: 0 4px 12px rgba(13, 74, 45, 0.3);
   transform: translateY(-1px);
 }
 
@@ -278,4 +304,60 @@ button {
 
 .mat-mdc-dialog-container {
   border-radius: var(--radius-lg);
+}
+
+.dashboard__browse-inputs {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: var(--primary-dark) !important;
+  font-weight: 700;
+}
+
+.dashboard__browse-inputs mat-icon {
+  color: var(--primary) !important;
+}
+
+.dashboard__browse-inputs:hover {
+  background: #e8f5e9 !important;
+}
+
+/* Make stroked buttons more visible on dark headers */
+.dashboard__header-actions .mat-mdc-outlined-button {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: var(--primary-dark) !important;
+  font-weight: 600;
+  margin-right: var(--space-3) !important;
+  transition: all 0.3s ease !important;
+  transform: translateY(0) !important;
+}
+
+.dashboard__header-actions .mat-mdc-outlined-button mat-icon {
+  color: var(--primary) !important;
+}
+
+.dashboard__header-actions .mat-mdc-outlined-button:hover {
+  background: #e8f5e9 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(13, 74, 45, 0.25) !important;
+}
+
+.dashboard__header-actions .mat-mdc-raised-button {
+  margin-left: var(--space-3) !important;
+  transition: all 0.3s ease !important;
+  transform: translateY(0) !important;
+}
+
+.dashboard__header-actions .mat-mdc-raised-button:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(13, 74, 45, 0.35) !important;
+}
+
+/* Apply same hover effects to all dashboard header buttons */
+.dashboard__header-actions .mat-mdc-button {
+  transition: all 0.3s ease !important;
+}
+
+.dashboard__header-actions .mat-mdc-button:hover {
+  transform: translateY(-2px) !important;
 }
