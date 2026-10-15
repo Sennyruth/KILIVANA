@@ -54,7 +54,10 @@ export interface ProductFilters {
 export interface ProductResponse {
   id: number;
   sellerId: number;
-  sellerType: 'farmer' | 'supplier';
+  sellerType: 'FARMER' | 'SUPPLIER' | 'farmer' | 'supplier';
+  location?: string | null;
+  farmerName?: string | null;
+  farmerVerified?: boolean;
   categoryId: number;
   name: string;
   description: string;

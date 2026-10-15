@@ -44,4 +44,18 @@ describe('FarmerDashboard', () => {
     expect(link).toBeTruthy();
     expect(link.getAttribute('href')).toBe('/inputs');
   });
+
+  it('shows product and orders empty states without decorative icons', () => {
+    fixture.detectChanges();
+    const cards = Array.from(
+      fixture.nativeElement.querySelectorAll('.dashboard__card'),
+    ) as HTMLElement[];
+    const ordersCard = cards.find((card) =>
+      card.querySelector('.dashboard__card-title')?.textContent?.includes('Recent Orders'),
+    );
+
+    expect(fixture.nativeElement.querySelector('.dashboard__empty-icon')).toBeNull();
+    expect(ordersCard?.querySelector('.dashboard__card-title mat-icon')).toBeNull();
+    expect(ordersCard?.querySelector('.dashboard__orders-placeholder mat-icon')).toBeNull();
+  });
 });

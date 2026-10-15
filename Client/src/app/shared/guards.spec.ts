@@ -65,13 +65,13 @@ describe('produceCatalogGuard', () => {
     expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/dashboard/supplier');
   });
 
-  it('allows farmer and buyer accounts to view farmer produce', () => {
+  it('allows buyer accounts to view farmer produce', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
         {
           provide: Auth,
-          useValue: { isSupplier: () => false },
+          useValue: { isSupplier: () => false, isFarmer: () => false },
         },
       ],
     });
@@ -80,5 +80,26 @@ describe('produceCatalogGuard', () => {
       produceCatalogGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
     );
     expect(result).toBe(true);
+  });
+
+  it('redirects farmers away from the buyer product catalogue', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: Auth,
+          useValue: {
+            isSupplier: () => false,
+            isFarmer: () => true,
+          },
+        },
+      ],
+    });
+
+    const result = TestBed.runInInjectionContext(() =>
+      produceCatalogGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+    );
+    expect(result).toBeInstanceOf(UrlTree);
+    expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/dashboard/farmer');
   });
 });

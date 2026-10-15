@@ -79,8 +79,16 @@ export class Navbar {
       ];
     }
 
+    if (this.auth.isFarmer()) {
+      return [
+        { label: 'Inputs', href: '/inputs' },
+        { label: 'Cart', href: '/cart' },
+        { label: 'Orders', href: '/orders' },
+      ];
+    }
+
     const links = [{ label: 'Products', href: '/products' }];
-    if (this.auth.isBuyer() || this.auth.isFarmer()) {
+    if (this.auth.isBuyer()) {
       links.push({ label: 'Inputs', href: '/inputs' }, { label: 'Cart', href: '/cart' }, { label: 'Orders', href: '/orders' });
     }
     return links;

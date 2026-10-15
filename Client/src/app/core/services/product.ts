@@ -140,6 +140,27 @@ export class Product {
     );
   }
 
+  loadFarmerProducts(farmerId: string): Observable<ApiResponse<ProductModel[]>> {
+    return this.http.get<ProductResponse[]>(ApiEndpoints.PRODUCTS.SELLER(farmerId)).pipe(
+      switchMap((response) => {
+        if (!response.success) {
+          return of({ ...response, data: [] as ProductModel[] });
+        }
+
+        const products = extractProducts<ProductResponse>(response.data)
+          .filter((product) => product.sellerType?.toUpperCase() === 'FARMER')
+          .map((product) => this.toProduct(product));
+
+        return this.withImages(products.filter((product) => product.status === 'ACTIVE')).pipe(
+          map((productsWithImages) => ({
+            ...response,
+            data: productsWithImages,
+          })),
+        );
+      }),
+    );
+  }
+
   loadByCategory(categoryId: string): Observable<ApiResponse<{ products: ProductModel[] }>> {
     this._loading.set(true);
     return this.http.get<{ products: ProductModel[] }>(ApiEndpoints.PRODUCTS.BY_CATEGORY(categoryId)).pipe(
@@ -413,9 +434,9 @@ export class Product {
         .map((image) => ({ ...image, url: resolveImageUrl(image.url) }))
         .filter((image) => !!image.url?.trim()),
       farmerId: String(response.sellerId),
-      farmerName: '',
-      farmerVerified: false,
-      location: response.sellerType ?? '',
+      farmerName: response.farmerName ?? '',
+      farmerVerified: response.farmerVerified ?? false,
+      location: response.location?.trim() ?? '',
       rating: 0,
       reviewCount: 0,
       available: normalizeStatus(response.status) === 'ACTIVE',

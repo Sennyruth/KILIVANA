@@ -124,6 +124,80 @@ describe('Product', () => {
     ]);
   });
 
+  it('loads only active farmer products for a farmer profile', () => {
+    let farmerProducts: { id: string; name: string }[] = [];
+    service.loadFarmerProducts('3').subscribe((response) => {
+      farmerProducts = response.data;
+    });
+
+    httpTesting.expectOne(`${API_BASE}/products/seller/3`).flush({
+      success: true,
+      message: 'Success',
+      data: [
+        {
+          id: 61,
+          sellerId: 3,
+          sellerType: 'FARMER',
+          categoryId: 1,
+          name: 'Fresh Beans',
+          description: 'Beans from the farm',
+          unit: 'kg',
+          price: 90,
+          stockQty: 12,
+          reservedQty: 0,
+          soldQty: 0,
+          minimumOrderQty: 1,
+          status: 'ACTIVE',
+          createdAt: '2026-10-07T10:00:00',
+          images: [],
+        },
+        {
+          id: 62,
+          sellerId: 3,
+          sellerType: 'FARMER',
+          categoryId: 1,
+          name: 'Pending Beans',
+          description: 'Not for sale yet',
+          unit: 'kg',
+          price: 90,
+          stockQty: 12,
+          reservedQty: 0,
+          soldQty: 0,
+          minimumOrderQty: 1,
+          status: 'PENDING_APPROVAL',
+          createdAt: '2026-10-07T10:00:00',
+          images: [],
+        },
+        {
+          id: 63,
+          sellerId: 3,
+          sellerType: 'SUPPLIER',
+          categoryId: 1,
+          name: 'Fertilizer',
+          description: 'Farm input',
+          unit: 'bag',
+          price: 90,
+          stockQty: 12,
+          reservedQty: 0,
+          soldQty: 0,
+          minimumOrderQty: 1,
+          status: 'ACTIVE',
+          createdAt: '2026-10-07T10:00:00',
+          images: [],
+        },
+      ],
+    });
+    httpTesting.expectOne(`${API_BASE}/products/61/images`).flush({
+      success: true,
+      message: 'Success',
+      data: [],
+    });
+
+    expect(farmerProducts).toEqual([
+      expect.objectContaining({ id: '61', name: 'Fresh Beans' }),
+    ]);
+  });
+
   it('loads seller-owned supplier listings and uses backend category types', () => {
     service.reloadCategories();
     httpTesting.expectOne(`${API_BASE}/categories/active`).flush({
@@ -181,7 +255,7 @@ describe('Product', () => {
       id: '40',
       category: 'FARM INPUTS',
       type: 'INPUT',
-      location: 'SUPPLIER',
+      location: '',
       available: true,
       images: [
         { id: 3, url: `${new URL(API_BASE).origin}/api/v1/images/32`, isPrimary: true },

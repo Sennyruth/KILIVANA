@@ -65,7 +65,8 @@
               "buildTarget": "kilivana:build:production"
             },
             "development": {
-              "buildTarget": "kilivana:build:development"
+              "buildTarget": "kilivana:build:development",
+              "proxyConfig": "proxy.conf.cjs"
             }
           },
           "defaultConfiguration": "development"

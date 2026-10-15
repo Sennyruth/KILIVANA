@@ -69,6 +69,9 @@ describe('Navbar', () => {
     await fixture.whenStable();
 
     expect(loadCart).toHaveBeenCalledOnce();
+    const links = Array.from(fixture.nativeElement.querySelectorAll('.navbar__link')) as HTMLAnchorElement[];
+    expect(links.map((link) => link.textContent?.trim())).toEqual(['Inputs', 'Cart', 'Orders', 'Dashboard']);
+    expect(links.some((link) => link.getAttribute('href') === '/products')).toBe(false);
   });
 
   it('does not load the cart for a supplier', async () => {

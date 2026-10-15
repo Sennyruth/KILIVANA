@@ -92,13 +92,11 @@ export class SupplierDashboard implements OnInit {
       finalize(() => this.ordersLoading.set(false)),
     ).subscribe({
       next: (response) => {
-        if (!response.success || !response.data) {
-          this.notification.error(response.message || 'Failed to load your orders');
-          return;
-        }
+        if (!response.success || !response.data) return;
         this._orders.set(response.data);
       },
-      error: () => this.notification.error('Failed to load your orders'),
+      // Order-fetch errors are shown when the supplier opens the Orders page.
+      error: () => {},
     });
   }
 

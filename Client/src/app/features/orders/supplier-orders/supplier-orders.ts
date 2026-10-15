@@ -7,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { finalize } from 'rxjs';
 import { Order as OrderService } from '../../../core/services/order';
 import type { SellerOrderSummary } from '../../../shared/order.model';
+import { NotificationService } from '../../../shared/notification/notification.service';
 
 type SupplierOrderFilter = 'ALL' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 
@@ -18,6 +19,7 @@ type SupplierOrderFilter = 'ALL' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 })
 export class SupplierOrders implements OnInit {
   private readonly orderService = inject(OrderService);
+  private readonly notification = inject(NotificationService);
   private readonly _orders = signal<SellerOrderSummary[]>([]);
   protected readonly orders = this._orders.asReadonly();
   protected readonly loading = signal(false);
@@ -55,12 +57,18 @@ export class SupplierOrders implements OnInit {
     ).subscribe({
       next: (response) => {
         if (!response.success || !response.data) {
-          this.error.set(response.message || 'Failed to load your orders.');
+          const message = response.message || 'Failed to load your orders.';
+          this.error.set(message);
+          this.notification.error(message);
           return;
         }
         this._orders.set(response.data);
       },
-      error: () => this.error.set('Failed to load your orders. Please try again.'),
+      error: () => {
+        const message = 'Failed to load your orders. Please try again.';
+        this.error.set(message);
+        this.notification.error(message);
+      },
     });
   }
 

@@ -68,7 +68,6 @@
         </div>
       } @else if (allProducts().length === 0) {
         <div class="dashboard__empty">
-          <mat-icon class="dashboard__empty-icon">eco</mat-icon>
           <h3>No supplies listed</h3>
           <p>Add your first supply listing to start.</p>
           <button mat-stroked-button color="primary" (click)="addSupply()">
@@ -102,7 +101,6 @@
         
         @if (products().length === 0) {
           <div class="dashboard__empty">
-            <mat-icon class="dashboard__empty-icon">category</mat-icon>
             <h3>No supplies in this category</h3>
             <p>Select a different category or add more supplies.</p>
           </div>
@@ -156,7 +154,6 @@
 
   <mat-card class="dashboard__card">
     <mat-card-title class="dashboard__card-title">
-      <mat-icon>receipt_long</mat-icon>
       Recent Orders
       <a mat-button routerLink="/dashboard/supplier/orders">View all</a>
     </mat-card-title>
@@ -167,7 +164,6 @@
         </div>
       } @else if (orders().length === 0) {
         <div class="dashboard__empty">
-          <mat-icon class="dashboard__empty-icon">shopping_cart</mat-icon>
           <h3>No orders yet</h3>
           <p>Orders containing your supplies will appear here once customers place them.</p>
         </div>

@@ -124,9 +124,113 @@
   font-weight: 600;
 }
 
+.farmer-profile {
+  margin-top: var(--space-8);
+  padding: var(--space-6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+}
+
+.farmer-profile__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.farmer-profile__eyebrow {
+  margin: 0 0 var(--space-1);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.farmer-profile__header h2,
+.farmer-profile__location h3,
+.farmer-profile__products h3 {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.farmer-profile__verified,
+.farmer-profile__location {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.farmer-profile__verified {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.farmer-profile__location {
+  align-items: flex-start;
+  padding: var(--space-4);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.farmer-profile__location > mat-icon {
+  color: var(--primary);
+}
+
+.farmer-profile__location p,
+.farmer-profile__products p {
+  margin: var(--space-1) 0 0;
+  color: var(--text-secondary);
+}
+
+.farmer-profile__products {
+  margin-top: var(--space-5);
+}
+
+.farmer-profile__products ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.farmer-profile__products a {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  height: 100%;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.farmer-profile__products a:hover,
+.farmer-profile__products a:focus-visible {
+  border-color: var(--primary);
+}
+
+.farmer-profile__products a span:first-child {
+  font-weight: 700;
+}
+
+.farmer-profile__products a span:last-child {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
 @media (max-width: 768px) {
   .product-grid {
     grid-template-columns: 1fr;
     gap: var(--space-6);
+  }
+
+  .farmer-profile__header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

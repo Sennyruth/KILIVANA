@@ -21,6 +21,7 @@ export const produceCatalogGuard: CanActivateFn = () => {
   const auth = inject(Auth);
   const router = inject(Router);
   if (auth.isSupplier()) return router.createUrlTree(['/dashboard/supplier']);
+  if (auth.isFarmer()) return router.createUrlTree(['/dashboard/farmer']);
   return true;
 };
 
@@ -51,6 +52,8 @@ export const supplierGuard: CanActivateFn = () => {
 export const unauthGuard: CanActivateFn = () => {
   const auth = inject(Auth);
   const router = inject(Router);
+  if (auth.isFarmer()) return router.createUrlTree(['/dashboard/farmer']);
+  if (auth.isSupplier()) return router.createUrlTree(['/dashboard/supplier']);
   if (auth.isAuthenticated()) return router.createUrlTree(['/products']);
   return true;
 };

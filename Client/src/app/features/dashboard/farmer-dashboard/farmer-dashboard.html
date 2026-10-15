@@ -63,7 +63,6 @@
         </div>
       } @else if (allProducts().length === 0) {
         <div class="dashboard__empty">
-          <mat-icon class="dashboard__empty-icon">eco</mat-icon>
           <h3>No products listed</h3>
           <p>Add your first product to start selling.</p>
           <button mat-stroked-button color="primary" (click)="addProduct()">
@@ -97,7 +96,6 @@
         
         @if (products().length === 0) {
           <div class="dashboard__empty">
-            <mat-icon class="dashboard__empty-icon">category</mat-icon>
             <h3>No products in this category</h3>
             <p>Select a different category or add more products.</p>
           </div>
@@ -165,7 +163,6 @@
 
   <mat-card class="dashboard__card">
     <mat-card-title class="dashboard__card-title">
-      <mat-icon>assignment</mat-icon>
       Recent Orders
     </mat-card-title>
     <mat-card-content>
@@ -176,7 +173,6 @@
         </div>
       } @else if (orders().length === 0) {
         <div class="dashboard__orders-placeholder">
-          <mat-icon>hourglass_empty</mat-icon>
           <p>No recent orders yet.</p>
         </div>
       } @else {

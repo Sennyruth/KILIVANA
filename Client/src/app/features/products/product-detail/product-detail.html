@@ -37,8 +37,10 @@
         <h1 class="product-info__name">{{ product()!.name }}</h1>
         <p class="product-info__farmer">
           <mat-icon class="product-info__farmer-icon">person</mat-icon>
-          {{ product()!.farmerName || 'Local Farmer' }}
-          <mat-icon class="product-info__verified">verified</mat-icon>
+          {{ farmerProfile()?.name || product()!.farmerName || 'Local Farmer' }}
+          @if (farmerProfile()?.verificationStatus === 'VERIFIED' || product()!.farmerVerified) {
+            <mat-icon class="product-info__verified">verified</mat-icon>
+          }
         </p>
 
         <p class="product-info__price">KSh {{ product()!.price.toFixed(2) }}</p>
@@ -91,5 +93,62 @@
         </button>
       </div>
     </div>
+
+    @if (product()!.type === 'PRODUCE') {
+      <section class="farmer-profile" aria-labelledby="farmer-profile-title">
+        <div class="farmer-profile__header">
+          <div>
+            <p class="farmer-profile__eyebrow">MEET THE FARMER</p>
+            <h2 id="farmer-profile-title">
+              {{ farmerProfile()?.name || product()!.farmerName || 'Local Farmer' }}
+            </h2>
+          </div>
+          @if (farmerProfile()?.verificationStatus === 'VERIFIED') {
+            <span class="farmer-profile__verified">
+              <mat-icon>verified</mat-icon>
+              Verified farmer
+            </span>
+          }
+        </div>
+
+        <div class="farmer-profile__location">
+          <mat-icon aria-hidden="true">location_on</mat-icon>
+          <div>
+            <h3>Farm location</h3>
+            @if (farmerLoading()) {
+              <p>Loading farmer location...</p>
+            } @else if (farmerProfile()?.region) {
+              <p>{{ farmerProfile()!.region }}</p>
+            } @else if (farmerError()) {
+              <p>{{ farmerError() }}</p>
+            } @else {
+              <p>Location has not been provided.</p>
+            }
+          </div>
+        </div>
+
+        <div class="farmer-profile__products">
+          <h3>More from this farmer</h3>
+          @if (farmerProductsLoading()) {
+            <p role="status">Loading farmer products...</p>
+          } @else if (farmerProductsError()) {
+            <p role="alert">{{ farmerProductsError() }}</p>
+          } @else if (farmerProducts().length === 0) {
+            <p>No other active products from this farmer yet.</p>
+          } @else {
+            <ul>
+              @for (farmerProduct of farmerProducts(); track farmerProduct.id) {
+                <li>
+                  <a [routerLink]="['/products', farmerProduct.id]">
+                    <span>{{ farmerProduct.name }}</span>
+                    <span>{{ farmerProduct.category }} · KSh {{ farmerProduct.price }} / {{ farmerProduct.unit }}</span>
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+    }
   }
 </div>

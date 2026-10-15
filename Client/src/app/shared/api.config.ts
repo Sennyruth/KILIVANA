@@ -72,6 +72,8 @@ export const ApiEndpoints = {
 
   USERS: {
     SUPPLIERS: `${API_BASE}/users/suppliers`,
+    FARMER_PROFILE: (farmerId: string | number) =>
+      `${API_BASE}/users/farmers/${farmerId}`,
   },
   
 } as const;
