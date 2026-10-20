@@ -18,6 +18,7 @@ import { AddProduct } from './features/dashboard/farmer-dashboard/add-product/ad
 import { EditProduct } from './features/dashboard/farmer-dashboard/edit-product/edit-product';
 import { AddSupply } from './features/dashboard/supplier-dashboard/add-supply/add-supply';
 import { EditSupply } from './features/dashboard/supplier-dashboard/edit-supply/edit-supply';
+import { FarmSetup } from './features/dashboard/farmer-dashboard/farm-setup/farm-setup';
 import { InputsList } from './features/inputs/inputs-list/inputs-list';
 import { InputsDetail } from './features/inputs/inputs-detail/inputs-detail';
 import {
@@ -26,6 +27,7 @@ import {
   farmerGuard,
   buyerGuard,
   supplierGuard,
+  farmerDashboardGuard,
   shoppingGuard,
   produceCatalogGuard,
 } from './shared/guards';
@@ -39,14 +41,15 @@ export const routes: Routes = [
   { path: 'logout', component: Logout, canActivate: [authGuard] },
   { path: 'products', component: ProductList, canActivate: [produceCatalogGuard] },
   { path: 'products/:id', component: ProductDetail, canActivate: [produceCatalogGuard] },
-  { path: 'inputs', component: InputsList },
-  { path: 'inputs/:id', component: InputsDetail },
+  { path: 'inputs', component: InputsList, canActivate: [farmerGuard] },
+  { path: 'inputs/:id', component: InputsDetail, canActivate: [farmerGuard] },
   { path: 'cart', component: CartView, canActivate: [shoppingGuard] },
   { path: 'checkout', component: Checkout, canActivate: [shoppingGuard] },
   { path: 'orders', component: OrderHistory, canActivate: [shoppingGuard] },
   { path: 'dashboard/supplier/orders', component: SupplierOrders, canActivate: [supplierGuard] },
   { path: 'tracking/:orderId', component: OrderTracker, canActivate: [shoppingGuard] },
-  { path: 'dashboard/farmer', component: FarmerDashboard, canActivate: [farmerGuard] },
+  { path: 'dashboard/farmer/setup', component: FarmSetup, canActivate: [farmerGuard] },
+  { path: 'dashboard/farmer', component: FarmerDashboard, canActivate: [farmerDashboardGuard] },
   { path: 'dashboard/farmer/add-product', component: AddProduct, canActivate: [farmerGuard] },
   { path: 'dashboard/farmer/edit-product/:id', component: EditProduct, canActivate: [farmerGuard] },
   { path: 'dashboard/buyer', component: BuyerDashboard, canActivate: [buyerGuard] },

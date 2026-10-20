@@ -138,9 +138,6 @@
                   </td>
                   <td>
                     <button mat-button (click)="editSupply(supply.id)">Edit</button>
-                    <button mat-button (click)="toggleSupplyAvailability(supply)" [disabled]="!canToggleSupply(supply)">
-                      {{ supplyAvailabilityActionLabel(supply) }}
-                    </button>
                     <button mat-button color="warn" (click)="deleteSupply(supply.id)">Delete</button>
                   </td>
                 </tr>
@@ -161,6 +158,10 @@
       @if (ordersLoading()) {
         <div class="dashboard__loading">
           <mat-spinner diameter="36" />
+        </div>
+      } @else if (ordersError(); as error) {
+        <div class="dashboard__empty" role="status">
+          <p>{{ error }}</p>
         </div>
       } @else if (orders().length === 0) {
         <div class="dashboard__empty">

@@ -51,6 +51,125 @@
     </div>
   </div>
 
+  <mat-card class="farm-inspection-card">
+    <mat-card-title class="farm-inspection-card__title">
+      <span class="farm-inspection-card__icon"><mat-icon>photo_camera</mat-icon></span>
+      <span>
+        <strong>Farm inspection photos</strong>
+        <small>Share a clear view of your farm with the inspection team.</small>
+      </span>
+    </mat-card-title>
+    <mat-card-content>
+      @if (farmProfileLoading()) {
+        <div class="farm-inspection-card__loading" role="status">
+          <mat-spinner diameter="28" />
+          <span>Loading your farm profile...</span>
+        </div>
+      } @else if (farmProfileReady()) {
+        <p class="farm-inspection-card__intro">
+          Photos uploaded here are attached to your farmer profile so the admin inspection team can review them.
+        </p>
+        <button mat-stroked-button type="button" class="farm-inspection-card__edit-farm" (click)="editFarmDetails()">
+          <mat-icon>edit</mat-icon>Update farm details
+        </button>
+
+        @if (farmPhotos().length > 0) {
+          <div class="farm-inspection-card__gallery" aria-label="Uploaded farm photos">
+            @for (photo of farmPhotos(); track photo.id) {
+              <figure class="farm-inspection-card__photo">
+                <img [src]="photo.url" alt="Uploaded farm inspection view" loading="lazy" (error)="onFarmPhotoImageError($event)" />
+                @if (photo.isPrimary) {
+                  <figcaption><mat-icon>star</mat-icon> Main farm photo</figcaption>
+                }
+              </figure>
+            }
+          </div>
+        } @else {
+          <div class="farm-inspection-card__empty">
+            <mat-icon>landscape</mat-icon>
+            <span>No farm photos uploaded yet.</span>
+          </div>
+        }
+
+        <div class="farm-inspection-card__upload">
+          <input
+            #farmPhotoInput
+            class="farm-inspection-card__file-input"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            (change)="onFarmPhotoSelected($event)"
+          />
+          <button mat-stroked-button type="button" (click)="farmPhotoInput.click()">
+            <mat-icon>add_a_photo</mat-icon>
+            Choose farm photo
+          </button>
+          @if (farmPhotoPreview(); as preview) {
+            <div class="farm-inspection-card__selected">
+              <img [src]="preview" alt="Selected farm photo preview" />
+              <span>{{ selectedFarmPhoto()?.name }}</span>
+              <button mat-icon-button type="button" (click)="clearSelectedFarmPhoto()" aria-label="Clear selected photo">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+          <button
+            mat-raised-button
+            color="primary"
+            type="button"
+            class="farm-inspection-card__submit"
+            [disabled]="!selectedFarmPhoto() || farmPhotoUploading()"
+            (click)="uploadFarmPhoto()"
+          >
+            <mat-spinner diameter="18" [style.display]="farmPhotoUploading() ? 'inline-block' : 'none'" />
+            <mat-icon [style.display]="farmPhotoUploading() ? 'none' : 'inline-block'">cloud_upload</mat-icon>
+            <span>{{ farmPhotoUploading() ? 'Uploading...' : 'Upload for inspection' }}</span>
+          </button>
+        </div>
+        <p class="farm-inspection-card__hint">JPG, PNG, WebP, or GIF · Maximum 10 MB per photo</p>
+        @if (farmPhotoError()) {
+          <p class="farm-inspection-card__error" role="alert">{{ farmPhotoError() }}</p>
+        }
+      } @else if (farmProfileLoadError()) {
+        <div class="farm-inspection-card__error-panel" role="alert">
+          <p>{{ farmProfileLoadError() }}</p>
+          <button mat-stroked-button type="button" (click)="loadFarmProfile()">Try again</button>
+        </div>
+      } @else {
+        <p class="farm-inspection-card__intro">
+          Add your farm name and location first. Once saved, you can upload photos for the admin inspection team.
+        </p>
+        <form class="farm-inspection-card__profile-form" [formGroup]="farmProfileForm" (ngSubmit)="saveFarmProfile()">
+          <label>
+            Farm name <span>*</span>
+            <input type="text" formControlName="farmName" placeholder="e.g. Green Acres Farm" />
+            @if (farmProfileForm.controls.farmName.touched && farmProfileForm.controls.farmName.invalid) {
+              <small class="farm-inspection-card__field-error">Enter your farm name.</small>
+            }
+          </label>
+          <label>
+            Farm location <span>*</span>
+            <input type="text" formControlName="location" placeholder="County and nearest town" />
+            @if (farmProfileForm.controls.location.touched && farmProfileForm.controls.location.invalid) {
+              <small class="farm-inspection-card__field-error">Enter your farm location.</small>
+            }
+          </label>
+          <label class="farm-inspection-card__wide-field">
+            About your farm <small>(optional)</small>
+            <textarea rows="3" formControlName="farmDetails" placeholder="Crops, size, facilities, or helpful directions"></textarea>
+          </label>
+          <button mat-raised-button color="primary" type="submit" [disabled]="farmProfileSaving()">
+            <mat-spinner diameter="18" [style.display]="farmProfileSaving() ? 'inline-block' : 'none'" />
+            <mat-icon [style.display]="farmProfileSaving() ? 'none' : 'inline-block'">save</mat-icon>
+            <span>{{ farmProfileSaving() ? 'Saving...' : 'Save farm details' }}</span>
+          </button>
+          @if (farmProfileError()) {
+            <p class="farm-inspection-card__error" role="alert">{{ farmProfileError() }}</p>
+          }
+        </form>
+      }
+    </mat-card-content>
+  </mat-card>
+
   <mat-card class="dashboard__card">
     <mat-card-title class="dashboard__card-title">
       <mat-icon>inventory</mat-icon>
@@ -139,14 +258,6 @@
                   <td>
                     <button mat-icon-button (click)="editProduct(product.id)" aria-label="Edit">
                       <mat-icon>edit</mat-icon>
-                    </button>
-                    <button
-                      mat-icon-button
-                      (click)="toggleProductAvailability(product)"
-                      [disabled]="!canToggleProduct(product)"
-                      aria-label="Toggle availability"
-                    >
-                      <mat-icon>{{ product.available ? 'visibility_off' : 'visibility' }}</mat-icon>
                     </button>
                     <button mat-icon-button (click)="deleteProduct(product.id)" aria-label="Delete">
                       <mat-icon>delete</mat-icon>

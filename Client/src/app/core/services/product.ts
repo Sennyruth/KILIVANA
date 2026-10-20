@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import {
   Observable,
   tap,
@@ -12,10 +13,11 @@ import {
   throwError,
   toArray,
   finalize,
+  shareReplay,
 } from 'rxjs';
 
 import { HttpService } from './http';
-import { API_BASE, ApiEndpoints } from '../../shared/api.config';
+import { API_BASE, API_ORIGIN, ApiEndpoints } from '../../shared/api.config';
 import {
   Product as ProductModel,
   ProductImage,
@@ -49,6 +51,8 @@ export type ListingFormData = Omit<CreateProductRequest, 'sellerId' | 'sellerTyp
 @Injectable({ providedIn: 'root' })
 export class Product {
   private readonly http = inject(HttpService);
+  private readonly httpClient = inject(HttpClient);
+  private readonly imageUrlCache = new Map<string, Observable<string>>();
 
   private readonly _products = signal<ProductModel[]>([]);
   private readonly _loading = signal<boolean>(false);
@@ -163,21 +167,27 @@ export class Product {
 
   loadByCategory(categoryId: string): Observable<ApiResponse<{ products: ProductModel[] }>> {
     this._loading.set(true);
-    return this.http.get<{ products: ProductModel[] }>(ApiEndpoints.PRODUCTS.BY_CATEGORY(categoryId)).pipe(
-      tap((res) => {
-        if (res.success && res.data) this._products.set(res.data.products);
-        this._loading.set(false);
-      }),
+    return this.http.get<ProductResponse[]>(ApiEndpoints.PRODUCTS.BY_CATEGORY(categoryId)).pipe(
+      switchMap((res) => this.withImages(extractProducts<ProductResponse>(res.data).map((item) => this.toProduct(item))).pipe(
+        map((products) => {
+          if (res.success) this._products.set(products);
+          return { ...res, data: { products } };
+        }),
+      )),
+      finalize(() => this._loading.set(false)),
     );
   }
 
   search(query: string): Observable<ApiResponse<{ products: ProductModel[] }>> {
     this._loading.set(true);
-    return this.http.get<{ products: ProductModel[] }>(ApiEndpoints.PRODUCTS.SEARCH, { search: query }).pipe(
-      tap((res) => {
-        if (res.success && res.data) this._products.set(res.data.products);
-        this._loading.set(false);
-      }),
+    return this.http.get<ProductResponse[]>(ApiEndpoints.PRODUCTS.SEARCH, { name: query }).pipe(
+      switchMap((res) => this.withImages(extractProducts<ProductResponse>(res.data).map((item) => this.toProduct(item))).pipe(
+        map((products) => {
+          if (res.success) this._products.set(products);
+          return { ...res, data: { products } };
+        }),
+      )),
+      finalize(() => this._loading.set(false)),
     );
   }
 
@@ -185,16 +195,20 @@ export class Product {
     return this.http.get<ProductResponse | { product: ProductResponse }>(
       ApiEndpoints.PRODUCTS.DETAIL(id),
     ).pipe(
-      map((res) => {
+      switchMap((res) => {
         const response = res.data && 'product' in res.data ? res.data.product : res.data;
-        if (!res.success || !response) return { ...res, data: null };
+        if (!res.success || !response) return of({ ...res, data: null });
 
         const product = this.toProduct(response);
-        this._products.update((products) => [
-          ...products.filter((item) => item.id !== product.id),
-          product,
-        ]);
-        return { ...res, data: product };
+        return this.withImages([product]).pipe(
+          map(([productWithImages]) => {
+            this._products.update((products) => [
+              ...products.filter((item) => item.id !== productWithImages.id),
+              productWithImages,
+            ]);
+            return { ...res, data: productWithImages };
+          }),
+        );
       }),
     );
   }
@@ -287,7 +301,7 @@ export class Product {
 
     const request = {
       sellerId,
-      sellerType: current.location.toUpperCase() === 'SUPPLIER' ? 'SUPPLIER' : 'FARMER',
+      sellerType: current.type === 'INPUT' ? 'SUPPLIER' : 'FARMER',
       categoryId,
       name: payload.name ?? current.name,
       description: payload.description ?? current.description,
@@ -315,7 +329,7 @@ export class Product {
 
   updateStatus(
     id: string,
-    status: Extract<ProductStatus, 'ACTIVE' | 'INACTIVE'>,
+    status: ProductStatus,
   ): Observable<ApiResponse<ProductResponse>> {
     return this.http.put<ProductResponse>(
       ApiEndpoints.PRODUCTS.UPDATE_STATUS(id),
@@ -365,12 +379,13 @@ export class Product {
 
   /** GET /api/v1/products/{id}/images - the uploaded images for one product. */
   loadImages(productId: string | number): Observable<ApiResponse<ProductImage[]>> {
-    return this.http.get<ProductImage[]>(ApiEndpoints.PRODUCTS.IMAGES(String(productId))).pipe(
+    return this.http.get<unknown>(ApiEndpoints.PRODUCTS.IMAGES(String(productId))).pipe(
       map((response) => ({
         ...response,
-        data: Array.isArray(response.data)
-          ? response.data.map((image) => ({ ...image, url: resolveImageUrl(image.url) }))
-          : response.data,
+        data: extractImages(response.data).map((image) => ({
+          ...image,
+          url: resolveImageUrl(image.url),
+        })),
       })),
     );
   }
@@ -396,50 +411,71 @@ export class Product {
 
     return forkJoin(
       products.map((product) => {
-        if (product.images.length > 0) return of(product);
+        const images$ = product.images.length > 0
+          ? of(orderImages(product.images))
+          : this.loadImages(product.id).pipe(
+            map((res) => res.success ? orderImages(res.data.filter((image) => !!image.url?.trim())) : []),
+            catchError(() => of([] as ProductImage[])),
+          );
 
-        return this.loadImages(product.id).pipe(
-          map((res) => ({
-            ...product,
-            images: res.success && Array.isArray(res.data)
-              ? orderImages(res.data.filter((image) => !!image.url?.trim()))
-              : [],
-          })),
-          catchError(() => of(product)),
+        return images$.pipe(
+          switchMap((images) => forkJoin(
+            images.map((image) => this.displayImageUrl(image.url).pipe(
+              map((url) => ({ ...image, url })),
+            )),
+          )),
+          map((images) => ({ ...product, images })),
         );
       }),
     );
   }
 
+  private displayImageUrl(url: string): Observable<string> {
+    if (!isBackendImageUrl(url)) return of(url);
+    const cached = this.imageUrlCache.get(url);
+    if (cached) return cached;
+
+    const request = this.httpClient.get(url, { responseType: 'blob' }).pipe(
+      map((image) => URL.createObjectURL(image)),
+      catchError(() => of(url)),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    this.imageUrlCache.set(url, request);
+    return request;
+  }
+
   private toProduct(response: ProductResponse): ProductModel {
     const category = this.categoryName(response.categoryId);
     const categoryType = this._categories().find((item) => item.id === response.categoryId)?.type;
+    const normalizedStatus = normalizeStatus(response.status);
+    const sellerType = response.sellerType?.toUpperCase();
+    const quantity = Number(response.stockQty ?? 0);
     return {
       id: String(response.id),
       name: response.name ?? '',
       description: response.description ?? '',
       price: Number(response.price ?? 0),
-      quantity: Number(response.stockQty ?? 0),
+      quantity,
       unit: response.unit ?? '',
       category,
       categoryId: response.categoryId,
       minimumOrderQty: response.minimumOrderQty,
-      status: normalizeStatus(response.status),
+      status: normalizedStatus,
       type: categoryType
         ? categoryType === 'SUPPLIER' ? 'INPUT' : 'PRODUCE'
-        : response.sellerType?.toUpperCase() === 'SUPPLIER'
+        : sellerType === 'SUPPLIER'
           ? 'INPUT'
           : 'PRODUCE',
-      images: (response.images ?? [])
+      images: extractImages(response.images)
         .map((image) => ({ ...image, url: resolveImageUrl(image.url) }))
         .filter((image) => !!image.url?.trim()),
       farmerId: String(response.sellerId),
-      farmerName: response.farmerName ?? '',
-      farmerVerified: response.farmerVerified ?? false,
-      location: response.location?.trim() ?? '',
+      farmerName: response.sellerName ?? response.farmerName ?? '',
+      farmerVerified: response.farmerVerified ?? response.farmCertified ?? false,
+      location: response.sellerLocation?.trim() ?? response.sellerCounty?.trim() ?? response.location?.trim() ?? '',
       rating: 0,
       reviewCount: 0,
-      available: normalizeStatus(response.status) === 'ACTIVE',
+      available: normalizedStatus === 'ACTIVE' && quantity > 0 && response.isLive !== false,
       createdAt: response.createdAt,
     };
   }
@@ -516,12 +552,10 @@ function normalizeStatus(status: ProductResponse['status']): ProductStatus {
   switch (String(status).toUpperCase()) {
     case 'ACTIVE':
       return 'ACTIVE';
-    case 'INACTIVE':
-      return 'INACTIVE';
-    case 'OUT_OF_STOCK':
-      return 'OUT_OF_STOCK';
     case 'REJECTED':
       return 'REJECTED';
+    case 'SUSPENDED':
+      return 'SUSPENDED';
     default:
       return 'PENDING_APPROVAL';
   }
@@ -536,12 +570,32 @@ function orderImages(images: ProductImage[]): ProductImage[] {
 
 function resolveImageUrl(url: string): string {
   const value = url.trim();
-  if (!value || /^(https?:|data:|blob:)/i.test(value)) return value;
+  if (!value || /^(https?:|data:|blob:|\/\/)/i.test(value)) return value;
 
   if (API_BASE.startsWith('http')) {
     return new URL(value, new URL(API_BASE).origin).toString();
   }
-  return value;
+  return value.startsWith('/') ? value : `/${value}`;
+}
+
+function isBackendImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url, API_ORIGIN);
+    return parsed.origin === API_ORIGIN &&
+      (parsed.pathname.startsWith('/api/v1/images/') || parsed.pathname.startsWith('/uploads/'));
+  } catch {
+    return false;
+  }
+}
+
+function extractImages(data: unknown): ProductImage[] {
+  if (Array.isArray(data)) return data as ProductImage[];
+  if (data && typeof data === 'object') {
+    const result = data as { images?: unknown; content?: unknown };
+    if (Array.isArray(result.images)) return result.images as ProductImage[];
+    if (Array.isArray(result.content)) return result.content as ProductImage[];
+  }
+  return [];
 }
 
 /** The list endpoint returns either a bare array, { products } or a page's { content }. */

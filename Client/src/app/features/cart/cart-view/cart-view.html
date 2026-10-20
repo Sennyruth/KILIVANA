@@ -1,5 +1,17 @@
 <div class="cart-view">
-  <h1 class="cart-view__title">Shopping Cart</h1>
+  <header class="cart-view__header">
+    <div class="cart-view__heading">
+      <span class="cart-view__heading-icon"><mat-icon>shopping_bag</mat-icon></span>
+      <div>
+        <p class="cart-view__eyebrow">YOUR KILIVANA BASKET</p>
+        <h1 class="cart-view__title">Shopping Cart</h1>
+        <p class="cart-view__subtitle">Review your fresh picks before you continue.</p>
+      </div>
+    </div>
+    @if (cart.items().length > 0) {
+      <span class="cart-view__count">{{ cart.itemCount() }} {{ cart.itemCount() === 1 ? 'item' : 'items' }}</span>
+    }
+  </header>
 
   @if (cart.loading()) {
     <div class="cart-view__loading">
@@ -18,14 +30,14 @@
   } @else {
     <div class="cart-items">
       @for (item of cart.items(); track item.id) {
-        <div class="cart-item">
+        <article class="cart-item">
           <div class="cart-item__image">
-            <img [src]="item.imageUrl || '/placeholder.svg'" [alt]="item.name" loading="lazy" />
+            <img [src]="item.imageUrl || '/placeholder.svg'" [alt]="item.name" (error)="onImageError($event)" loading="lazy" />
           </div>
           <div class="cart-item__details">
             <h3 class="cart-item__name">{{ item.name }}</h3>
-            <p class="cart-item__farmer">{{ item.sellerName }}</p>
-            <div class="cart-item__price">{{ item.price | currency:'KES' }} / {{ item.unit }}</div>
+            <p class="cart-item__farmer"><mat-icon>storefront</mat-icon>{{ item.sellerName || 'Local seller' }}</p>
+            <div class="cart-item__price">{{ item.price | currency:'KES' }} <span>per {{ item.unit }}</span></div>
           </div>
 
           <div class="cart-item__quantity">
@@ -38,16 +50,20 @@
             </button>
           </div>
 
-          <div class="cart-item__total">{{ item.lineTotal | currency:'KES' }}</div>
+          <div class="cart-item__total">
+            <span class="cart-item__total-label">Item total</span>
+            <strong>{{ item.lineTotal | currency:'KES' }}</strong>
+          </div>
 
-          <button mat-icon-button class="cart-item__remove" (click)="removeItem(item.id)" aria-label="Remove item">
-            <mat-icon>close</mat-icon>
+          <button mat-icon-button class="cart-item__remove" (click)="removeItem(item.id)" [attr.aria-label]="'Remove ' + item.name + ' from cart'" title="Remove item">
+            <mat-icon>delete_outline</mat-icon>
           </button>
-        </div>
+        </article>
       }
     </div>
 
-    <div class="cart-summary">
+    <section class="cart-summary" aria-label="Order summary">
+      <h2 class="cart-summary__title">Order summary</h2>
       <div class="cart-summary__row">
         <span>Subtotal</span>
         <span>{{ subtotal() | currency:'KES' }}</span>
@@ -65,7 +81,7 @@
         <span>Total</span>
         <span>{{ grandTotal() | currency:'KES' }}</span>
       </div>
-    </div>
+    </section>
 
     <div class="cart-view__actions">
       <button mat-stroked-button routerLink="/products">

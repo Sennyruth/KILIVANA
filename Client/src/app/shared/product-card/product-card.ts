@@ -1,20 +1,22 @@
 import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatBadgeModule } from '@angular/material/badge';
 import { MatIconModule } from '@angular/material/icon';
 import { CurrencyPipe, TitleCasePipe } from '@angular/common';
 import { Product } from '../product.model';
 
 @Component({
   selector: 'app-product-card',
-  imports: [RouterLink, MatCardModule, MatBadgeModule, MatIconModule, CurrencyPipe, TitleCasePipe],
+  imports: [RouterLink, MatIconModule, CurrencyPipe, TitleCasePipe],
   styleUrl: './product-card.scss',
   templateUrl: './product-card.html',
 })
 export class ProductCard {
   readonly product = input<Product | null>(null);
   readonly onAddToCart = output<void>();
+
+  get detailRoute(): string {
+    return this.product()?.type === 'INPUT' ? '/inputs' : '/products';
+  }
 
   get primaryImage(): string {
     const imgs = this.product()?.images ?? [];
@@ -23,6 +25,15 @@ export class ProductCard {
       return primary?.url ?? imgs[0]?.url ?? '';
     }
     return '';
+  }
+
+  get sellerLabel(): string {
+    return this.product()?.type === 'INPUT' ? 'Supplier' : 'Farmer';
+  }
+
+  get sellerName(): string {
+    const product = this.product();
+    return product?.farmerName?.trim() || `Local ${this.sellerLabel.toLowerCase()}`;
   }
 
   get stockLabel(): string {
@@ -38,6 +49,12 @@ export class ProductCard {
     if (!p || !p.available || p.quantity === 0) return 'product-card__stock--none';
     if (p.quantity <= 5) return 'product-card__stock--low';
     return 'product-card__stock--ok';
+  }
+
+  onImageError(event: Event): void {
+    const image = event.target as HTMLImageElement;
+    image.onerror = null;
+    image.src = '/placeholder.svg';
   }
 
   addToCart(event: Event): void {

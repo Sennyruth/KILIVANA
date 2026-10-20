@@ -126,10 +126,11 @@
 
 .farmer-profile {
   margin-top: var(--space-8);
-  padding: var(--space-6);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-1);
+  padding: clamp(20px, 3vw, 36px);
+  border: 1px solid #dce9df;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #f6faf6 0%, #eef6ef 100%);
+  box-shadow: 0 8px 24px rgba(25, 70, 42, 0.07);
 }
 
 .farmer-profile__header {
@@ -137,15 +138,16 @@
   justify-content: space-between;
   align-items: center;
   gap: var(--space-4);
-  margin-bottom: var(--space-5);
+  margin-bottom: 24px;
 }
 
 .farmer-profile__eyebrow {
-  margin: 0 0 var(--space-1);
-  color: var(--text-secondary);
-  font-size: 0.75rem;
+  margin: 0 0 7px;
+  color: #54715d;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
 }
 
 .farmer-profile__header h2,
@@ -155,72 +157,184 @@
   color: var(--text-primary);
 }
 
-.farmer-profile__verified,
-.farmer-profile__location {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+.farmer-profile__header h2 {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  line-height: 1.2;
 }
 
 .farmer-profile__verified {
-  color: var(--success);
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 14px;
+  color: #1b713c;
+  background: #e5f4e9;
+  border: 1px solid #c6e7cf;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  white-space: nowrap;
+
+  mat-icon { color: #21834a; }
 }
 
 .farmer-profile__location {
   align-items: flex-start;
-  padding: var(--space-4);
-  background: var(--surface-2);
-  border-radius: var(--radius-sm);
+  display: flex;
+  gap: 14px;
+  padding: 18px 20px;
+  background: rgba(229, 241, 232, 0.88);
+  border: 1px solid #e1eee3;
+  border-radius: 15px;
 }
 
 .farmer-profile__location > mat-icon {
-  color: var(--primary);
+  width: 24px;
+  height: 24px;
+  color: #1b6b3b;
+  font-size: 24px;
+}
+
+.farmer-profile__location h3 {
+  font-size: 1rem;
+  font-weight: 750;
 }
 
 .farmer-profile__location p,
 .farmer-profile__products p {
-  margin: var(--space-1) 0 0;
+  margin: 6px 0 0;
   color: var(--text-secondary);
 }
 
 .farmer-profile__products {
-  margin-top: var(--space-5);
+  margin-top: 28px;
+}
+
+.farmer-profile__products-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+
+  h3 { font-size: 1.25rem; }
+}
+
+.farmer-profile__products-count {
+  padding: 6px 10px;
+  color: #4b6753;
+  background: #fff;
+  border: 1px solid #dce9df;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
 }
 
 .farmer-profile__products ul {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-3);
-  margin: var(--space-3) 0 0;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.farmer-profile__products li { min-width: 0; }
+
 .farmer-profile__products a {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 13px;
   height: 100%;
-  padding: var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  min-height: 104px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid #d9e8dc;
+  border-radius: 15px;
   color: var(--text-primary);
   text-decoration: none;
+  box-shadow: 0 3px 10px rgba(25, 70, 42, 0.035);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
 .farmer-profile__products a:hover,
 .farmer-profile__products a:focus-visible {
-  border-color: var(--primary);
+  border-color: #91c29d;
+  box-shadow: 0 8px 18px rgba(25, 70, 42, 0.1);
+  transform: translateY(-2px);
+  outline: none;
 }
 
-.farmer-profile__products a span:first-child {
+.farmer-profile__product-image {
+  width: 82px;
+  height: 82px;
+  overflow: hidden;
+  background: #edf3ed;
+  border-radius: 11px;
+
+  img { display: block; width: 100%; height: 100%; object-fit: cover; }
+}
+
+.farmer-profile__product-info {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.farmer-profile__product-category {
+  overflow: hidden;
+  color: #66806c;
+  font-size: 0.66rem;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.farmer-profile__products a span:last-child {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+.farmer-profile__product-name {
+  overflow: hidden;
+  color: #24352a;
+  font-size: 0.95rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.farmer-profile__product-price {
+  color: #17643a;
+  font-size: 0.88rem;
+  font-weight: 800;
+
+  small { color: #738076; font-size: 0.75rem; font-weight: 500; }
+}
+
+.farmer-profile__product-arrow {
+  width: 18px;
+  height: 18px;
+  color: #7a9480;
+  font-size: 18px;
+  transition: transform 160ms ease, color 160ms ease;
+}
+
+.farmer-profile__products a:hover .farmer-profile__product-arrow {
+  color: #17643a;
+  transform: translateX(3px);
+}
+
+.farmer-profile__message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  color: #617166;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px dashed #cfdfd2;
+  border-radius: 12px;
+
+  &--error { color: #9a3b32; border-color: #e7c8c3; }
 }
 
 @media (max-width: 768px) {
@@ -233,4 +347,15 @@
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .farmer-profile__verified { padding: 8px 12px; font-size: 0.82rem; }
+  .farmer-profile__products ul { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .farmer-profile { padding: 18px; border-radius: 17px; }
+  .farmer-profile__location { padding: 15px; }
+  .farmer-profile__products-header { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .farmer-profile__products a { grid-template-columns: 72px minmax(0, 1fr) 16px; min-height: 92px; gap: 10px; }
+  .farmer-profile__product-image { width: 72px; height: 72px; }
 }

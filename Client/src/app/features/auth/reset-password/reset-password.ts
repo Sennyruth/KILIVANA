@@ -27,9 +27,8 @@ export class ResetPassword {
   private readonly route = inject(ActivatedRoute);
   private readonly formBuilder = inject(FormBuilder);
 
-  protected readonly emailFromLink = this.route.snapshot.queryParamMap.get('email') ?? '';
+  protected readonly resetToken = this.route.snapshot.queryParamMap.get('token')?.trim() ?? '';
   protected readonly form = this.formBuilder.group({
-    email: [this.emailFromLink, [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
     confirmPassword: ['', [Validators.required]],
   });
@@ -41,6 +40,7 @@ export class ResetPassword {
   protected onSubmit(): void {
     if (this.loading()) return;
     this.mismatch.set(false);
+    if (!this.resetToken) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -52,7 +52,7 @@ export class ResetPassword {
       return;
     }
 
-    this.auth.resetPassword(this.form.controls.email.value ?? '', password ?? '').subscribe({
+    this.auth.resetPassword(this.resetToken, password ?? '').subscribe({
       next: (response) => {
         if (response.success) this.completed.set(true);
       },

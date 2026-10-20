@@ -34,7 +34,7 @@ export interface Order {
   total: number;
   deliveryAddress: string;
   phone: string;
-  paymentMethod: 'MPESA' | 'CASH' | 'CARD' | null;
+  paymentMethod: 'MPESA' | 'BANK' | 'CASH' | 'CARD' | null;
   paymentStatus: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
   createdAt: string;
   updatedAt: string;
@@ -51,10 +51,12 @@ export interface SellerOrderSummary {
 }
 
 export interface CreateOrderRequest {
-  recipientName: string;
-  deliveryAddress: string;
-  phone: string;
-  paymentMethod: 'MPESA' | 'CASH' | 'CARD';
+  buyerId: number;
+  addressId: number;
+  items: Array<{ productId: number; quantity: number; unitPrice: number }>;
+  deliveryFee: number;
+  subtotal: number;
+  total: number;
 }
 
 export interface CreatedOrder {

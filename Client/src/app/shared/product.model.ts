@@ -3,10 +3,9 @@ export type ProductCategory = string;
 export type ProductType = 'PRODUCE' | 'INPUT';
 export type ProductStatus =
   | 'ACTIVE'
-  | 'INACTIVE'
-  | 'OUT_OF_STOCK'
   | 'PENDING_APPROVAL'
-  | 'REJECTED';
+  | 'REJECTED'
+  | 'SUSPENDED';
 
 export interface ProductImage {
   id: number;
@@ -50,7 +49,7 @@ export interface ProductFilters {
   farmerId?: string;
 }
 
-/** Shape returned by GET /api/v1/sellers/{sellerId}/products and POST /api/v1/products. */
+/** Shape returned by the backend's /api/v1/products endpoints. */
 export interface ProductResponse {
   id: number;
   sellerId: number;
@@ -58,6 +57,12 @@ export interface ProductResponse {
   location?: string | null;
   farmerName?: string | null;
   farmerVerified?: boolean;
+  sellerName?: string | null;
+  sellerCounty?: string | null;
+  sellerLocation?: string | null;
+  farmCertified?: boolean | null;
+  isLive?: boolean | null;
+  categoryName?: string | null;
   categoryId: number;
   name: string;
   description: string;
@@ -67,7 +72,7 @@ export interface ProductResponse {
   reservedQty: number;
   soldQty: number;
   minimumOrderQty: number;
-  status: ProductStatus | Lowercase<ProductStatus>;
+  status: ProductStatus | 'pending' | Lowercase<ProductStatus>;
   createdAt: string;
   updatedAt: string;
   images: ProductImage[] | null;

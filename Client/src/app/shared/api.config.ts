@@ -3,6 +3,7 @@ import { environment } from '../../environments/environment';
 
 const NGROK_URL = environment.ngrokUrl || '';
 
+export const API_ORIGIN = environment.apiOrigin;
 export const API_BASE = NGROK_URL ? `${NGROK_URL}/api/v1` : '/api/v1';
 
 export const ApiEndpoints = {
@@ -39,16 +40,12 @@ export const ApiEndpoints = {
   },
 
   ORDERS: {
-    CREATE: `${API_BASE}/orders`,
     LIST: `${API_BASE}/orders`,
     DETAIL: (id: string) => `${API_BASE}/orders/${id}`,
-    CHECKOUT: `${API_BASE}/orders/checkout`,
-    MINE: `${API_BASE}/orders/mine`,
+    CREATE: `${API_BASE}/orders`,
     CANCEL: (id: string) => `${API_BASE}/orders/${id}/cancel`,
     BUYER: (buyerId: string) => `${API_BASE}/orders/buyer/${buyerId}`,
-    SELLER_MINE: `${API_BASE}/orders/seller/mine`,
     TIMELINE: (id: string) => `${API_BASE}/orders/${id}/timeline`,
-    CONFIRM_RECEIPT: (id: string) => `${API_BASE}/orders/${id}/confirm-receipt`,
     SEARCH: `${API_BASE}/orders/search`,
   },
 
@@ -73,7 +70,22 @@ export const ApiEndpoints = {
   USERS: {
     SUPPLIERS: `${API_BASE}/users/suppliers`,
     FARMER_PROFILE: (farmerId: string | number) =>
-      `${API_BASE}/users/farmers/${farmerId}`,
+      `${API_BASE}/profiles/farmers/${farmerId}`,
+  },
+
+  PROFILES: {
+    FARMER: (userId: string | number) => `${API_BASE}/profiles/farmers/${userId}`,
+    FARMER_IMAGES: (userId: string | number) => `${API_BASE}/profiles/farmers/${userId}/images`,
+    FARMER_IMAGE: (userId: string | number, imageId: string | number) =>
+      `${API_BASE}/profiles/farmers/${userId}/images/${imageId}`,
+    FARMER_IMAGE_PRIMARY: (userId: string | number, imageId: string | number) =>
+      `${API_BASE}/profiles/farmers/${userId}/images/${imageId}/primary`,
+  },
+
+  FARMER_FARMS: {
+    LIST_MINE: `${API_BASE}/farmers/me/farms`,
+    CREATE_MINE: `${API_BASE}/farmers/me/farms`,
+    UPDATE_MINE: (farmId: string | number) => `${API_BASE}/farmers/me/farms/${farmId}`,
   },
   
 } as const;

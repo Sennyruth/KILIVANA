@@ -104,7 +104,7 @@
             </h2>
           </div>
           @if (farmerProfile()?.verificationStatus === 'VERIFIED') {
-            <span class="farmer-profile__verified">
+            <span class="farmer-profile__verified" aria-label="Verified farmer">
               <mat-icon>verified</mat-icon>
               Verified farmer
             </span>
@@ -128,20 +128,43 @@
         </div>
 
         <div class="farmer-profile__products">
-          <h3>More from this farmer</h3>
+          <div class="farmer-profile__products-header">
+            <div>
+              <p class="farmer-profile__eyebrow">FROM THE SAME FARM</p>
+              <h3>More from this farmer</h3>
+            </div>
+            @if (!farmerProductsLoading() && farmerProducts().length > 0) {
+              <span class="farmer-profile__products-count">{{ farmerProducts().length }} products</span>
+            }
+          </div>
           @if (farmerProductsLoading()) {
-            <p role="status">Loading farmer products...</p>
+            <div class="farmer-profile__message" role="status">
+              <mat-spinner diameter="24" />
+              <span>Loading farmer products...</span>
+            </div>
           } @else if (farmerProductsError()) {
-            <p role="alert">{{ farmerProductsError() }}</p>
+            <p class="farmer-profile__message farmer-profile__message--error" role="alert">{{ farmerProductsError() }}</p>
           } @else if (farmerProducts().length === 0) {
-            <p>No other active products from this farmer yet.</p>
+            <p class="farmer-profile__message">No other active products from this farmer yet.</p>
           } @else {
             <ul>
               @for (farmerProduct of farmerProducts(); track farmerProduct.id) {
                 <li>
                   <a [routerLink]="['/products', farmerProduct.id]">
-                    <span>{{ farmerProduct.name }}</span>
-                    <span>{{ farmerProduct.category }} · KSh {{ farmerProduct.price }} / {{ farmerProduct.unit }}</span>
+                    <div class="farmer-profile__product-image">
+                      <img
+                        [src]="farmerProductImage(farmerProduct)"
+                        [alt]="farmerProduct.name"
+                        loading="lazy"
+                        (error)="onFarmerProductImageError($event)"
+                      />
+                    </div>
+                    <div class="farmer-profile__product-info">
+                      <span class="farmer-profile__product-category">{{ farmerProduct.category }}</span>
+                      <span class="farmer-profile__product-name">{{ farmerProduct.name }}</span>
+                      <span class="farmer-profile__product-price">KSh {{ farmerProduct.price }} <small>/ {{ farmerProduct.unit }}</small></span>
+                    </div>
+                    <mat-icon class="farmer-profile__product-arrow" aria-hidden="true">arrow_forward</mat-icon>
                   </a>
                 </li>
               }

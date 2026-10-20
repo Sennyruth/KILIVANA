@@ -1,10 +1,11 @@
 import { Injectable, inject, computed, signal } from '@angular/core';
-import { Observable, of, tap, catchError, finalize } from 'rxjs';
+import { Observable, of, tap, catchError, finalize, map } from 'rxjs';
 
 import { HttpService } from './http';
 import { ApiEndpoints } from '../../shared/api.config';
 import { Order as OrderModel, CreateOrderRequest, CreatedOrder, OrderStatus, SellerOrderSummary } from '../../shared/order.model';
 import { ApiResponse } from '../../shared/api-response';
+import { Auth } from './auth';
 
 export interface Dispute {
   id: string;
@@ -21,6 +22,7 @@ export interface Dispute {
 @Injectable({ providedIn: 'root' })
 export class Order {
   private readonly http = inject(HttpService);
+  private readonly auth = inject(Auth);
 
   private readonly _orders = signal<OrderModel[]>([]);
   private readonly _loading = signal<boolean>(false);
@@ -49,16 +51,30 @@ export class Order {
   }
 
   loadSellerOrders(): Observable<ApiResponse<SellerOrderSummary[]>> {
-    return this.http.get<SellerOrderSummary[]>(ApiEndpoints.ORDERS.SELLER_MINE);
+    return of({
+      success: false,
+      data: [],
+      message: 'The backend does not currently provide an endpoint for listing orders by seller.',
+    });
   }
 
   loadMine(buyerId?: string): Observable<ApiResponse<{ orders: OrderModel[] }>> {
     this._loading.set(true);
     this._error.set(null);
-    const url = buyerId ? ApiEndpoints.ORDERS.BUYER(buyerId) : ApiEndpoints.ORDERS.MINE;
-    return this.http.get<{ orders: OrderModel[] }>(url).pipe(
+    const resolvedBuyerId = buyerId || this.auth.user()?.id;
+    if (!resolvedBuyerId) {
+      this._loading.set(false);
+      const message = 'Sign in again to load your orders.';
+      this._error.set(message);
+      return of({ success: false, data: { orders: [] }, message });
+    }
+    return this.http.get<unknown>(ApiEndpoints.ORDERS.BUYER(String(resolvedBuyerId))).pipe(
+      map((res) => ({
+        ...res,
+        data: { orders: res.success ? extractOrders(res.data) : [] },
+      })),
       tap((res) => {
-        if (res.success && res.data) this._orders.set(extractOrders(res.data));
+        if (res.success && res.data) this._orders.set(res.data.orders);
         this._loading.set(false);
       }),
       catchError((err) => {
@@ -70,13 +86,19 @@ export class Order {
   }
 
   getById(id: string): Observable<ApiResponse<{ order: OrderModel }>> {
-    return this.http.get<{ order: OrderModel }>(ApiEndpoints.ORDERS.DETAIL(id));
+    return this.http.get<unknown>(ApiEndpoints.ORDERS.DETAIL(id)).pipe(
+      map((res) => {
+        if (!res.success || !res.data) return { ...res, data: null } as unknown as ApiResponse<{ order: OrderModel }>;
+        const raw = res.data as Record<string, unknown>;
+        return { ...res, data: { order: normalizeOrder(raw['order'] ?? raw) } } as ApiResponse<{ order: OrderModel }>;
+      }),
+    );
   }
 
   create(payload: CreateOrderRequest): Observable<ApiResponse<CreatedOrder>> {
     this._loading.set(true);
     this._error.set(null);
-    return this.http.post<CreatedOrder>(ApiEndpoints.ORDERS.CHECKOUT, payload).pipe(
+    return this.http.post<CreatedOrder>(ApiEndpoints.ORDERS.CREATE, payload).pipe(
       finalize(() => this._loading.set(false)),
     );
   }
@@ -111,24 +133,10 @@ export class Order {
     return this.http.get<any>(ApiEndpoints.ORDERS.TIMELINE(id));
   }
 
-  confirmReceipt(id: string): Observable<ApiResponse<{ order: OrderModel }>> {
-    this._loading.set(true);
-    return this.http.post<{ order: OrderModel }>(ApiEndpoints.ORDERS.CONFIRM_RECEIPT(id), {}).pipe(
-      tap((res) => {
-        if (res.success && res.data) {
-          this._orders.set(
-            this._orders().map((o) => (o.id === id ? res.data!.order : o)),
-          );
-        }
-        this._loading.set(false);
-      }),
-    );
-  }
-
   search(query: string): Observable<ApiResponse<{ orders: OrderModel[] }>> {
     this._loading.set(true);
     this._error.set(null);
-    return this.http.get<{ orders: OrderModel[] }>(ApiEndpoints.ORDERS.SEARCH, { search: query }).pipe(
+    return this.http.get<{ orders: OrderModel[] }>(ApiEndpoints.ORDERS.SEARCH, { name: query }).pipe(
       tap((res) => {
         if (res.success && res.data) this._orders.set(extractOrders(res.data));
         this._loading.set(false);
@@ -228,14 +236,14 @@ function normalizeOrder(value: unknown): OrderModel {
   if (
     (typeof order['id'] !== 'string' && typeof order['id'] !== 'number') ||
     (typeof order['buyerId'] !== 'string' && typeof order['buyerId'] !== 'number') ||
-    !isOrderStatus(order['status'])
+    typeof order['status'] !== 'string'
   ) {
     throw new Error('Invalid order returned by the API');
   }
   const items = Array.isArray(order['items']) ? order['items'] : [];
-  const subtotal = Number(order['subtotal']);
-  const deliveryFee = Number(order['deliveryFee']);
-  const total = Number(order['total']);
+  const subtotal = Number(order['subtotal'] ?? 0);
+  const deliveryFee = Number(order['deliveryFee'] ?? 0);
+  const total = Number(order['total'] ?? subtotal + deliveryFee);
   if (![subtotal, deliveryFee, total].every(Number.isFinite)) {
     throw new Error('Invalid order totals returned by the API');
   }
@@ -244,14 +252,14 @@ function normalizeOrder(value: unknown): OrderModel {
     buyerId: String(order['buyerId']),
     buyerName: typeof order['buyerName'] === 'string' ? order['buyerName'] : '',
     items: items.map(normalizeOrderItem),
-    status: order['status'],
+    status: normalizeOrderStatus(order['status']),
     subtotal,
     deliveryFee,
     total,
     deliveryAddress: typeof order['deliveryAddress'] === 'string' ? order['deliveryAddress'] : '',
-    phone: typeof order['phone'] === 'string' ? order['phone'] : '',
-    paymentMethod: isPaymentMethod(order['paymentMethod']) ? order['paymentMethod'] : null,
-    paymentStatus: isPaymentStatus(order['paymentStatus']) ? order['paymentStatus'] : 'PENDING',
+    phone: typeof order['buyerPhone'] === 'string' ? order['buyerPhone'] : typeof order['phone'] === 'string' ? order['phone'] : '',
+    paymentMethod: normalizePaymentMethod(order['paymentMethod']),
+    paymentStatus: normalizePaymentStatus(order['paymentStatus']),
     createdAt: String(order['createdAt'] ?? ''),
     updatedAt: String(order['updatedAt'] ?? ''),
     cancelledAt: typeof order['cancelledAt'] === 'string' ? order['cancelledAt'] : undefined,
@@ -267,25 +275,39 @@ function normalizeOrderItem(value: unknown): OrderModel['items'][number] {
   if (
     (typeof item['id'] !== 'string' && typeof item['id'] !== 'number') ||
     (typeof item['productId'] !== 'string' && typeof item['productId'] !== 'number') ||
-    !Number.isFinite(Number(item['price'])) ||
+    !Number.isFinite(Number(item['unitPrice'] ?? item['price'])) ||
     !Number.isFinite(Number(item['quantity'])) ||
-    !Number.isFinite(Number(item['lineTotal']))
+    !Number.isFinite(Number(item['subtotal'] ?? item['lineTotal'] ?? Number(item['unitPrice'] ?? item['price']) * Number(item['quantity'])))
   ) {
     throw new Error('Invalid order item returned by the API');
   }
   return {
     id: String(item['id']),
     productId: String(item['productId']),
-    name: typeof item['name'] === 'string' ? item['name'] : '',
-    price: Number(item['price']),
+    name: typeof item['productName'] === 'string' ? item['productName'] : typeof item['name'] === 'string' ? item['name'] : '',
+    price: Number(item['unitPrice'] ?? item['price']),
     quantity: Number(item['quantity']),
     unit: typeof item['unit'] === 'string' ? item['unit'] : '',
-    lineTotal: Number(item['lineTotal']),
+    lineTotal: Number(item['subtotal'] ?? item['lineTotal'] ?? Number(item['unitPrice'] ?? item['price']) * Number(item['quantity'])),
   };
 }
 
-function isPaymentMethod(value: unknown): value is NonNullable<OrderModel['paymentMethod']> {
-  return value === 'MPESA' || value === 'CARD' || value === 'CASH';
+function normalizeOrderStatus(value: unknown): OrderStatus {
+  const status = String(value).toUpperCase();
+  const mapping: Record<string, OrderStatus> = { PLACED: 'PENDING', DISPUTED: 'FAILED' };
+  return mapping[status] ?? (isOrderStatus(status) ? status : 'PENDING');
+}
+
+function normalizePaymentMethod(value: unknown): OrderModel['paymentMethod'] {
+  const method = String(value ?? '').toUpperCase();
+  return method === 'MPESA' || method === 'BANK' || method === 'CARD' ? method : null;
+}
+
+function normalizePaymentStatus(value: unknown): OrderModel['paymentStatus'] {
+  const status = String(value ?? '').toUpperCase();
+  if (status === 'HELD') return 'PROCESSING';
+  if (status === 'PAID' || status === 'SETTLED') return 'COMPLETED';
+  return isPaymentStatus(status) ? status : 'PENDING';
 }
 
 function isOrderStatus(value: unknown): value is OrderStatus {

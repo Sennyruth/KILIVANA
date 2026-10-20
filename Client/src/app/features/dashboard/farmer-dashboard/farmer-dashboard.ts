@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,14 +9,16 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Product } from '../../../core/services/product';
 import { Order } from '../../../core/services/order';
-import type { Product as ProductModel, ProductStatus } from '../../../shared/product.model';
+import { Farmer } from '../../../core/services/farmer';
+import { Auth } from '../../../core/services/auth';
+import type { Product as ProductModel } from '../../../shared/product.model';
 import type { SellerOrderSummary } from '../../../shared/order.model';
+import type { FarmerProfileImage } from '../../../shared/farmer.model';
 import { NotificationService } from '../../../shared/notification/notification.service';
 
 @Component({
   selector: 'app-farmer-dashboard',
   imports: [
-    RouterLink,
     MatButtonModule,
     MatIconModule,
     MatCardModule,
@@ -24,6 +26,7 @@ import { NotificationService } from '../../../shared/notification/notification.s
     MatTabsModule,
     CurrencyPipe,
     DatePipe,
+    ReactiveFormsModule,
   ],
   styleUrl: './farmer-dashboard.scss',
   templateUrl: './farmer-dashboard.html',
@@ -31,10 +34,28 @@ import { NotificationService } from '../../../shared/notification/notification.s
 export class FarmerDashboard implements OnInit {
   protected readonly productService = inject(Product);
   protected readonly orderService = inject(Order);
+  protected readonly farmerService = inject(Farmer);
+  protected readonly auth = inject(Auth);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
+  private readonly fb = inject(FormBuilder);
   private readonly _orders = signal<SellerOrderSummary[]>([]);
   protected readonly ordersError = signal<string | null>(null);
+  protected readonly farmProfileLoading = signal(false);
+  protected readonly farmProfileSaving = signal(false);
+  protected readonly farmPhotoUploading = signal(false);
+  protected readonly farmProfileReady = signal(false);
+  protected readonly farmProfileError = signal<string | null>(null);
+  protected readonly farmProfileLoadError = signal<string | null>(null);
+  protected readonly farmPhotoError = signal<string | null>(null);
+  protected readonly farmPhotos = signal<FarmerProfileImage[]>([]);
+  protected readonly selectedFarmPhoto = signal<File | null>(null);
+  protected readonly farmPhotoPreview = signal<string | null>(null);
+  protected readonly farmProfileForm = this.fb.group({
+    farmName: [`${this.auth.user()?.name ?? ''} Farm`.trim(), [Validators.required, Validators.maxLength(120)]],
+    location: [this.auth.user()?.region ?? '', [Validators.required, Validators.maxLength(200)]],
+    farmDetails: ['', [Validators.maxLength(1000)]],
+  });
   private readonly _selectedCategory = signal<string>('ALL');
 
   protected readonly allProducts = computed(() => this.productService.products().filter(p => p.type === 'PRODUCE'));
@@ -63,6 +84,152 @@ export class FarmerDashboard implements OnInit {
 
   ngOnInit(): void {
     this.loadData();
+    this.loadFarmProfile();
+  }
+
+  protected loadFarmProfile(): void {
+    const farmerId = this.auth.user()?.id;
+    if (!farmerId) {
+      this.farmProfileLoadError.set('Sign in again to manage your farm photos.');
+      return;
+    }
+
+    this.farmProfileLoading.set(true);
+    this.farmProfileLoadError.set(null);
+    this.farmerService.getProfile(farmerId).subscribe({
+      next: (response) => {
+        if (!response.success || !response.data) {
+          this.farmProfileLoadError.set(response.message || 'Could not load your farm profile.');
+          this.farmProfileLoading.set(false);
+          return;
+        }
+        this.farmProfileReady.set(true);
+        this.farmProfileError.set(null);
+        this.farmProfileForm.patchValue({
+          farmName: response.data.farmName || response.data.name,
+          location: response.data.region || '',
+          farmDetails: response.data.farmDetails || '',
+        });
+        this.loadFarmPhotos(farmerId);
+      },
+      error: (error: { status?: number; error?: { message?: string } }) => {
+        if (error.status === 404) {
+          this.farmProfileReady.set(false);
+          this.farmProfileLoadError.set(null);
+          this.farmProfileLoading.set(false);
+          return;
+        }
+        this.farmProfileLoadError.set(error.error?.message || 'Could not load your farm profile. Try again.');
+        this.farmProfileLoading.set(false);
+      },
+      complete: () => this.farmProfileLoading.set(false),
+    });
+  }
+
+  protected saveFarmProfile(): void {
+    if (this.farmProfileForm.invalid || this.farmProfileSaving()) {
+      this.farmProfileForm.markAllAsTouched();
+      return;
+    }
+    const farmerId = this.auth.user()?.id;
+    if (!farmerId) return;
+    const value = this.farmProfileForm.getRawValue();
+    this.farmProfileSaving.set(true);
+    this.farmProfileError.set(null);
+    this.farmerService.createProfile(farmerId, {
+      farmName: value.farmName?.trim() ?? '',
+      location: value.location?.trim() ?? '',
+      farmDetails: value.farmDetails?.trim() || undefined,
+    }).subscribe({
+      next: (response) => {
+        if (!response.success || !response.data) {
+          this.farmProfileError.set(response.message || 'Could not save your farm details.');
+          return;
+        }
+        this.farmProfileReady.set(true);
+        this.notification.success('Farm details saved. You can now upload inspection photos.');
+        this.loadFarmPhotos(farmerId);
+      },
+      error: (error: { error?: { message?: string } }) => {
+        this.farmProfileError.set(error.error?.message || 'Could not save your farm details. Try again.');
+        this.farmProfileSaving.set(false);
+      },
+      complete: () => this.farmProfileSaving.set(false),
+    });
+  }
+
+  protected onFarmPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.farmPhotoError.set(null);
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type.toLowerCase())) {
+      this.clearSelectedFarmPhoto();
+      this.farmPhotoError.set('Choose an image file such as JPG, PNG, or WebP.');
+      input.value = '';
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      this.clearSelectedFarmPhoto();
+      this.farmPhotoError.set('The image must be smaller than 10 MB.');
+      input.value = '';
+      return;
+    }
+    this.clearFarmPhotoPreview();
+    this.selectedFarmPhoto.set(file);
+    this.farmPhotoPreview.set(URL.createObjectURL(file));
+    input.value = '';
+  }
+
+  protected uploadFarmPhoto(): void {
+    const file = this.selectedFarmPhoto();
+    const farmerId = this.auth.user()?.id;
+    if (!file || !farmerId || this.farmPhotoUploading()) return;
+    this.farmPhotoUploading.set(true);
+    this.farmPhotoError.set(null);
+    this.farmerService.uploadProfileImage(farmerId, file, this.farmPhotos().length === 0).subscribe({
+      next: (response) => {
+        if (!response.success || !response.data) {
+          this.farmPhotoError.set(response.message || 'The farm photo could not be uploaded.');
+          return;
+        }
+        this.farmPhotos.set(response.data);
+        this.selectedFarmPhoto.set(null);
+        this.clearFarmPhotoPreview();
+        this.notification.success('Farm photo uploaded for inspection.');
+      },
+      error: (error: { error?: { message?: string } }) => {
+        this.farmPhotoError.set(error.error?.message || 'The farm photo could not be uploaded. Try again.');
+        this.farmPhotoUploading.set(false);
+      },
+      complete: () => this.farmPhotoUploading.set(false),
+    });
+  }
+
+  private loadFarmPhotos(farmerId: string): void {
+    this.farmerService.getProfileImages(farmerId).subscribe({
+      next: (response) => {
+        if (response.success) this.farmPhotos.set(response.data ?? []);
+      },
+      error: () => this.farmPhotoError.set('Farm photos could not be loaded. Try refreshing the page.'),
+    });
+  }
+
+  protected clearFarmPhotoPreview(): void {
+    const preview = this.farmPhotoPreview();
+    if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
+    this.farmPhotoPreview.set(null);
+  }
+
+  protected clearSelectedFarmPhoto(): void {
+    this.selectedFarmPhoto.set(null);
+    this.clearFarmPhotoPreview();
+  }
+
+  protected onFarmPhotoImageError(event: Event): void {
+    const image = event.target as HTMLImageElement;
+    image.onerror = null;
+    image.src = '/placeholder.svg';
   }
 
   protected loadData(): void {
@@ -92,35 +259,12 @@ export class FarmerDashboard implements OnInit {
     this.router.navigate(['/dashboard/farmer/add-product']);
   }
 
+  protected editFarmDetails(): void {
+    this.router.navigate(['/dashboard/farmer/setup'], { queryParams: { manage: '1' } });
+  }
+
   protected editProduct(productId: string): void {
     this.router.navigate(['/dashboard/farmer/edit-product', productId]);
-  }
-
-  protected canToggleProduct(product: ProductModel): boolean {
-    return product.status === 'ACTIVE' || product.status === 'INACTIVE';
-  }
-
-  protected toggleProductAvailability(product: ProductModel): void {
-    if (!this.canToggleProduct(product)) {
-      this.notification.warning('Only approved products can be activated or deactivated');
-      return;
-    }
-
-    const status: Extract<ProductStatus, 'ACTIVE' | 'INACTIVE'> =
-      product.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    this.productService.updateStatus(product.id, status).subscribe({
-      next: (response) => {
-        if (!response.success) {
-          this.notification.error(response.message || 'Failed to update product status');
-          return;
-        }
-        this.notification.success('Product availability updated');
-        this.refreshProducts();
-      },
-      error: (error: { error?: { message?: string } }) => {
-        this.notification.error(error.error?.message || 'Failed to update product status');
-      },
-    });
   }
 
   protected deleteProduct(productId: string): void {
@@ -152,27 +296,27 @@ export class FarmerDashboard implements OnInit {
   }
 
   protected productStatusLabel(product: ProductModel): string {
+    if (product.status === 'ACTIVE' && product.quantity <= 0) return 'Out of stock';
     switch (product.status) {
       case 'ACTIVE':
         return 'Active';
-      case 'INACTIVE':
-        return 'Inactive';
-      case 'OUT_OF_STOCK':
-        return 'Out of stock';
       case 'REJECTED':
         return 'Rejected';
+      case 'SUSPENDED':
+        return 'Suspended';
       default:
         return 'Pending approval';
     }
   }
 
   protected productStatusClass(product: ProductModel): string {
+    if (product.status === 'ACTIVE' && product.quantity <= 0) return 'dashboard__status--unavailable';
     switch (product.status) {
       case 'ACTIVE':
         return 'dashboard__status--active';
-      case 'INACTIVE':
-        return 'dashboard__status--inactive';
       case 'REJECTED':
+        return 'dashboard__status--rejected';
+      case 'SUSPENDED':
         return 'dashboard__status--rejected';
       default:
         return 'dashboard__status--pending';

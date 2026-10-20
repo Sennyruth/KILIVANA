@@ -9,7 +9,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Auth } from '../../../core/services/auth';
 import { Order } from '../../../core/services/order';
 import { Product } from '../../../core/services/product';
-import type { Product as ProductModel, ProductStatus } from '../../../shared/product.model';
+import type { Product as ProductModel } from '../../../shared/product.model';
 import type { SellerOrderSummary } from '../../../shared/order.model';
 import { NotificationService } from '../../../shared/notification/notification.service';
 import { finalize } from 'rxjs';
@@ -37,6 +37,7 @@ export class SupplierDashboard implements OnInit {
   private readonly notification = inject(NotificationService);
   private readonly _orders = signal<SellerOrderSummary[]>([]);
   protected readonly ordersLoading = signal(false);
+  protected readonly ordersError = signal<string | null>(null);
   private readonly _selectedCategory = signal<string>('ALL');
 
   protected readonly userName = this.auth.name;
@@ -46,9 +47,7 @@ export class SupplierDashboard implements OnInit {
   protected readonly allProducts = computed(() => {
     const supplierId = Number(this.auth.user()?.id);
     return this.productService.products().filter(
-      (product) =>
-        product.location.toUpperCase() === 'SUPPLIER' &&
-        Number(product.farmerId) === supplierId,
+      (product) => Number(product.farmerId) === supplierId,
     );
   });
   
@@ -88,15 +87,18 @@ export class SupplierDashboard implements OnInit {
 
   protected loadOrders(): void {
     this.ordersLoading.set(true);
+    this.ordersError.set(null);
     this.orderService.loadSellerOrders().pipe(
       finalize(() => this.ordersLoading.set(false)),
     ).subscribe({
       next: (response) => {
-        if (!response.success || !response.data) return;
+        if (!response.success || !response.data) {
+          this.ordersError.set(response.message || 'Orders cannot be listed for suppliers by the connected backend yet.');
+          return;
+        }
         this._orders.set(response.data);
       },
-      // Order-fetch errors are shown when the supplier opens the Orders page.
-      error: () => {},
+      error: () => this.ordersError.set('Orders cannot be listed for suppliers by the connected backend yet.'),
     });
   }
 
@@ -121,33 +123,6 @@ export class SupplierDashboard implements OnInit {
     this.router.navigate(['/dashboard/supplier/edit-supply', supplyId]);
   }
 
-  protected canToggleSupply(supply: ProductModel): boolean {
-    return supply.status === 'ACTIVE' || supply.status === 'INACTIVE';
-  }
-
-  protected toggleSupplyAvailability(supply: ProductModel): void {
-    if (!this.canToggleSupply(supply)) {
-      this.notification.warning('Only approved supplies can be activated or deactivated');
-      return;
-    }
-
-    const status: Extract<ProductStatus, 'ACTIVE' | 'INACTIVE'> =
-      supply.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    this.productService.updateStatus(supply.id, status).subscribe({
-      next: (response) => {
-        if (!response.success) {
-          this.notification.error(response.message || 'Failed to update supply status');
-          return;
-        }
-        this.notification.success('Supply availability updated');
-        this.loadSupplies();
-      },
-      error: (error: { error?: { message?: string } }) => {
-        this.notification.error(error.error?.message || 'Failed to update supply status');
-      },
-    });
-  }
-
   protected deleteSupply(supplyId: string): void {
     const supply = this.products().find((item) => item.id === supplyId);
     if (!supply || !window.confirm(`Delete "${supply.name}"? This cannot be undone.`)) return;
@@ -168,47 +143,30 @@ export class SupplierDashboard implements OnInit {
   }
 
   protected supplyStatusLabel(supply: ProductModel): string {
+    if (supply.status === 'ACTIVE' && supply.quantity <= 0) return 'Out of stock';
     switch (supply.status) {
       case 'ACTIVE':
         return 'Active';
-      case 'INACTIVE':
-        return 'Inactive';
-      case 'OUT_OF_STOCK':
-        return 'Out of stock';
       case 'REJECTED':
         return 'Rejected';
+      case 'SUSPENDED':
+        return 'Suspended';
       default:
         return 'Pending approval';
     }
   }
 
   protected supplyStatusClass(supply: ProductModel): string {
+    if (supply.status === 'ACTIVE' && supply.quantity <= 0) return 'dashboard__status--unavailable';
     switch (supply.status) {
       case 'ACTIVE':
         return 'dashboard__status--active';
-      case 'INACTIVE':
-        return 'dashboard__status--inactive';
-      case 'OUT_OF_STOCK':
-        return 'dashboard__status--unavailable';
       case 'REJECTED':
+        return 'dashboard__status--rejected';
+      case 'SUSPENDED':
         return 'dashboard__status--rejected';
       default:
         return 'dashboard__status--pending';
-    }
-  }
-
-  protected supplyAvailabilityActionLabel(supply: ProductModel): string {
-    switch (supply.status) {
-      case 'ACTIVE':
-        return 'Deactivate';
-      case 'INACTIVE':
-        return 'Activate';
-      case 'OUT_OF_STOCK':
-        return 'Out of stock';
-      case 'REJECTED':
-        return 'Rejected';
-      default:
-        return 'Awaiting approval';
     }
   }
 

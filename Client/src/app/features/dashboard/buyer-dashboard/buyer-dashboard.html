@@ -4,10 +4,6 @@
       <h1 class="dashboard__title">Welcome, {{ userName() || 'Buyer' }}</h1>
       <p class="dashboard__subtitle">View your orders and track deliveries</p>
     </div>
-    <a mat-stroked-button class="dashboard__browse-inputs" routerLink="/inputs">
-      <mat-icon>shopping_cart</mat-icon>
-      Browse Inputs
-    </a>
   </header>
 
   @if (loading()) {

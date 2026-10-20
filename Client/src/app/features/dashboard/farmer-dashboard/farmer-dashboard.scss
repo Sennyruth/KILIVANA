@@ -57,6 +57,176 @@
   margin-bottom: var(--space-8);
 }
 
+.farm-inspection-card {
+  margin-bottom: var(--space-8);
+  overflow: hidden;
+  border: 1px solid #dce9df;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(145deg, #ffffff 0%, #f4faf5 100%);
+  box-shadow: 0 6px 20px rgba(21, 74, 43, 0.07);
+}
+
+.farm-inspection-card__title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px;
+  color: #173e27;
+  background: linear-gradient(100deg, #eff7f0, #f8fbf8);
+  border-bottom: 1px solid #e2ece4;
+
+  > span:last-child { display: flex; flex-direction: column; gap: 4px; }
+  strong { font-size: 1.12rem; font-weight: 800; }
+  small { color: #6d7e70; font-size: 0.82rem; font-weight: 400; }
+}
+
+.farm-inspection-card__icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  color: #287043;
+  background: #deefe2;
+  border-radius: 13px;
+
+  mat-icon { width: 23px; height: 23px; font-size: 23px; }
+}
+
+.farm-inspection-card__intro { margin: 0 0 18px; color: #647468; line-height: 1.55; }
+.farm-inspection-card__edit-farm { margin: 0 0 18px; }
+
+.farm-inspection-card__loading,
+.farm-inspection-card__empty {
+  display: flex;
+  min-height: 100px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #718073;
+}
+
+.farm-inspection-card__empty {
+  min-height: 88px;
+  justify-content: flex-start;
+  padding: 0 16px;
+  background: #f7faf7;
+  border: 1px dashed #cfdfd2;
+  border-radius: 12px;
+
+  mat-icon { color: #66866e; }
+}
+
+.farm-inspection-card__gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.farm-inspection-card__photo {
+  position: relative;
+  height: 150px;
+  overflow: hidden;
+  margin: 0;
+  background: #edf4ee;
+  border: 1px solid #e0eae1;
+  border-radius: 13px;
+
+  img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+  figcaption {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 8px;
+    color: #fff;
+    background: rgba(17, 61, 35, 0.86);
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    backdrop-filter: blur(6px);
+
+    mat-icon { width: 15px; height: 15px; color: #ffe08a; font-size: 15px; }
+  }
+}
+
+.farm-inspection-card__upload {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.farm-inspection-card__file-input { display: none; }
+
+.farm-inspection-card__selected {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px 5px 5px;
+  color: #516354;
+  background: #f4f8f4;
+  border: 1px solid #e0eae1;
+  border-radius: 10px;
+  font-size: 0.78rem;
+
+  img { width: 34px; height: 34px; object-fit: cover; border-radius: 7px; }
+  span { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+.farm-inspection-card__submit { min-height: 40px; }
+.farm-inspection-card__hint { margin: 10px 0 0; color: #89958b; font-size: 0.75rem; }
+.farm-inspection-card__error,
+.farm-inspection-card__field-error { color: #a3332d; }
+.farm-inspection-card__error { margin: 12px 0 0; font-size: 0.86rem; }
+
+.farm-inspection-card__error-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  color: #90362e;
+  background: #fff6f4;
+  border: 1px solid #f0d4ce;
+  border-radius: 12px;
+
+  p { margin: 0; }
+}
+
+.farm-inspection-card__profile-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+
+  label { display: flex; flex-direction: column; gap: 7px; color: #405345; font-size: 0.82rem; font-weight: 700; }
+  label > span { display: inline; color: #b33d35; }
+  label > small { display: inline; color: #89958b; font-size: 0.75rem; font-weight: 400; }
+  input, textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 12px;
+    color: #26372b;
+    background: #fff;
+    border: 1px solid #cfddd1;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 0.9rem;
+
+    &:focus { border-color: #378454; outline: 3px solid rgba(55, 132, 84, 0.14); }
+  }
+  textarea { resize: vertical; }
+}
+
+.farm-inspection-card__wide-field { grid-column: 1 / -1; }
+.farm-inspection-card__field-error { font-size: 0.74rem; font-weight: 500; }
+
 .dashboard__stat-card {
   background: #ffffff;
   border-radius: var(--radius-lg);
@@ -443,4 +613,18 @@
   .dashboard__stat-value {
     font-size: 1.75rem;
   }
+
+  .farm-inspection-card__profile-form { grid-template-columns: 1fr; }
+  .farm-inspection-card__wide-field { grid-column: auto; }
+  .farm-inspection-card__gallery { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  .farm-inspection-card__photo { height: 125px; }
+  .farm-inspection-card__title { padding: 16px; }
+}
+
+@media (max-width: 480px) {
+  .farm-inspection-card__title { align-items: flex-start; }
+  .farm-inspection-card__title small { line-height: 1.4; }
+  .farm-inspection-card__upload { align-items: stretch; flex-direction: column; }
+  .farm-inspection-card__upload button { width: 100%; }
+  .farm-inspection-card__selected { width: 100%; box-sizing: border-box; }
 }

@@ -89,7 +89,7 @@ export class Navbar {
 
     const links = [{ label: 'Products', href: '/products' }];
     if (this.auth.isBuyer()) {
-      links.push({ label: 'Inputs', href: '/inputs' }, { label: 'Cart', href: '/cart' }, { label: 'Orders', href: '/orders' });
+      links.push({ label: 'Cart', href: '/cart' }, { label: 'Orders', href: '/orders' });
     }
     return links;
   });

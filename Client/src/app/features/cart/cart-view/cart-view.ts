@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,6 +20,7 @@ import { NotificationService } from '../../../shared/notification/notification.s
     MatFormFieldModule,
     MatProgressSpinnerModule,
     CurrencyPipe,
+    RouterLink,
   ],
   styleUrl: './cart-view.scss',
   templateUrl: './cart-view.html',
@@ -84,6 +85,12 @@ export class CartView implements OnInit {
         this.notification.error('Failed to remove item');
       }
     });
+  }
+
+  protected onImageError(event: Event): void {
+    const image = event.target as HTMLImageElement;
+    image.onerror = null;
+    image.src = '/placeholder.svg';
   }
 
   protected proceedToCheckout(): void {

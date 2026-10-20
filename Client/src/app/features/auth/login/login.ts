@@ -61,7 +61,7 @@ export class Login {
 
   private getDashboardRoute(): string {
     const role = this.auth.role();
-    if (role === 'FARMER') return '/dashboard/farmer';
+    if (role === 'FARMER') return '/dashboard/farmer/setup';
     if (role === 'SUPPLIER') return '/dashboard/supplier';
     return '/dashboard/buyer';
   }

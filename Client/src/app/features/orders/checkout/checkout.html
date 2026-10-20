@@ -1,5 +1,12 @@
 <div class="checkout-page">
-  <h1 class="checkout__title">Checkout</h1>
+  <header class="checkout__header">
+    <div>
+      <p class="checkout__eyebrow">Almost there</p>
+      <h1 class="checkout__title">Checkout</h1>
+      <p class="checkout__intro">Confirm your delivery details and pay securely with M-Pesa.</p>
+    </div>
+    <div class="checkout__secure"><mat-icon>lock</mat-icon><span>Secure checkout</span></div>
+  </header>
 
   @if (cart.loading()) {
     <div class="checkout__loading">
@@ -15,8 +22,12 @@
   } @else {
     <div class="checkout__layout">
       <div class="checkout__form">
-        <h2 class="checkout__section-title">Shipping Information</h2>
-        <form class="checkout-form" [formGroup]="form">
+        <form class="checkout-form" [formGroup]="form" (ngSubmit)="placeOrder()">
+          <section class="checkout-panel">
+            <div class="checkout-panel__heading">
+              <span class="checkout-panel__step">1</span>
+              <div><h2 class="checkout__section-title">Delivery information</h2><p>Where should we bring your order?</p></div>
+            </div>
           <div class="checkout-form__row">
             <mat-form-field appearance="outline">
               <mat-label>First name</mat-label>
@@ -49,7 +60,7 @@
                 <mat-option value="Nairobi">Nairobi</mat-option>
                 <mat-option value="Mombasa">Mombasa</mat-option>
                 <mat-option value="Kisumu">Kisumu</mat-option>
-                <mat-option value="Eldoret">Eldoret</mat-option>
+                <mat-option value="Uasin Gishu">Uasin Gishu</mat-option>
                 <mat-option value="Nakuru">Nakuru</mat-option>
                 <mat-option value="Kiambu">Kiambu</mat-option>
                 <mat-option value="Machakos">Machakos</mat-option>
@@ -61,57 +72,63 @@
             </mat-form-field>
             <mat-form-field appearance="outline">
               <mat-label>Phone</mat-label>
-              <input matInput placeholder="+254 7xx xxx xxx" formControlName="phone" />
+              <input matInput type="tel" autocomplete="tel" placeholder="+254712345678" formControlName="phone" />
               @if (form.get('phone')?.touched && form.get('phone')?.invalid) {
-                <mat-error>Phone is required and must be in format +254xxxxxxxxx</mat-error>
+                <mat-error>Enter a Kenyan number in international format, for example +254712345678</mat-error>
               }
             </mat-form-field>
           </div>
+          </section>
+
+          <section class="checkout-panel checkout-panel--payment">
+            <div class="checkout-panel__heading">
+              <span class="checkout-panel__step">2</span>
+              <div><h2 class="checkout__section-title">Payment</h2><p>Pay with M-Pesa STK Push</p></div>
+            </div>
+            <div class="mpesa-card">
+              <div class="mpesa-card__icon"><mat-icon>phone_iphone</mat-icon></div>
+              <div class="mpesa-card__copy">
+                <strong>M-Pesa · STK Push</strong>
+                <span>We’ll send a payment prompt to the phone number above.</span>
+              </div>
+              <mat-icon class="mpesa-card__check">check_circle</mat-icon>
+            </div>
+            <p class="checkout__hint"><mat-icon>info</mat-icon>Keep your phone nearby. Enter your M-Pesa PIN on your phone to approve the payment. Kilivana will never ask you to share your PIN.</p>
+            <p class="checkout__availability" role="status"><mat-icon>schedule</mat-icon>Order placement is not available on the connected backend yet. Your details won’t be submitted.</p>
+            <button mat-flat-button color="primary" class="checkout__place-btn" type="submit" disabled>
+              <mat-icon>lock</mat-icon>Continue to M-Pesa
+            </button>
+          </section>
         </form>
-
-        <h2 class="checkout__section-title">Payment Method</h2>
-        <mat-radio-group class="checkout__payment" formControlName="paymentMethod">
-          <mat-radio-button value="MPESA" class="checkout__payment-item">
-            <mat-icon>payments</mat-icon>
-            <div class="checkout__payment-label">M-Pesa</div>
-          </mat-radio-button>
-          <mat-radio-button value="CARD" class="checkout__payment-item">
-            <mat-icon>credit_card</mat-icon>
-            <div class="checkout__payment-label">Card</div>
-          </mat-radio-button>
-          <mat-radio-button value="CASH" class="checkout__payment-item">
-            <mat-icon>currency_exchange</mat-icon>
-            <div class="checkout__payment-label">Cash on Delivery</div>
-          </mat-radio-button>
-        </mat-radio-group>
-
-        @if (form.get('paymentMethod')?.value !== 'CASH') {
-          <p class="checkout__payment-note">Online payment is recorded as pending; payment processing is not connected yet.</p>
-        }
-
-        <button mat-raised-button color="primary" class="checkout__place-btn" (click)="placeOrder()" [disabled]="loading()">
-          @if (loading()) {
-            <mat-spinner diameter="20" />
-          } @else {
-            Place Order — {{ total() | currency:'KES' }}
-          }
-        </button>
       </div>
 
       <div class="checkout__summary">
         <mat-card class="checkout-summary">
           <mat-card-title class="checkout-summary__title">Order Summary</mat-card-title>
           <mat-card-content>
+            <div class="checkout-summary__items">
+              @for (item of cart.items(); track item.id) {
+                <div class="checkout-summary__item">
+                  <img [src]="item.imageUrl || '/placeholder.svg'" [alt]="item.name" />
+                  <div class="checkout-summary__item-copy">
+                    <strong>{{ item.name }}</strong>
+                    <span>{{ item.quantity }} × {{ item.price | currency:'KES' }} / {{ item.unit }}</span>
+                    <small>From {{ item.sellerName }}</small>
+                  </div>
+                  <strong class="checkout-summary__item-total">{{ item.lineTotal | currency:'KES' }}</strong>
+                </div>
+              }
+            </div>
             <div class="checkout-summary__row">
               <span>Subtotal ({{ cart.itemCount() }} items)</span>
               <span>{{ subtotal() | currency:'KES' }}</span>
             </div>
             <div class="checkout-summary__row">
-              <span>Delivery fee</span>
+              <span>Delivery estimate</span>
               <span>{{ delivery() | currency:'KES' }}</span>
             </div>
             <div class="checkout-summary__row">
-              <span>Tax</span>
+              <span>Estimated tax</span>
               <span>{{ tax() | currency:'KES' }}</span>
             </div>
             <div class="checkout-summary__divider"></div>
@@ -119,6 +136,7 @@
               <span>Total</span>
               <strong>{{ total() | currency:'KES' }}</strong>
             </div>
+            <p class="checkout-summary__note"><mat-icon>local_shipping</mat-icon>Delivery and tax are estimates and will be confirmed before payment.</p>
           </mat-card-content>
         </mat-card>
       </div>

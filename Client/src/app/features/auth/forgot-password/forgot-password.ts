@@ -32,7 +32,6 @@ export class ForgotPassword {
   protected readonly loading = computed(() => this.auth.loading());
   protected readonly error = computed(() => this.auth.error());
   protected readonly submitted = signal(false);
-  protected readonly submittedEmail = signal('');
 
   protected onSubmit(): void {
     if (this.loading()) return;
@@ -44,7 +43,6 @@ export class ForgotPassword {
     this.auth.forgotPassword(this.form.controls.email.value ?? '').subscribe({
       next: (response) => {
         if (response.success) {
-          this.submittedEmail.set(this.form.controls.email.value?.trim().toLowerCase() ?? '');
           this.submitted.set(true);
         }
       },

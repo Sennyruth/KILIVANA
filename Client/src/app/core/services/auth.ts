@@ -103,11 +103,12 @@ export class Auth {
       );
   }
 
-  fetchProfile(): Observable<ApiResponse<{ user: import('../../shared/user.model').UserResponse }>> {
-    return this.http.get<{ user: import('../../shared/user.model').UserResponse }>(ApiEndpoints.AUTH.PROFILE).pipe(
+  fetchProfile(): Observable<ApiResponse<UserResponse | { user: UserResponse }>> {
+    return this.http.get<UserResponse | { user: UserResponse }>(ApiEndpoints.AUTH.PROFILE).pipe(
       tap((res) => {
-        if (res.success && res.data?.user) {
-          const user = toUser(res.data.user);
+        const responseUser = res.data && 'user' in res.data ? res.data.user : res.data;
+        if (res.success && responseUser) {
+          const user = toUser(responseUser);
           this._user.set(user);
           localStorage.setItem(USER_KEY, JSON.stringify(user));
         }
@@ -157,11 +158,11 @@ export class Auth {
     );
   }
 
-  resetPassword(email: string, newPassword: string): Observable<ApiResponse<string>> {
+  resetPassword(token: string, newPassword: string): Observable<ApiResponse<string>> {
     this._loading.set(true);
     this._error.set(null);
     return this.http.post<string>(ApiEndpoints.AUTH.RESET_PASSWORD, {
-      email: email.trim().toLowerCase(),
+      token,
       newPassword,
     }).pipe(
       catchError((error: HttpErrorResponse) => {

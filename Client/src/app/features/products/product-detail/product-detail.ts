@@ -64,6 +64,18 @@ export class ProductDetail implements OnInit {
     return p?.images ?? [];
   });
 
+  protected farmerProductImage(product: ProductModel): string {
+    const images = product.images ?? [];
+    const primary = images.find((image) => image.isPrimary);
+    return primary?.url ?? images[0]?.url ?? '/placeholder.svg';
+  }
+
+  protected onFarmerProductImageError(event: Event): void {
+    const image = event.target as HTMLImageElement;
+    image.onerror = null;
+    image.src = '/placeholder.svg';
+  }
+
   protected readonly availableQuantity = computed(() => {
     const p = this.product();
     return p?.available ? p.quantity : 0;
