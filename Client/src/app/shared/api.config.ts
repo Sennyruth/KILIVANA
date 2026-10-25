@@ -59,7 +59,7 @@ export const ApiEndpoints = {
   },
 
   PAYMENT: {
-    INITIATE: `${API_BASE}/payments/initiate`,
+    STK_PUSH: (sellerType: 'farmer' | 'supplier' | 'buyer') => `${API_BASE}/payments/stk-push/${sellerType}`,
     CREATE: `${API_BASE}/payments`,
     STATUS: (id: string) => `${API_BASE}/payments/${id}/status`,
     REFUND: (id: string) => `${API_BASE}/payments/${id}/refund`,
@@ -68,7 +68,9 @@ export const ApiEndpoints = {
   },
 
   USERS: {
+    CREATE_OWN_ADDRESS: `${API_BASE}/users/addresses`,
     SUPPLIERS: `${API_BASE}/users/suppliers`,
+    PUBLIC_FARMER: (farmerId: string | number) => `${API_BASE}/users/farmers/${farmerId}`,
     FARMER_PROFILE: (farmerId: string | number) =>
       `${API_BASE}/profiles/farmers/${farmerId}`,
   },

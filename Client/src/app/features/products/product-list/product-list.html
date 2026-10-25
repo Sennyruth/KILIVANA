@@ -15,13 +15,38 @@
 
     <mat-form-field appearance="outline" class="product-list__category">
       <mat-label>Category</mat-label>
-      <mat-select (selectionChange)="onCategory($event)">
+      <mat-select [value]="selectedCategory()" (selectionChange)="onCategory($event)">
         <mat-option value="ALL">All Categories</mat-option>
         @for (category of categories(); track category) {
           <mat-option [value]="category">{{ category }}</mat-option>
         }
       </mat-select>
     </mat-form-field>
+
+    <nav class="product-list__category-shortcuts" aria-label="Quick category filters">
+      <button
+        type="button"
+        class="product-list__category-shortcut"
+        [class.product-list__category-shortcut--active]="selectedCategory() === 'ALL'"
+        [attr.aria-pressed]="selectedCategory() === 'ALL'"
+        (click)="selectCategory('ALL')"
+      >
+        <mat-icon aria-hidden="true">apps</mat-icon>
+        <span>All</span>
+      </button>
+      @for (category of categories(); track category) {
+        <button
+          type="button"
+          class="product-list__category-shortcut"
+          [class.product-list__category-shortcut--active]="selectedCategory() === category"
+          [attr.aria-pressed]="selectedCategory() === category"
+          (click)="selectCategory(category)"
+        >
+          <mat-icon aria-hidden="true">{{ categoryIcon(category) }}</mat-icon>
+          <span>{{ category }}</span>
+        </button>
+      }
+    </nav>
   </div>
 
   @if (productService.loading()) {

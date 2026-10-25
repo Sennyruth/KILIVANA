@@ -51,11 +51,27 @@ export class Order {
   }
 
   loadSellerOrders(): Observable<ApiResponse<SellerOrderSummary[]>> {
-    return of({
-      success: false,
-      data: [],
-      message: 'The backend does not currently provide an endpoint for listing orders by seller.',
-    });
+    this._loading.set(true);
+    this._error.set(null);
+    const sellerId = this.auth.user()?.id;
+    if (!sellerId) {
+      const message = 'Sign in again to load seller orders.';
+      this._error.set(message);
+      this._loading.set(false);
+      return of({ success: false, data: [], message });
+    }
+    return this.http.get<unknown>(ApiEndpoints.ORDERS.LIST, { sellerId }).pipe(
+      map((response) => ({
+        ...response,
+        data: response.success ? extractSellerOrders(response.data) : [],
+      })),
+      catchError((error) => {
+        const message = error?.error?.message || 'Failed to load seller orders';
+        this._error.set(message);
+        return of({ success: false, data: [], message } as ApiResponse<SellerOrderSummary[]>);
+      }),
+      finalize(() => this._loading.set(false)),
+    );
   }
 
   loadMine(buyerId?: string): Observable<ApiResponse<{ orders: OrderModel[] }>> {
@@ -228,6 +244,41 @@ function extractOrders(data: unknown): OrderModel[] {
   return [];
 }
 
+function extractSellerOrders(data: unknown): SellerOrderSummary[] {
+  if (Array.isArray(data)) return data.map(normalizeSellerOrder).filter(isSellerOrderSummary);
+  if (!data || typeof data !== 'object') return [];
+  const collection = data as { orders?: unknown; content?: unknown };
+  const orders = Array.isArray(collection.orders)
+    ? collection.orders
+    : Array.isArray(collection.content)
+      ? collection.content
+      : [];
+  return orders.map(normalizeSellerOrder).filter(isSellerOrderSummary);
+}
+
+function normalizeSellerOrder(value: unknown): SellerOrderSummary | null {
+  if (!value || typeof value !== 'object') return null;
+  const order = value as Record<string, unknown>;
+  const id = Number(order['id'] ?? order['orderId']);
+  if (!Number.isSafeInteger(id) || id <= 0) return null;
+  const items = Array.isArray(order['items']) ? order['items'] : [];
+  const itemCount = Number(order['itemCount'] ?? items.reduce((total, item) => {
+    if (!item || typeof item !== 'object') return total;
+    return total + Number((item as Record<string, unknown>)['quantity'] ?? 1);
+  }, 0));
+  return {
+    id,
+    status: String(order['status'] ?? 'PENDING').toUpperCase(),
+    total: Number(order['total'] ?? 0),
+    createdAt: String(order['createdAt'] ?? ''),
+    itemCount: Number.isFinite(itemCount) ? itemCount : 0,
+  };
+}
+
+function isSellerOrderSummary(value: SellerOrderSummary | null): value is SellerOrderSummary {
+  return value !== null;
+}
+
 function normalizeOrder(value: unknown): OrderModel {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('Invalid order returned by the API');
@@ -305,8 +356,6 @@ function normalizePaymentMethod(value: unknown): OrderModel['paymentMethod'] {
 
 function normalizePaymentStatus(value: unknown): OrderModel['paymentStatus'] {
   const status = String(value ?? '').toUpperCase();
-  if (status === 'HELD') return 'PROCESSING';
-  if (status === 'PAID' || status === 'SETTLED') return 'COMPLETED';
   return isPaymentStatus(status) ? status : 'PENDING';
 }
 
@@ -329,6 +378,6 @@ function isOrderStatus(value: unknown): value is OrderStatus {
 }
 
 function isPaymentStatus(value: unknown): value is OrderModel['paymentStatus'] {
-  return ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REFUNDED', 'PARTIALLY_REFUNDED']
+  return ['PENDING', 'PAID', 'HELD', 'SETTLED', 'FAILED', 'REFUNDED']
     .includes(value as string);
 }

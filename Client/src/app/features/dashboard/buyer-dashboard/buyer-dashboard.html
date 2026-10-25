@@ -161,6 +161,7 @@
             (click)="selectCategory('ALL')"
             class="dashboard__category-link"
           >
+            <mat-icon aria-hidden="true">apps</mat-icon>
             All Categories
             <span class="dashboard__category-count">{{ allProducts().length }}</span>
           </a>
@@ -171,6 +172,7 @@
               (click)="selectCategory(category)"
               class="dashboard__category-link"
             >
+              <mat-icon aria-hidden="true">{{ categoryIcon(category) }}</mat-icon>
               {{ categoryLabel(category) }}
               <span class="dashboard__category-count">{{ allProducts().filter(p => p.category === category).length }}</span>
             </a>

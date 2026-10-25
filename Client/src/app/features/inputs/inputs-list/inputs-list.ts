@@ -1,9 +1,9 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTabsModule } from '@angular/material/tabs';
 import { ProductCard } from '../../../shared/product-card/product-card';
 import { Product } from '../../../core/services/product';
 import { Cart } from '../../../core/services/cart';
@@ -15,9 +15,9 @@ import { NotificationService } from '../../../shared/notification/notification.s
   imports: [
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatTabsModule,
     ProductCard,
   ],
   styleUrl: './inputs-list.scss',
@@ -60,8 +60,18 @@ export class InputsList implements OnInit {
     this.searchQuery.set(value);
   }
 
-  protected onCategory(event: any): void {
-    this.selectedCategory.set(event.value as string);
+  protected selectCategory(category: string): void {
+    this.selectedCategory.set(category);
+  }
+
+  protected categoryIcon(category: string): string {
+    const value = category.toLowerCase();
+    if (value.includes('fertilizer') || value.includes('compost')) return 'compost';
+    if (value.includes('seed')) return 'eco';
+    if (value.includes('tool') || value.includes('equipment')) return 'handyman';
+    if (value.includes('feed')) return 'pets';
+    if (value.includes('chemical') || value.includes('pesticide')) return 'science';
+    return 'category';
   }
 
   protected addToCart(input: ProductModel): void {

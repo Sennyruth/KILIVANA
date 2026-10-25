@@ -31,6 +31,21 @@ export class ProductList implements OnInit {
   protected readonly searchQuery = signal('');
   protected readonly selectedCategory = signal<string>('ALL');
 
+  protected selectCategory(category: string): void {
+    this.selectedCategory.set(category);
+  }
+
+  protected categoryIcon(category: string): string {
+    const value = category.toLowerCase();
+    if (value.includes('fruit')) return 'nutrition';
+    if (value.includes('vegetable') || value.includes('green')) return 'spa';
+    if (value.includes('grain') || value.includes('cereal') || value.includes('maize')) return 'grass';
+    if (value.includes('dairy') || value.includes('milk')) return 'water_drop';
+    if (value.includes('meat') || value.includes('poultry') || value.includes('livestock')) return 'pets';
+    if (value.includes('seed')) return 'eco';
+    return 'category';
+  }
+
   protected readonly categories = computed(() => {
     const cats = new Set<string>(this.productService.products().filter(p => p.type === 'PRODUCE').map(p => p.category));
     return Array.from(cats).sort();

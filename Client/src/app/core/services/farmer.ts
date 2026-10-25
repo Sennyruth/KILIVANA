@@ -4,6 +4,7 @@ import { HttpService } from './http';
 import { API_BASE, ApiEndpoints } from '../../shared/api.config';
 import type { ApiResponse } from '../../shared/api-response';
 import type { FarmerFarm, FarmerFarmRequest } from '../../shared/farm.model';
+import type { FarmOwnershipType } from '../../shared/farm.model';
 import {
   FarmerProfile,
   FarmerProfileImage,
@@ -16,6 +17,8 @@ export interface FarmerProfileRequest {
   location: string;
   farmDetails?: string;
   verificationInfo?: string;
+  sizeAcres?: number;
+  ownershipType?: FarmOwnershipType;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -37,6 +40,17 @@ export class Farmer {
   getProfile(farmerId: string): Observable<ApiResponse<FarmerProfile>> {
     return this.http.get<FarmerProfileResponse>(
       ApiEndpoints.PROFILES.FARMER(farmerId),
+    ).pipe(
+      map((response) => ({
+        ...response,
+        data: toFarmerProfile(response.data),
+      })),
+    );
+  }
+
+  getPublicProfile(farmerId: string): Observable<ApiResponse<FarmerProfile>> {
+    return this.http.get<FarmerProfileResponse>(
+      ApiEndpoints.USERS.PUBLIC_FARMER(farmerId),
     ).pipe(
       map((response) => ({
         ...response,

@@ -510,6 +510,12 @@
   }
 }
 
+.dashboard__category-link mat-icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+}
+
 .dashboard__category-count {
   padding: var(--space-1) var(--space-2);
   background: var(--primary);

@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -24,6 +25,7 @@ import { NotificationService } from '../../../shared/notification/notification.s
     MatCardModule,
     MatProgressSpinnerModule,
     MatTabsModule,
+    RouterLink,
     CurrencyPipe,
     DatePipe,
     ReactiveFormsModule,
@@ -40,6 +42,7 @@ export class FarmerDashboard implements OnInit {
   private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
   private readonly _orders = signal<SellerOrderSummary[]>([]);
+  protected readonly selectedOrder = signal<SellerOrderSummary | null>(null);
   protected readonly ordersError = signal<string | null>(null);
   protected readonly farmProfileLoading = signal(false);
   protected readonly farmProfileSaving = signal(false);
@@ -340,7 +343,8 @@ export class FarmerDashboard implements OnInit {
   }
 
   protected viewOrder(orderId: number): void {
-    this.router.navigate(['/orders']);
+    const order = this.orders().find((candidate) => candidate.id === orderId) ?? null;
+    this.selectedOrder.set(this.selectedOrder()?.id === orderId ? null : order);
   }
 
   protected selectCategory(category: string): void {

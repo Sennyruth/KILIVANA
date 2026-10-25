@@ -149,6 +149,17 @@ export class BuyerDashboard implements OnInit {
     return category;
   }
 
+  protected categoryIcon(category: string): string {
+    const value = category.toLowerCase();
+    if (value.includes('fruit')) return 'nutrition';
+    if (value.includes('vegetable') || value.includes('green')) return 'spa';
+    if (value.includes('grain') || value.includes('cereal') || value.includes('maize')) return 'grass';
+    if (value.includes('dairy') || value.includes('milk')) return 'water_drop';
+    if (value.includes('meat') || value.includes('poultry') || value.includes('livestock')) return 'pets';
+    if (value.includes('seed')) return 'eco';
+    return 'category';
+  }
+
   protected addToCart(product: ProductModel): void {
     if (!product.available || product.quantity === 0) {
       this.notification.warning('Product is out of stock');

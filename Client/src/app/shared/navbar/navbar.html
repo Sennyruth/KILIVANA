@@ -51,8 +51,12 @@
             <mat-divider></mat-divider>
             <a mat-menu-item [routerLink]="dashboardHref()">Dashboard</a>
             @if (canShop()) {
-              <a mat-menu-item routerLink="/orders">Order History</a>
-              <a mat-menu-item routerLink="/tracking/last">Track Order</a>
+              @if (auth.isBuyer()) {
+                <a mat-menu-item routerLink="/orders">Order History</a>
+                <a mat-menu-item routerLink="/tracking/last">Track Order</a>
+              } @else if (auth.isFarmer()) {
+                <a mat-menu-item routerLink="/dashboard/farmer" fragment="farmer-orders">Orders</a>
+              }
             }
             @if (auth.isSupplier()) {
               <a mat-menu-item routerLink="/dashboard/supplier/orders">Supplier Orders</a>

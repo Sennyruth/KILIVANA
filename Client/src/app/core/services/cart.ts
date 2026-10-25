@@ -30,14 +30,15 @@ export class Cart {
 
   addItem(product: Product, quantity: number): Observable<ApiResponse<CartModel>> {
     const current = this.currentCart();
-    if (!product.available || product.quantity < quantity || quantity < 1) {
+    const availableQuantity = Math.max(0, Math.floor(product.quantity));
+    if (!product.available || availableQuantity < quantity || quantity < 1) {
       return of(this.response(current, 'This product is unavailable or has insufficient stock.', false));
     }
 
     const itemId = `mock-${product.id}`;
     const existing = current.items.find((item) => item.productId === product.id);
     const nextQuantity = (existing?.quantity ?? 0) + quantity;
-    if (nextQuantity > product.quantity) {
+    if (nextQuantity > availableQuantity) {
       return of(this.response(current, 'The requested quantity exceeds available stock.', false));
     }
 
@@ -49,6 +50,7 @@ export class Cart {
       price: product.price,
       unit: product.unit,
       quantity: nextQuantity,
+      availableQuantity,
       imageUrl: image?.url ?? '',
       sellerName: product.farmerName,
       lineTotal: product.price * nextQuantity,
@@ -64,8 +66,15 @@ export class Cart {
 
   updateItem(itemId: string, quantity: number): Observable<ApiResponse<CartModel>> {
     const current = this.currentCart();
-    if (quantity < 1 || !current.items.some((item) => String(item.id) === itemId)) {
+    const target = current.items.find((item) => String(item.id) === itemId);
+    if (!target || !Number.isInteger(quantity) || quantity < 1) {
       return of(this.response(current, 'Invalid cart item or quantity.', false));
+    }
+    if (target.availableQuantity === undefined && quantity > target.quantity) {
+      return of(this.response(current, 'Stock is not available for this saved item. Remove it and add it again to refresh stock.', false));
+    }
+    if (target.availableQuantity !== undefined && quantity > target.availableQuantity) {
+      return of(this.response(current, `Only ${target.availableQuantity} units are available.`, false));
     }
 
     const items = current.items.map((item) =>

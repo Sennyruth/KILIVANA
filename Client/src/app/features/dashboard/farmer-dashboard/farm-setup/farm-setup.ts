@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { finalize, switchMap, throwError } from 'rxjs';
+import { finalize, map, switchMap, throwError } from 'rxjs';
 import { Auth } from '../../../../core/services/auth';
 import { Farmer } from '../../../../core/services/farmer';
 import type { FarmerProfileImage } from '../../../../shared/farmer.model';
@@ -111,6 +111,8 @@ export class FarmSetup implements OnInit {
       farmName: request.name,
       location: [request.subCounty, request.county].filter(Boolean).join(', '),
       farmDetails: request.description,
+      sizeAcres: request.sizeAcres,
+      ownershipType: request.ownershipType,
     };
 
     this.savingFarm.set(true);
@@ -119,11 +121,22 @@ export class FarmSetup implements OnInit {
       ? this.farmer.updateProfile(id, profileRequest)
       : this.farmer.createProfile(id, profileRequest);
     saveProfile.pipe(
-      switchMap((response) => response.success
-        ? (this.farm()
-          ? this.farmer.updateFarm(this.farm()!.id, request)
-          : this.farmer.createFarm(request))
-        : throwError(() => new Error(response.message || 'Could not save farm profile.'))),
+      switchMap((response) => {
+        if (!response.success) {
+          return throwError(() => new Error(response.message || 'Could not save farm profile.'));
+        }
+        const existingFarm = this.farm();
+        if (existingFarm) return this.farmer.updateFarm(existingFarm.id, request);
+        return this.farmer.getMyFarms().pipe(
+          map((farmsResponse) => {
+            const linkedFarm = farmsResponse.data?.[0];
+            if (!farmsResponse.success || !linkedFarm) {
+              throw new Error(farmsResponse.message || 'The farm profile was saved, but its linked farm could not be loaded.');
+            }
+            return { ...farmsResponse, data: linkedFarm };
+          }),
+        );
+      }),
       finalize(() => this.savingFarm.set(false)),
     ).subscribe({
       next: (response) => {

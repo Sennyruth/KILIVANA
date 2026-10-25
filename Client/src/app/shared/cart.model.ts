@@ -5,6 +5,8 @@ export interface CartItem {
   price: number;
   unit: string;
   quantity: number;
+  /** Latest catalog quantity captured when this item was added or refreshed. */
+  availableQuantity?: number;
   imageUrl: string;
   sellerName: string;
   lineTotal: number;

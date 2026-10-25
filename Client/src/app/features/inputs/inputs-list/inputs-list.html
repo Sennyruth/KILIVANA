@@ -10,17 +10,34 @@
       <input matInput placeholder="Search by name or description" (input)="onSearch($event)" />
       <mat-icon matPrefix>search</mat-icon>
     </mat-form-field>
-
-    <mat-form-field appearance="outline" class="inputs-list__category">
-      <mat-label>Category</mat-label>
-      <mat-select (selectionChange)="onCategory($event)">
-        <mat-option value="ALL">All Categories</mat-option>
-        @for (category of categories(); track category) {
-          <mat-option [value]="category">{{ category }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
   </div>
+
+  @if (categories().length > 0) {
+    <nav mat-tab-nav-bar class="inputs-list__category-nav" aria-label="Input categories">
+      <a
+        mat-tab-link
+        [active]="selectedCategory() === 'ALL'"
+        (click)="selectCategory('ALL')"
+        class="inputs-list__category-link"
+      >
+        <mat-icon aria-hidden="true">apps</mat-icon>
+        All Categories
+        <span class="inputs-list__category-count">{{ productService.products().filter(p => p.type === 'INPUT').length }}</span>
+      </a>
+      @for (category of categories(); track category) {
+        <a
+          mat-tab-link
+          [active]="selectedCategory() === category"
+          (click)="selectCategory(category)"
+          class="inputs-list__category-link"
+        >
+          <mat-icon aria-hidden="true">{{ categoryIcon(category) }}</mat-icon>
+          {{ category }}
+          <span class="inputs-list__category-count">{{ productService.products().filter(p => p.type === 'INPUT' && p.category === category).length }}</span>
+        </a>
+      }
+    </nav>
+  }
 
   @if (productService.loading()) {
     <div class="inputs-list__loading">
@@ -38,7 +55,7 @@
       @for (input of filtered(); track input.id) {
         <app-product-card 
           [product]="input"
-          (addToCart)="addToCart(input)"
+          (onAddToCart)="addToCart(input)"
         ></app-product-card>
       }
     </div>

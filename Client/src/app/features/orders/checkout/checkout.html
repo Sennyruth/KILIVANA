@@ -8,7 +8,21 @@
     <div class="checkout__secure"><mat-icon>lock</mat-icon><span>Secure checkout</span></div>
   </header>
 
-  @if (cart.loading()) {
+  @if (paymentState() !== 'idle') {
+    <section class="checkout__result" role="status" aria-live="polite">
+      <mat-icon>{{ paymentState() === 'paid' ? 'check_circle' : paymentState() === 'failed' ? 'error' : 'phone_iphone' }}</mat-icon>
+      <h2>{{ paymentState() === 'paid' ? 'Payment received' : paymentState() === 'failed' ? 'Payment not completed' : 'Approve the M-Pesa prompt' }}</h2>
+      <p>{{ paymentMessage() }}</p>
+      <div class="checkout__result-actions">
+        @if (paymentState() === 'failed' && pendingOrderId()) {
+          <button mat-stroked-button type="button" (click)="retryPayment()" [disabled]="submitting()">
+            {{ submitting() ? 'Sending prompt…' : 'Try payment again' }}
+          </button>
+        }
+        <a mat-flat-button color="primary" routerLink="/orders">View your orders</a>
+      </div>
+    </section>
+  } @else if (cart.loading()) {
     <div class="checkout__loading">
       <mat-spinner diameter="48" />
       <p>Loading cart...</p>
@@ -83,20 +97,23 @@
           <section class="checkout-panel checkout-panel--payment">
             <div class="checkout-panel__heading">
               <span class="checkout-panel__step">2</span>
-              <div><h2 class="checkout__section-title">Payment</h2><p>Pay with M-Pesa STK Push</p></div>
+              <div><h2 class="checkout__section-title">Payment</h2><p>M-Pesa STK Push</p></div>
             </div>
             <div class="mpesa-card">
               <div class="mpesa-card__icon"><mat-icon>phone_iphone</mat-icon></div>
               <div class="mpesa-card__copy">
                 <strong>M-Pesa · STK Push</strong>
-                <span>We’ll send a payment prompt to the phone number above.</span>
+                <span>Pay for your order securely with an M-Pesa prompt.</span>
               </div>
               <mat-icon class="mpesa-card__check">check_circle</mat-icon>
             </div>
-            <p class="checkout__hint"><mat-icon>info</mat-icon>Keep your phone nearby. Enter your M-Pesa PIN on your phone to approve the payment. Kilivana will never ask you to share your PIN.</p>
-            <p class="checkout__availability" role="status"><mat-icon>schedule</mat-icon>Order placement is not available on the connected backend yet. Your details won’t be submitted.</p>
-            <button mat-flat-button color="primary" class="checkout__place-btn" type="submit" disabled>
-              <mat-icon>lock</mat-icon>Continue to M-Pesa
+            <p class="checkout__hint"><mat-icon>info</mat-icon>Approve the payment prompt on your phone. Kilivana will never ask you to share your M-Pesa PIN.</p>
+            @if (paymentMessage(); as message) {
+              <p class="checkout__availability" [class.checkout__availability--success]="paymentState() === 'paid'" role="status"><mat-icon>{{ paymentState() === 'paid' ? 'check_circle' : 'schedule' }}</mat-icon>{{ message }}</p>
+            }
+            <button mat-flat-button color="primary" class="checkout__place-btn" type="submit" [disabled]="submitting() || paymentState() === 'pending' || paymentState() === 'paid'">
+              @if (submitting()) { <mat-spinner diameter="20" /> } @else { <mat-icon>lock</mat-icon> }
+              {{ submitting() ? 'Processing order…' : paymentState() === 'paid' ? 'Payment complete' : paymentState() === 'pending' ? 'Prompt sent' : pendingOrderId() ? 'Retry M-Pesa prompt' : 'Continue to M-Pesa' }}
             </button>
           </section>
         </form>
@@ -127,16 +144,12 @@
               <span>Delivery estimate</span>
               <span>{{ delivery() | currency:'KES' }}</span>
             </div>
-            <div class="checkout-summary__row">
-              <span>Estimated tax</span>
-              <span>{{ tax() | currency:'KES' }}</span>
-            </div>
             <div class="checkout-summary__divider"></div>
             <div class="checkout-summary__row checkout-summary__total">
               <span>Total</span>
               <strong>{{ total() | currency:'KES' }}</strong>
             </div>
-            <p class="checkout-summary__note"><mat-icon>local_shipping</mat-icon>Delivery and tax are estimates and will be confirmed before payment.</p>
+            <p class="checkout-summary__note"><mat-icon>local_shipping</mat-icon>Delivery is an estimate and will be confirmed before payment.</p>
           </mat-card-content>
         </mat-card>
       </div>

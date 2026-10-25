@@ -68,6 +68,17 @@ export class Product {
   readonly categoriesLoading = this._categoriesLoading.asReadonly();
   readonly categoriesError = this._categoriesError.asReadonly();
 
+  /** Optimistically reflect stock reserved by an order until the next catalog refresh. */
+  applyStockReservation(items: Array<{ productId: string | number; quantity: number }>): void {
+    const quantities = new Map(items.map((item) => [String(item.productId), item.quantity]));
+    this._products.update((products) => products.map((product) => {
+      const reserved = quantities.get(product.id);
+      if (reserved === undefined) return product;
+      const quantity = Math.max(0, product.quantity - reserved);
+      return { ...product, quantity, available: product.available && quantity > 0 };
+    }));
+  }
+
   constructor() {
     this.loadCategories();
   }
@@ -449,7 +460,7 @@ export class Product {
     const categoryType = this._categories().find((item) => item.id === response.categoryId)?.type;
     const normalizedStatus = normalizeStatus(response.status);
     const sellerType = response.sellerType?.toUpperCase();
-    const quantity = Number(response.stockQty ?? 0);
+    const quantity = Math.max(0, Number(response.stockQty ?? 0) - Number(response.reservedQty ?? 0));
     return {
       id: String(response.id),
       name: response.name ?? '',

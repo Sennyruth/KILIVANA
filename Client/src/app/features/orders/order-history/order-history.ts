@@ -57,6 +57,10 @@ export class OrderHistory implements OnInit {
 
   protected loadOrders(): void {
     this.loadError.set(null);
+    if (!this.auth.isBuyer()) {
+      this.loadError.set('Buyer order history is only available to buyer accounts. Use your farmer dashboard to manage seller orders.');
+      return;
+    }
     const buyerId = this.auth.user()?.id;
     if (!buyerId || !/^\d+$/.test(buyerId)) {
       this.loadError.set('Could not identify your buyer account. Please sign in again.');

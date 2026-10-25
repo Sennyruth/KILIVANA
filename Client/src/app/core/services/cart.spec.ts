@@ -73,6 +73,7 @@ describe('Cart', () => {
       price: 120,
       unit: 'kg',
       quantity: 2,
+      availableQuantity: 8,
       imageUrl: 'https://images.example/tomatoes.jpg',
       sellerName: 'Farmer One',
       lineTotal: 240,

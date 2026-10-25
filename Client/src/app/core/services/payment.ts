@@ -1,11 +1,13 @@
 import { Injectable, inject, computed, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, finalize, map, tap } from 'rxjs';
 
 import { HttpService } from './http';
 import { ApiEndpoints } from '../../shared/api.config';
 import {
   MpesaInitiateRequest,
   MpesaInitiateResponse,
+  MpesaSellerType,
+  PaymentStatusResponse,
   PaymentStatus,
 } from '../../shared/payment.model';
 import { ApiResponse } from '../../shared/api-response';
@@ -22,15 +24,15 @@ export class Payment {
   readonly loading = this._loading.asReadonly();
   readonly error = this._error.asReadonly();
 
-  initiateMpesa(payload: MpesaInitiateRequest): Observable<ApiResponse<MpesaInitiateResponse>> {
+  initiateMpesa(sellerType: MpesaSellerType, payload: MpesaInitiateRequest): Observable<ApiResponse<MpesaInitiateResponse>> {
     this._loading.set(true);
     this._error.set(null);
-    return this.http.post<MpesaInitiateResponse>(ApiEndpoints.PAYMENT.INITIATE, payload).pipe(
+    return this.http.post<MpesaInitiateResponse>(ApiEndpoints.PAYMENT.STK_PUSH(sellerType), payload).pipe(
       tap({
         next: (res) => {
           if (res.success && res.data) {
             this._status.set({
-              orderId: payload.orderId,
+              orderId: String(payload.orderId),
               paymentStatus: 'PENDING',
             });
           }
@@ -44,13 +46,17 @@ export class Payment {
     );
   }
 
-  getStatus(paymentId: string): Observable<ApiResponse<PaymentStatus>> {
+  getStatus(paymentId: string | number): Observable<ApiResponse<PaymentStatus>> {
     this._loading.set(true);
-    return this.http.get<PaymentStatus>(ApiEndpoints.PAYMENT.STATUS(paymentId)).pipe(
+    return this.http.get<PaymentStatusResponse>(ApiEndpoints.PAYMENT.STATUS(String(paymentId))).pipe(
+      map((res) => ({
+        ...res,
+        data: res.data ? this.toPaymentStatus(res.data) : null,
+      } as ApiResponse<PaymentStatus>)),
       tap((res) => {
         if (res.success && res.data) this._status.set(res.data);
-        this._loading.set(false);
       }),
+      finalize(() => this._loading.set(false)),
     );
   }
 
@@ -72,7 +78,7 @@ export class Payment {
     );
   }
 
-  pollStatus(paymentId: string, intervalMs = 5000, maxAttempts = 12): Observable<PaymentStatus> {
+  pollStatus(paymentId: string | number, intervalMs = 5000, maxAttempts = 12): Observable<PaymentStatus> {
     return new Observable<PaymentStatus>((subscriber) => {
       let attempts = 0;
       const timer = setInterval(() => {
@@ -99,5 +105,20 @@ export class Payment {
       }, intervalMs);
       return () => clearInterval(timer);
     });
+  }
+
+  private toPaymentStatus(response: PaymentStatusResponse): PaymentStatus {
+    const rawStatus = response.status.toUpperCase();
+    const paymentStatus: PaymentStatus['paymentStatus'] =
+      ['PENDING', 'PAID', 'HELD', 'SETTLED', 'FAILED', 'REFUNDED'].includes(rawStatus)
+        ? rawStatus as PaymentStatus['paymentStatus']
+        : 'PENDING';
+    return {
+      orderId: String(response.orderId),
+      paymentStatus,
+      mpesaReceipt: response.mpesaReceiptNumber ?? undefined,
+      transactionId: response.reference ?? undefined,
+      completedAt: response.paidAt ?? undefined,
+    };
   }
 }

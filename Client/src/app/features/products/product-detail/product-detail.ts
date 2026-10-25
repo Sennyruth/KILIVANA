@@ -97,7 +97,7 @@ export class ProductDetail implements OnInit {
 
   private loadFarmerDetails(farmerId: string): void {
     this.farmerLoading.set(true);
-    this.farmerService.getProfile(farmerId).pipe(
+    this.farmerService.getPublicProfile(farmerId).pipe(
       finalize(() => this.farmerLoading.set(false)),
     ).subscribe({
       next: (response) => {

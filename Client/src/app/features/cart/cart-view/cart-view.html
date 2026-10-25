@@ -41,13 +41,20 @@
           </div>
 
           <div class="cart-item__quantity">
-            <button mat-stroked-button class="cart-item__qty-btn" (click)="updateQuantity(item.id, item.quantity - 1)" [disabled]="item.quantity <= 1">
-              <mat-icon>remove</mat-icon>
-            </button>
-            <span class="cart-item__qty-value">{{ item.quantity }}</span>
-            <button mat-stroked-button class="cart-item__qty-btn" (click)="updateQuantity(item.id, item.quantity + 1)">
-              <mat-icon>add</mat-icon>
-            </button>
+            <div class="cart-item__quantity-controls" aria-label="Item quantity">
+              <button mat-stroked-button class="cart-item__qty-btn" (click)="updateQuantity(item.id, item.quantity - 1)" [disabled]="item.quantity <= 1" [attr.aria-label]="'Decrease ' + item.name + ' quantity'">
+                <mat-icon>remove</mat-icon>
+              </button>
+              <span class="cart-item__qty-value">{{ item.quantity }}</span>
+              <button mat-stroked-button class="cart-item__qty-btn" (click)="updateQuantity(item.id, item.quantity + 1)" [disabled]="item.availableQuantity === undefined || item.quantity >= item.availableQuantity" [attr.aria-label]="item.availableQuantity === undefined ? 'Stock must be refreshed before increasing quantity' : item.quantity >= item.availableQuantity ? 'Maximum available quantity reached' : 'Increase quantity'">
+                <mat-icon>add</mat-icon>
+              </button>
+            </div>
+            @if (item.availableQuantity !== undefined) {
+              <small class="cart-item__stock">{{ item.availableQuantity }} available</small>
+            } @else {
+              <small class="cart-item__stock">Remove and re-add to refresh stock</small>
+            }
           </div>
 
           <div class="cart-item__total">

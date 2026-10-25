@@ -35,7 +35,7 @@ export interface Order {
   deliveryAddress: string;
   phone: string;
   paymentMethod: 'MPESA' | 'BANK' | 'CASH' | 'CARD' | null;
-  paymentStatus: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
+  paymentStatus: 'PENDING' | 'PAID' | 'HELD' | 'SETTLED' | 'FAILED' | 'REFUNDED';
   createdAt: string;
   updatedAt: string;
   cancelledAt?: string;

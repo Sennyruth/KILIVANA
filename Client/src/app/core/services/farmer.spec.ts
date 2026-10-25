@@ -20,7 +20,7 @@ describe('Farmer', () => {
 
   it('loads a farmer public profile including the region', () => {
     let profile: { id: string; name: string; region: string | null } | undefined;
-    service.getProfile('23').subscribe((response) => {
+    service.getPublicProfile('23').subscribe((response) => {
       profile = response.data;
     });
 

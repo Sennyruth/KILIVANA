@@ -70,6 +70,47 @@
   width: 220px;
 }
 
+.product-list__category-shortcuts {
+  display: flex;
+  flex: 1 0 100%;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.product-list__category-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--primary-200);
+  border-radius: var(--radius-full);
+  background: #ffffff;
+  color: var(--primary-dark);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+
+  mat-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+  }
+
+  &:hover,
+  &--active {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #ffffff;
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--primary-300);
+    outline-offset: 2px;
+  }
+}
+
 .product-list__search-field,
 .product-list__category {
   ::ng-deep .mat-mdc-text-field-wrapper {

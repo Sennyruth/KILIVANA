@@ -1,16 +1,23 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Auth } from './auth';
 import { Order } from './order';
 import { API_BASE } from '../../shared/api.config';
 
 describe('Order', () => {
   let service: Order;
   let httpTesting: HttpTestingController;
+  let currentUser: { id: string } | null;
 
   beforeEach(() => {
+    currentUser = null;
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: Auth, useValue: { user: () => currentUser } },
+      ],
     });
     service = TestBed.inject(Order);
     httpTesting = TestBed.inject(HttpTestingController);
@@ -79,6 +86,7 @@ describe('Order', () => {
   });
 
   it('loads only orders belonging to the signed-in seller', () => {
+    currentUser = { id: '42' };
     const summaries = [
       {
         id: 12,
@@ -93,7 +101,9 @@ describe('Order', () => {
       expect(response.data).toEqual(summaries);
     });
 
-    httpTesting.expectOne(`${API_BASE}/orders/seller/mine`).flush({
+    httpTesting.expectOne((request) =>
+      request.url === `${API_BASE}/orders` && request.params.get('sellerId') === '42',
+    ).flush({
       success: true,
       message: 'Success',
       data: summaries,
