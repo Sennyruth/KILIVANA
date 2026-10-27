@@ -4,7 +4,7 @@ import { Observable, tap, firstValueFrom, catchError, finalize, throwError } fro
 
 import { HttpService } from './http';
 import { ApiEndpoints } from '../../shared/api.config';
-import { User, UserRole, UserResponse, AuthTokenResponse, toUser } from '../../shared/user.model';
+import { User, UserRole, UserResponse, AuthTokenResponse, toUser, EmailVerificationRequest, EmailVerificationResponse, EmailVerificationVerifyRequest } from '../../shared/user.model';
 import { ApiResponse } from '../../shared/api-response';
 
 const ACCESS_KEY = 'kilivana_access_token';
@@ -179,20 +179,101 @@ export class Auth {
     );
   }
 
+  requestEmailVerification(email: string): Observable<ApiResponse<EmailVerificationResponse>> {
+    this._loading.set(true);
+    this._error.set(null);
+    return this.http.post<EmailVerificationResponse>(
+      ApiEndpoints.AUTH.EMAIL_VERIFICATION_REQUEST,
+      { email: email.trim().toLowerCase() },
+    ).pipe(
+      catchError((error: HttpErrorResponse) => {
+        const body = error.error as { message?: string } | null;
+        this._error.set(
+          body?.message ||
+            (error.status === 0
+              ? 'Unable to reach the server. Check your connection and try again.'
+              : 'Unable to send verification code. Please try again.'),
+        );
+        return throwError(() => error);
+      }),
+      finalize(() => this._loading.set(false)),
+    );
+  }
+
+  verifyEmailCode(challengeId: string, email: string, code: string): Observable<ApiResponse<Record<string, unknown>>> {
+    this._loading.set(true);
+    this._error.set(null);
+    return this.http.post<Record<string, unknown>>(
+      ApiEndpoints.AUTH.EMAIL_VERIFICATION_VERIFY,
+      {
+        challengeId,
+        email: email.trim().toLowerCase(),
+        code,
+      } as EmailVerificationVerifyRequest,
+    ).pipe(
+      catchError((error: HttpErrorResponse) => {
+        const body = error.error as { message?: string } | null;
+        this._error.set(
+          body?.message ||
+            (error.status === 0
+              ? 'Unable to reach the server. Check your connection and try again.'
+              : 'Invalid verification code. Please try again.'),
+        );
+        return throwError(() => error);
+      }),
+      finalize(() => this._loading.set(false)),
+    );
+  }
+
   logout(): void {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(USER_KEY);
     this._user.set(null);
     this._error.set(null);
+    this.refreshPromise$ = null;
+  }
+
+  clearSessionData(): void {
+    localStorage.clear();
+    this._user.set(null);
+    this._error.set(null);
+    this._loading.set(false);
+    this.refreshPromise$ = null;
   }
 
   private storeAuth(data: AuthTokenResponse): void {
+    // Only store user data if tokens are present
+    // If tokens are null (email verification required), only store user temporarily
+    if (!data.accessToken || !data.refreshToken) {
+      console.warn('Auth data missing tokens (email verification likely required)', {
+        hasAccessToken: !!data.accessToken,
+        hasRefreshToken: !!data.refreshToken,
+        hasUser: !!data.user,
+      });
+      // Don't throw error - this is expected during email verification flow
+      // Just store user data temporarily
+      if (data.user) {
+        const user = toUser(data.user);
+        this._user.set(user);
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+      }
+      return;
+    }
+
     localStorage.setItem(ACCESS_KEY, data.accessToken);
     localStorage.setItem(REFRESH_KEY, data.refreshToken);
     const user = toUser(data.user);
     this._user.set(user);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
+
+    // Debug logging to verify correct storage
+    console.log('Auth tokens stored successfully', {
+      hasAccessToken: !!data.accessToken,
+      hasRefreshToken: !!data.refreshToken,
+      accessTokenLength: data.accessToken.length,
+      refreshTokenLength: data.refreshToken.length,
+    });
   }
 
   private loadUser(): User | null {

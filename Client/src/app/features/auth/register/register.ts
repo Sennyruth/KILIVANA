@@ -58,8 +58,13 @@ export class Register {
     this.auth.register(name, email, phone, password, role, username, region).subscribe({
       next: (res) => {
         if (res.success) {
-          this.notification.success('Account created successfully! Please log in.');
-          this.router.navigate(['/login']);
+          this.notification.success('Account created successfully! Please log in to verify your email.');
+          this.router.navigate(['/login'], {
+            queryParams: {
+              email,
+              redirectToVerification: 'true',
+            },
+          });
         } else {
           this.notification.error(res.message || 'Registration failed');
         }
@@ -69,6 +74,12 @@ export class Register {
         this.notification.error(errorMessage);
       },
     });
+  }
+
+  private getDashboardRoute(role: UserRole): string {
+    if (role === 'FARMER') return '/dashboard/farmer/setup';
+    if (role === 'SUPPLIER') return '/dashboard/supplier';
+    return '/dashboard/buyer';
   }
 
 }

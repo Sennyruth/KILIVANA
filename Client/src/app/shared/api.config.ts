@@ -14,6 +14,8 @@ export const ApiEndpoints = {
     FORGOT_PASSWORD: `${API_BASE}/auth/forgot-password`,
     RESET_PASSWORD: `${API_BASE}/auth/reset-password`,
     PROFILE: `${API_BASE}/auth/me`,
+    EMAIL_VERIFICATION_REQUEST: `${API_BASE}/auth/email-verification/request`,
+    EMAIL_VERIFICATION_VERIFY: `${API_BASE}/auth/email-verification/verify`,
   },
   PRODUCTS: {
     LIST: `${API_BASE}/products`,

@@ -42,7 +42,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     req.url.includes('/auth/register') ||
     req.url.includes('/auth/refresh');
 
-  return next(withHeaders(req, isApi ? auth.token : null)).pipe(
+  // Do NOT send Authorization header for refresh endpoint
+  const shouldSendToken = isApi && !req.url.includes('/auth/refresh');
+
+  return next(withHeaders(req, shouldSendToken ? auth.token : null)).pipe(
     catchError((err: HttpErrorResponse) => {
       if (isApi && err.status === 401 && !isAuthEndpoint) {
         return from(auth.refreshAccessToken()).pipe(

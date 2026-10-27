@@ -4,6 +4,7 @@ import { Register } from './features/auth/register/register';
 import { ForgotPassword } from './features/auth/forgot-password/forgot-password';
 import { ResetPassword } from './features/auth/reset-password/reset-password';
 import { Logout } from './features/auth/logout/logout';
+import { EmailVerification } from './features/auth/email-verification/email-verification';
 import { ProductList } from './features/products/product-list/product-list';
 import { ProductDetail } from './features/products/product-detail/product-detail';
 import { CartView } from './features/cart/cart-view/cart-view';
@@ -38,6 +39,7 @@ export const routes: Routes = [
   { path: 'register', component: Register, canActivate: [unauthGuard] },
   { path: 'forgot-password', component: ForgotPassword, canActivate: [unauthGuard] },
   { path: 'reset-password', component: ResetPassword },
+  { path: 'email-verification', component: EmailVerification, canActivate: [unauthGuard] },
   { path: 'logout', component: Logout, canActivate: [authGuard] },
   { path: 'products', component: ProductList, canActivate: [produceCatalogGuard] },
   { path: 'products/:id', component: ProductDetail, canActivate: [produceCatalogGuard] },

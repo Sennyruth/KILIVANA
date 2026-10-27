@@ -58,3 +58,20 @@ export function toUser(response: UserResponse): User {
     createdAt: response.createdAt,
   };
 }
+
+export interface EmailVerificationRequest {
+  email: string;
+}
+
+export interface EmailVerificationResponse {
+  challengeId: string;
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
+  message: string;
+}
+
+export interface EmailVerificationVerifyRequest {
+  challengeId: string;
+  email: string;
+  code: string;
+}
