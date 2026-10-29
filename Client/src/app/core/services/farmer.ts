@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import { HttpService } from './http';
-import { API_BASE, ApiEndpoints } from '../../shared/api.config';
+import { API_BASE, API_ORIGIN, ApiEndpoints } from '../../shared/api.config';
 import type { ApiResponse } from '../../shared/api-response';
 import type { FarmerFarm, FarmerFarmRequest } from '../../shared/farm.model';
 import type { FarmOwnershipType } from '../../shared/farm.model';
@@ -24,6 +25,7 @@ export interface FarmerProfileRequest {
 @Injectable({ providedIn: 'root' })
 export class Farmer {
   private readonly http = inject(HttpService);
+  private readonly imageHttp = inject(HttpClient);
 
   getMyFarms(): Observable<ApiResponse<FarmerFarm[]>> {
     return this.http.get<FarmerFarm[]>(ApiEndpoints.FARMER_FARMS.LIST_MINE);
@@ -82,6 +84,12 @@ export class Farmer {
     );
   }
 
+  getImageObjectUrl(url: string): Observable<string> {
+    return this.imageHttp.get(resolveImageUrl(url), { responseType: 'blob' }).pipe(
+      map((blob) => URL.createObjectURL(blob)),
+    );
+  }
+
   uploadProfileImage(
     farmerId: string,
     file: File,
@@ -105,7 +113,20 @@ export class Farmer {
 }
 
 function resolveImageUrl(url: string): string {
-  if (!url || /^(https?:|data:|blob:|\/\/)/i.test(url)) return url;
-  if (API_BASE.startsWith('http')) return new URL(url, new URL(API_BASE).origin).toString();
-  return url.startsWith('/') ? url : `/${url}`;
+  if (!url || /^(data:|blob:|\/\/)/i.test(url)) return url;
+  const apiOrigin = API_BASE.startsWith('http') ? new URL(API_BASE).origin : API_ORIGIN;
+  const isBackendImage = (path: string) =>
+    path.startsWith('/api/v1/images/') || path.startsWith('/uploads/');
+
+  if (/^https?:\/\//i.test(url)) {
+    const parsed = new URL(url);
+    return apiOrigin && isBackendImage(parsed.pathname)
+      ? new URL(`${parsed.pathname}${parsed.search}`, apiOrigin).toString()
+      : url;
+  }
+
+  const path = url.startsWith('/') ? url : `/${url}`;
+  if (apiOrigin && isBackendImage(path)) return new URL(path, apiOrigin).toString();
+  if (API_BASE.startsWith('http')) return new URL(path, new URL(API_BASE).origin).toString();
+  return path;
 }

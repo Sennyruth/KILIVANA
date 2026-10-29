@@ -34,11 +34,11 @@ export class CartView implements OnInit {
 
   protected readonly total = computed(() => {
     const sub = this.subtotal();
-    const delivery = sub > 0 ? 150 : 0;
+    const delivery = sub > 0 ? 1 : 0;
     return sub + delivery;
   });
 
-  protected readonly deliveryFee = computed(() => (this.subtotal() > 0 ? 150 : 0));
+  protected readonly deliveryFee = computed(() => (this.subtotal() > 0 ? 1 : 0));
 
   protected readonly tax = computed(() => this.subtotal() * 0.08);
 

@@ -1,28 +1,30 @@
 <main class="order-tracker-page">
   <header class="order-tracker__header">
-    <a class="order-tracker__back" routerLink="/orders">
+    <a class="order-tracker__back" [routerLink]="sellerPerspective ? sellerBackLink() : ['/orders']" [fragment]="sellerPerspective ? sellerBackFragment() : undefined">
       <mat-icon>arrow_back</mat-icon>
-      Back to my orders
+      {{ sellerPerspective ? 'Back to seller orders' : 'Back to my orders' }}
     </a>
     <div class="order-tracker__heading">
       <div>
-        <p class="order-tracker__eyebrow">YOUR DELIVERY</p>
-        <h1 class="order-tracker__title">Track your order</h1>
+        <p class="order-tracker__eyebrow">{{ sellerPerspective ? (sellerOrderSubject() === 'farmer' ? 'FARMER ORDER' : 'BUYER ORDER') : 'YOUR DELIVERY' }}</p>
+        <h1 class="order-tracker__title">{{ sellerPerspective ? 'Track ' + sellerOrderSubject() + ' order' : 'Track your order' }}</h1>
         <p class="order-tracker__subtitle">
-          Order #{{ order()?.id ?? orderId() }}
-          @if (order()?.createdAt) {
-            <span> · Placed {{ order()?.createdAt | date:'mediumDate' }}</span>
+          Order #{{ order()?.id ?? sellerOrder()?.id ?? orderId() }}
+          @if (order()?.createdAt; as placedAt) {
+            <span> · Placed {{ placedAt | date:'mediumDate' }}</span>
+          } @else if (sellerOrder()?.createdAt; as placedAt) {
+            <span> · Placed {{ placedAt | date:'mediumDate' }}</span>
           }
         </p>
       </div>
-      <button mat-stroked-button type="button" (click)="retry()" [disabled]="loading()">
+      <button mat-stroked-button type="button" (click)="retry()" [disabled]="loading() || sellerOrderLoading()">
         <mat-icon>refresh</mat-icon>
         Refresh status
       </button>
     </div>
   </header>
 
-  @if (loading() && !history()) {
+  @if ((loading() || sellerOrderLoading()) && !history()) {
     <div class="order-tracker__message" role="status">
       <div class="order-tracker__spinner"></div>
       <p>Getting the latest shipment update…</p>
@@ -121,7 +123,9 @@
       <aside class="order-tracker__side">
         <section class="panel order-tracker__delivery" aria-labelledby="delivery-title">
           <h2 id="delivery-title"><mat-icon>location_on</mat-icon> Delivery details</h2>
-          @if (order()?.deliveryAddress) {
+          @if (sellerPerspective) {
+            <p>Delivery address and buyer contact details are not included in the seller tracking view.</p>
+          } @else if (order()?.deliveryAddress) {
             <p>{{ order()?.deliveryAddress }}</p>
             @if (order()?.phone) {
               <span>Contact: {{ order()?.phone }}</span>
@@ -135,7 +139,16 @@
 
         <section class="panel order-tracker__order-summary" aria-labelledby="summary-title">
           <h2 id="summary-title"><mat-icon>receipt_long</mat-icon> Order summary</h2>
-          @if (order()) {
+          @if (sellerPerspective && sellerOrder()) {
+            <div class="order-tracker__item">
+              <span>Your items in this order</span>
+              <strong>{{ sellerOrder()?.itemCount }}</strong>
+            </div>
+            <div class="order-tracker__total">
+              <span>Your items total</span>
+              <strong>{{ sellerOrder()?.total | currency:'KES' }}</strong>
+            </div>
+          } @else if (order()) {
             @for (item of order()?.items ?? []; track item.id) {
               <div class="order-tracker__item">
                 <span>{{ item.name }} <small>× {{ item.quantity }} {{ item.unit }}</small></span>
@@ -159,7 +172,9 @@
       <mat-icon>search_off</mat-icon>
       <h2>No tracking information available</h2>
       <p>The order could not be found or tracking has not started yet.</p>
-      <a mat-stroked-button routerLink="/orders">Return to my orders</a>
+      <a mat-stroked-button [routerLink]="sellerPerspective ? sellerBackLink() : ['/orders']" [fragment]="sellerPerspective ? sellerBackFragment() : undefined">
+        {{ sellerPerspective ? 'Return to seller orders' : 'Return to my orders' }}
+      </a>
     </div>
   }
 </main>

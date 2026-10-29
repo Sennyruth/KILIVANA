@@ -1,6 +1,6 @@
 module.exports = {
   '/api': {
-    target: 'https://either-juvenile-progeny.ngrok-free.dev',
+    target: 'https://hankering-morphing-outclass.ngrok-free.dev',
     changeOrigin: true,
     headers: {
       'ngrok-skip-browser-warning': 'true',

@@ -8,6 +8,9 @@ export const authGuard: CanActivateFn = () => {
   const auth = inject(Auth);
   const router = inject(Router);
   if (auth.isAuthenticated()) return true;
+  if (auth.user()?.email && auth.user()?.emailVerified === false) {
+    return router.createUrlTree(['/email-verification'], { queryParams: { email: auth.user()?.email } });
+  }
   return router.createUrlTree(['/login']);
 };
 
@@ -16,6 +19,19 @@ export const shoppingGuard: CanActivateFn = () => {
   const router = inject(Router);
   if (auth.isBuyer() || auth.isFarmer()) return true;
   if (auth.isAuthenticated()) return router.createUrlTree(['/dashboard/supplier']);
+  return router.createUrlTree(['/login']);
+};
+
+export const trackingGuard: CanActivateFn = (route) => {
+  const auth = inject(Auth);
+  const router = inject(Router);
+  const sellerTracking = route.queryParamMap.get('perspective') === 'seller';
+
+  if (sellerTracking && (auth.isFarmer() || auth.isSupplier())) return true;
+  if (!sellerTracking && (auth.isBuyer() || auth.isFarmer())) return true;
+  if (auth.isAuthenticated()) {
+    return router.createUrlTree([auth.isSupplier() ? '/dashboard/supplier' : '/dashboard/farmer']);
+  }
   return router.createUrlTree(['/login']);
 };
 

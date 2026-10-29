@@ -52,7 +52,7 @@ export class SupplierOrders implements OnInit {
   protected loadOrders(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.orderService.loadSellerOrders().pipe(
+    this.orderService.loadSupplierOrders().pipe(
       finalize(() => this.loading.set(false)),
     ).subscribe({
       next: (response) => {

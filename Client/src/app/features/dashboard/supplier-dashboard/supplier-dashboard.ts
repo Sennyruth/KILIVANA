@@ -88,7 +88,7 @@ export class SupplierDashboard implements OnInit {
   protected loadOrders(): void {
     this.ordersLoading.set(true);
     this.ordersError.set(null);
-    this.orderService.loadSellerOrders().pipe(
+    this.orderService.loadSupplierOrders().pipe(
       finalize(() => this.ordersLoading.set(false)),
     ).subscribe({
       next: (response) => {

@@ -1,4 +1,4 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -9,7 +9,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Auth } from '../../../core/services/auth';
-import { UserRole } from '../../../shared/user.model';
+import { HttpService } from '../../../core/services/http';
+import { ApiEndpoints } from '../../../shared/api.config';
 import { NotificationService } from '../../../shared/notification/notification.service';
 
 @Component({
@@ -28,8 +29,9 @@ import { NotificationService } from '../../../shared/notification/notification.s
   styleUrl: './register.scss',
   templateUrl: './register.html',
 })
-export class Register {
+export class Register implements OnInit {
   private readonly auth = inject(Auth);
+  private readonly http = inject(HttpService);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
@@ -46,6 +48,16 @@ export class Register {
 
   protected readonly loading = computed(() => this.auth.loading());
   protected readonly error = computed(() => this.auth.error());
+  protected readonly counties = signal<string[]>([]);
+
+  ngOnInit(): void {
+    this.http.get<string[]>(ApiEndpoints.REGIONS.COUNTIES).subscribe({
+      next: (response) => {
+        if (response.success && response.data) this.counties.set(response.data);
+      },
+      error: () => this.notification.error('Could not load the county list. Please refresh and try again.'),
+    });
+  }
 
   protected onSubmit(): void {
     if (this.loading()) return;
@@ -58,13 +70,8 @@ export class Register {
     this.auth.register(name, email, phone, password, role, username, region).subscribe({
       next: (res) => {
         if (res.success) {
-          this.notification.success('Account created successfully! Please log in to verify your email.');
-          this.router.navigate(['/login'], {
-            queryParams: {
-              email,
-              redirectToVerification: 'true',
-            },
-          });
+          this.notification.success('Account created. Verify your email to continue.');
+          this.router.navigate(['/email-verification'], { queryParams: { email } });
         } else {
           this.notification.error(res.message || 'Registration failed');
         }
@@ -75,11 +82,4 @@ export class Register {
       },
     });
   }
-
-  private getDashboardRoute(role: UserRole): string {
-    if (role === 'FARMER') return '/dashboard/farmer/setup';
-    if (role === 'SUPPLIER') return '/dashboard/supplier';
-    return '/dashboard/buyer';
-  }
-
 }

@@ -1,4 +1,4 @@
-export const NGROK_URL = 'https://either-juvenile-progeny.ngrok-free.dev';
+export const NGROK_URL = 'https://hankering-morphing-outclass.ngrok-free.dev';
 
 export const environment = {
   production: true,

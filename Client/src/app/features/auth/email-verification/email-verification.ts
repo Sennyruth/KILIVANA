@@ -1,11 +1,12 @@
-import { Component, inject, computed, effect, signal } from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Component, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Auth } from '../../../core/services/auth';
 import { NotificationService } from '../../../shared/notification/notification.service';
 
@@ -29,98 +30,61 @@ export class EmailVerification {
   private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
 
-  protected readonly form: FormGroup = this.fb.group({
+  protected readonly form = this.fb.nonNullable.group({
+    email: [this.route.snapshot.queryParamMap.get('email') ?? '', [Validators.required, Validators.email]],
     code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
   });
-
-  protected readonly loading = computed(() => this.auth.loading());
-  protected readonly error = computed(() => this.auth.error());
-
-  private readonly email = computed(() => this.route.snapshot.queryParamMap.get('email') || '');
-  private readonly challengeId = computed(() => this.route.snapshot.queryParamMap.get('challengeId') || '');
-  private readonly redirectAfter = computed(() => this.route.snapshot.queryParamMap.get('redirect') || '/dashboard/buyer');
-
-  protected readonly canResend = computed(() => {
-    const resendAfter = parseInt(this.route.snapshot.queryParamMap.get('resendAfter') || '0', 10);
-    return resendAfter <= 0;
-  });
-
+  protected readonly loading = this.auth.loading;
+  protected readonly error = this.auth.error;
+  protected readonly challengeId = signal('');
   protected readonly resendCountdown = signal(0);
 
-  constructor() {
-    effect(() => {
-      const resendAfter = parseInt(this.route.snapshot.queryParamMap.get('resendAfter') || '0', 10);
-      if (resendAfter > 0) {
-        this.startResendCountdown(resendAfter);
-      }
+  protected requestCode(): void {
+    const emailControl = this.form.controls.email;
+    if (emailControl.invalid) {
+      emailControl.markAsTouched();
+      return;
+    }
+    const email = emailControl.value.trim().toLowerCase();
+    this.auth.requestEmailVerification(email).subscribe({
+      next: (res) => {
+        if (!res.success || !res.data) {
+          this.notification.error(res.message || 'Unable to request a verification code.');
+          return;
+        }
+        this.challengeId.set(res.data.challengeId);
+        this.form.controls.code.reset();
+        this.startResendCountdown(res.data.resendAfterSeconds);
+        this.notification.success('If the email belongs to an unverified account, a code has been sent.');
+      },
+      error: (err: HttpErrorResponse) => {
+        if (err.status === 429) {
+          this.startResendCountdown(60);
+          this.notification.error('Too many requests. Please wait one minute before trying again.');
+        } else {
+          this.notification.error(this.auth.error() || 'Unable to send the code. Please try again.');
+        }
+      },
     });
   }
 
   protected onSubmit(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || !this.challengeId()) {
       this.form.markAllAsTouched();
+      if (!this.challengeId()) this.notification.info('Request a verification code first.');
       return;
     }
-
-    const { code } = this.form.value;
-    const email = this.email();
-    const challengeId = this.challengeId();
-
-    if (!email || !challengeId) {
-      this.notification.error('Missing email or challenge ID. Please start over.');
-      this.router.navigate(['/login']);
-      return;
-    }
-
-    this.auth.verifyEmailCode(challengeId, email, code).subscribe({
+    const { email, code } = this.form.getRawValue();
+    this.auth.verifyEmailCode(this.challengeId(), email.trim().toLowerCase(), code).subscribe({
       next: (res) => {
-        if (res.success) {
-          this.notification.success('Email verified successfully! You can now log in.');
-          this.router.navigate(['/login'], {
-            queryParams: {
-              email,
-              justVerified: 'true',
-            },
-          });
-        } else {
-          this.notification.error(res.message || 'Verification failed');
+        if (!res.success) {
+          this.notification.error(res.message || 'Verification failed.');
+          return;
         }
+        this.notification.success('Email verified successfully. You can now log in.');
+        this.router.navigate(['/login'], { queryParams: { email, justVerified: 'true' } });
       },
-      error: () => {
-        this.notification.error(this.auth.error() || 'An error occurred. Please try again.');
-      },
-    });
-  }
-
-  protected onResend(): void {
-    const email = this.email();
-    if (!email) {
-      this.notification.error('Email address is missing. Please start over.');
-      this.router.navigate(['/login']);
-      return;
-    }
-
-    this.auth.requestEmailVerification(email).subscribe({
-      next: (res) => {
-        if (res.success && res.data) {
-          this.notification.success('Verification code sent! Please check your email.');
-          this.router.navigate([], {
-            relativeTo: this.route,
-            queryParams: {
-              email,
-              challengeId: res.data.challengeId,
-              resendAfter: res.data.resendAfterSeconds,
-              redirect: this.redirectAfter(),
-            },
-            queryParamsHandling: 'merge',
-          });
-        } else {
-          this.notification.error(res.message || 'Failed to send verification code');
-        }
-      },
-      error: () => {
-        this.notification.error(this.auth.error() || 'An error occurred. Please try again.');
-      },
+      error: () => this.notification.error(this.auth.error() || 'Invalid or expired code. Please try again.'),
     });
   }
 

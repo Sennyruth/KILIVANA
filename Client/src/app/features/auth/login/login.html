@@ -40,29 +40,6 @@
     <div class="auth__footer">
       <a routerLink="/register" class="auth__link">Create an account</a>
       <a routerLink="/forgot-password" class="auth__link auth__link--muted">Forgot password?</a>
-      <button
-        mat-button
-        class="auth__link auth__link--muted"
-        (click)="clearSession()"
-        type="button"
-      >
-        Clear session data
-      </button>
-      @if (route.snapshot.queryParamMap.get('requestVerification') === 'true') {
-        <button
-          mat-button
-          class="auth__link"
-          (click)="requestVerificationCode()"
-          type="button"
-          [disabled]="loading()"
-        >
-          @if (loading()) {
-            Sending...
-          } @else {
-            Request verification code
-          }
-        </button>
-      }
     </div>
   </div>
 </div>

@@ -19,6 +19,7 @@ export class OrderHistory implements OnInit {
   private readonly auth = inject(Auth);
   private readonly orderService = inject(OrderService);
 
+  protected readonly isFarmer = this.auth.isFarmer;
   protected readonly orders = this.orderService.orders;
   protected readonly loading = this.orderService.loading;
   protected readonly error = this.orderService.error;
@@ -57,8 +58,8 @@ export class OrderHistory implements OnInit {
 
   protected loadOrders(): void {
     this.loadError.set(null);
-    if (!this.auth.isBuyer()) {
-      this.loadError.set('Buyer order history is only available to buyer accounts. Use your farmer dashboard to manage seller orders.');
+    if (!this.auth.isBuyer() && !this.auth.isFarmer()) {
+      this.loadError.set('Order history is only available to buyer and farmer accounts.');
       return;
     }
     const buyerId = this.auth.user()?.id;

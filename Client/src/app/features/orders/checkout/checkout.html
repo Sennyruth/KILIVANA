@@ -22,6 +22,11 @@
         <a mat-flat-button color="primary" routerLink="/orders">View your orders</a>
       </div>
     </section>
+  } @else if (submitting() || pendingOrderId()) {
+    <div class="checkout__loading" role="status" aria-live="polite">
+      <mat-spinner diameter="48" />
+      <p>{{ submitting() ? 'Preparing your M-Pesa payment…' : 'Your order is ready for payment.' }}</p>
+    </div>
   } @else if (cart.loading()) {
     <div class="checkout__loading">
       <mat-spinner diameter="48" />
@@ -113,7 +118,7 @@
             }
             <button mat-flat-button color="primary" class="checkout__place-btn" type="submit" [disabled]="submitting() || paymentState() === 'pending' || paymentState() === 'paid'">
               @if (submitting()) { <mat-spinner diameter="20" /> } @else { <mat-icon>lock</mat-icon> }
-              {{ submitting() ? 'Processing order…' : paymentState() === 'paid' ? 'Payment complete' : paymentState() === 'pending' ? 'Prompt sent' : pendingOrderId() ? 'Retry M-Pesa prompt' : 'Continue to M-Pesa' }}
+              {{ submitting() ? 'Processing order…' : paymentState() === 'paid' ? 'Payment complete' : paymentState() === 'pending' ? 'Prompt sent' : pendingOrderId() ? 'Retry M-Pesa prompt' : 'Make payment with M-Pesa' }}
             </button>
           </section>
         </form>

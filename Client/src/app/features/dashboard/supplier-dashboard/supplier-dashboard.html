@@ -177,6 +177,7 @@
               <th>Items</th>
               <th>Total</th>
               <th>Status</th>
+              <th>Tracking</th>
             </tr>
           </thead>
           <tbody>
@@ -190,6 +191,11 @@
                   <span [class]="'dashboard__status--' + order.status.toLowerCase()">
                     {{ statusLabel(order.status) }}
                   </span>
+                </td>
+                <td>
+                  <a mat-button [routerLink]="['/tracking', order.id]" [queryParams]="{ perspective: 'seller' }">
+                    Track details
+                  </a>
                 </td>
               </tr>
             }

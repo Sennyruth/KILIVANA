@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { RouterLink } from '@angular/router';
@@ -13,9 +13,10 @@ import { Order } from '../../../core/services/order';
 import { Farmer } from '../../../core/services/farmer';
 import { Auth } from '../../../core/services/auth';
 import type { Product as ProductModel } from '../../../shared/product.model';
-import type { SellerOrderSummary } from '../../../shared/order.model';
+import type { Order as OrderRecord, SellerOrderSummary } from '../../../shared/order.model';
 import type { FarmerProfileImage } from '../../../shared/farmer.model';
 import { NotificationService } from '../../../shared/notification/notification.service';
+import { catchError, forkJoin, map, of } from 'rxjs';
 
 @Component({
   selector: 'app-farmer-dashboard',
@@ -33,7 +34,7 @@ import { NotificationService } from '../../../shared/notification/notification.s
   styleUrl: './farmer-dashboard.scss',
   templateUrl: './farmer-dashboard.html',
 })
-export class FarmerDashboard implements OnInit {
+export class FarmerDashboard implements OnInit, OnDestroy {
   protected readonly productService = inject(Product);
   protected readonly orderService = inject(Order);
   protected readonly farmerService = inject(Farmer);
@@ -42,8 +43,10 @@ export class FarmerDashboard implements OnInit {
   private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
   private readonly _orders = signal<SellerOrderSummary[]>([]);
-  protected readonly selectedOrder = signal<SellerOrderSummary | null>(null);
   protected readonly ordersError = signal<string | null>(null);
+  protected readonly inputOrders = signal<OrderRecord[]>([]);
+  protected readonly inputOrdersLoading = signal(false);
+  protected readonly inputOrdersError = signal<string | null>(null);
   protected readonly farmProfileLoading = signal(false);
   protected readonly farmProfileSaving = signal(false);
   protected readonly farmPhotoUploading = signal(false);
@@ -88,6 +91,11 @@ export class FarmerDashboard implements OnInit {
   ngOnInit(): void {
     this.loadData();
     this.loadFarmProfile();
+  }
+
+  ngOnDestroy(): void {
+    this.clearFarmPhotoObjectUrls();
+    this.clearFarmPhotoPreview();
   }
 
   protected loadFarmProfile(): void {
@@ -196,9 +204,9 @@ export class FarmerDashboard implements OnInit {
           this.farmPhotoError.set(response.message || 'The farm photo could not be uploaded.');
           return;
         }
-        this.farmPhotos.set(response.data);
         this.selectedFarmPhoto.set(null);
         this.clearFarmPhotoPreview();
+        this.loadFarmPhotos(farmerId);
         this.notification.success('Farm photo uploaded for inspection.');
       },
       error: (error: { error?: { message?: string } }) => {
@@ -212,9 +220,23 @@ export class FarmerDashboard implements OnInit {
   private loadFarmPhotos(farmerId: string): void {
     this.farmerService.getProfileImages(farmerId).subscribe({
       next: (response) => {
-        if (response.success) this.farmPhotos.set(response.data ?? []);
+        if (!response.success || !response.data) return;
+        const photos = response.data;
+        forkJoin(photos.map((photo) => this.farmerService.getImageObjectUrl(photo.url).pipe(
+          map((url) => ({ ...photo, url })),
+          catchError(() => of({ ...photo, url: '/placeholder.svg' })),
+        ))).subscribe((displayPhotos) => {
+          this.clearFarmPhotoObjectUrls();
+          this.farmPhotos.set(displayPhotos);
+        });
       },
       error: () => this.farmPhotoError.set('Farm photos could not be loaded. Try refreshing the page.'),
+    });
+  }
+
+  private clearFarmPhotoObjectUrls(): void {
+    this.farmPhotos().forEach((photo) => {
+      if (photo.url.startsWith('blob:')) URL.revokeObjectURL(photo.url);
     });
   }
 
@@ -242,11 +264,29 @@ export class FarmerDashboard implements OnInit {
       }
     });
     this.loadOrders();
+    this.loadInputOrders();
+  }
+
+  protected loadInputOrders(): void {
+    this.inputOrdersError.set(null);
+    this.inputOrders.set([]);
+    this.inputOrdersLoading.set(true);
+    this.orderService.loadMine().subscribe({
+      next: (response) => {
+        if (response.success && response.data) this.inputOrders.set(response.data.orders);
+        else this.inputOrdersError.set(response.message || 'Could not load your input orders.');
+        this.inputOrdersLoading.set(false);
+      },
+      error: () => {
+        this.inputOrdersError.set('Could not load your input orders. Please try again.');
+        this.inputOrdersLoading.set(false);
+      },
+    });
   }
 
   protected loadOrders(): void {
     this.ordersError.set(null);
-    this.orderService.loadSellerOrders().subscribe({
+    this.orderService.loadFarmerOrders().subscribe({
       next: (response) => {
         if (!response.success || !response.data) {
           this.ordersError.set(response.message || 'Failed to load orders.');
@@ -342,9 +382,8 @@ export class FarmerDashboard implements OnInit {
     return String(orderId).slice(-8).toUpperCase();
   }
 
-  protected viewOrder(orderId: number): void {
-    const order = this.orders().find((candidate) => candidate.id === orderId) ?? null;
-    this.selectedOrder.set(this.selectedOrder()?.id === orderId ? null : order);
+  protected inputOrderItems(order: OrderRecord): string {
+    return order.items.map((item) => `${item.name} × ${item.quantity}`).join(', ');
   }
 
   protected selectCategory(category: string): void {

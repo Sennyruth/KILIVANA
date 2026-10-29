@@ -65,7 +65,7 @@ export class Checkout implements OnInit {
   });
 
   protected readonly subtotal = computed(() => this.cart.totalPrice());
-  protected readonly delivery = computed(() => (this.cart.totalPrice() > 0 ? 150 : 0));
+  protected readonly delivery = computed(() => (this.cart.totalPrice() > 0 ? 1 : 0));
   protected readonly total = computed(() => this.subtotal() + this.delivery());
 
   ngOnInit(): void {

@@ -1,13 +1,13 @@
 <section class="orders-page" aria-labelledby="orders-title">
 	<header class="orders-header">
 		<div class="orders-header__copy">
-			<p class="orders-eyebrow"><span></span> BUYER ACCOUNT</p>
+			<p class="orders-eyebrow"><span></span> {{ isFarmer() ? 'INPUT PURCHASES' : 'BUYER ACCOUNT' }}</p>
 			<h1 id="orders-title">Your orders</h1>
-			<p class="orders-header__intro">Follow every harvest from the farm to your doorstep.</p>
+			<p class="orders-header__intro">Track the items you ordered from confirmation through delivery.</p>
 		</div>
-		<a class="orders-shop-link" routerLink="/products">
+		<a class="orders-shop-link" [routerLink]="isFarmer() ? '/inputs' : '/products'">
 			<mat-icon>arrow_back</mat-icon>
-			Continue shopping
+			{{ isFarmer() ? 'Browse inputs' : 'Continue shopping' }}
 		</a>
 	</header>
 

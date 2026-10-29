@@ -15,6 +15,7 @@ export interface User {
   role: UserRole;
   status: UserStatus;
   verificationStatus: VerificationStatus;
+  emailVerified: boolean;
   verified: boolean;
   createdAt: string;
   avatarUrl?: string;
@@ -31,13 +32,14 @@ export interface UserResponse {
   role: UserRole;
   status: UserStatus;
   verificationStatus: VerificationStatus;
+  emailVerified: boolean;
   createdAt: string;
 }
 
 export interface AuthTokenResponse {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: string;
+  accessToken: string | null;
+  refreshToken: string | null;
+  tokenType: string | null;
   expiresIn: number | null;
   user: UserResponse;
 }
@@ -54,6 +56,7 @@ export function toUser(response: UserResponse): User {
     role: response.role,
     status: response.status,
     verificationStatus: response.verificationStatus,
+    emailVerified: response.emailVerified,
     verified: response.verificationStatus === 'VERIFIED' || response.verificationStatus === 'NOT_REQUIRED',
     createdAt: response.createdAt,
   };

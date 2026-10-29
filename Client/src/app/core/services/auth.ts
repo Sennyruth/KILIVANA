@@ -24,11 +24,13 @@ export class Auth {
   readonly loading = this._loading.asReadonly();
   readonly error = this._error.asReadonly();
 
-  readonly isAuthenticated = computed(() => this._user() !== null);
-  readonly role = computed<UserRole | null>(() => this._user()?.role ?? null);
-  readonly isFarmer = computed(() => this._user()?.role === 'FARMER');
-  readonly isBuyer = computed(() => this._user()?.role === 'BUYER');
-  readonly isSupplier = computed(() => this._user()?.role === 'SUPPLIER');
+  readonly isAuthenticated = computed(() =>
+    this._user()?.emailVerified === true && this.token !== null,
+  );
+  readonly role = computed<UserRole | null>(() => this.isAuthenticated() ? this._user()?.role ?? null : null);
+  readonly isFarmer = computed(() => this.isAuthenticated() && this._user()?.role === 'FARMER');
+  readonly isBuyer = computed(() => this.isAuthenticated() && this._user()?.role === 'BUYER');
+  readonly isSupplier = computed(() => this.isAuthenticated() && this._user()?.role === 'SUPPLIER');
   readonly name = computed(() => this._user()?.name ?? '');
   readonly avatarUrl = computed(() => this._user()?.avatarUrl ?? '');
 
@@ -125,7 +127,7 @@ export class Auth {
     this.refreshPromise$ = firstValueFrom(
       this.http.post<AuthTokenResponse>(ApiEndpoints.AUTH.REFRESH, { refreshToken: rt }),
     ).then((res) => {
-      if (res.success && res.data) {
+      if (res.success && res.data?.accessToken && res.data.refreshToken) {
         this.storeAuth(res.data);
         return res.data.accessToken;
       }
@@ -243,21 +245,9 @@ export class Auth {
   }
 
   private storeAuth(data: AuthTokenResponse): void {
-    // Only store user data if tokens are present
-    // If tokens are null (email verification required), only store user temporarily
+    // Unverified accounts receive no tokens and must not be treated as signed in.
     if (!data.accessToken || !data.refreshToken) {
-      console.warn('Auth data missing tokens (email verification likely required)', {
-        hasAccessToken: !!data.accessToken,
-        hasRefreshToken: !!data.refreshToken,
-        hasUser: !!data.user,
-      });
-      // Don't throw error - this is expected during email verification flow
-      // Just store user data temporarily
-      if (data.user) {
-        const user = toUser(data.user);
-        this._user.set(user);
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
-      }
+      this.logout();
       return;
     }
 
@@ -267,17 +257,11 @@ export class Auth {
     this._user.set(user);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
 
-    // Debug logging to verify correct storage
-    console.log('Auth tokens stored successfully', {
-      hasAccessToken: !!data.accessToken,
-      hasRefreshToken: !!data.refreshToken,
-      accessTokenLength: data.accessToken.length,
-      refreshTokenLength: data.refreshToken.length,
-    });
   }
 
   private loadUser(): User | null {
     try {
+      if (!localStorage.getItem(ACCESS_KEY)) return null;
       const raw = localStorage.getItem(USER_KEY);
       return raw ? (JSON.parse(raw) as User) : null;
     } catch {

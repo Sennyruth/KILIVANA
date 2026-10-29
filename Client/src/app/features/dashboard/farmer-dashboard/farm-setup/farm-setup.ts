@@ -1,10 +1,10 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { finalize, map, switchMap, throwError } from 'rxjs';
+import { catchError, finalize, forkJoin, map, of, switchMap, throwError } from 'rxjs';
 import { Auth } from '../../../../core/services/auth';
 import { Farmer } from '../../../../core/services/farmer';
 import type { FarmerProfileImage } from '../../../../shared/farmer.model';
@@ -17,7 +17,7 @@ import type { FarmerFarm, FarmerFarmRequest } from '../../../../shared/farm.mode
   templateUrl: './farm-setup.html',
   styleUrl: './farm-setup.scss',
 })
-export class FarmSetup implements OnInit {
+export class FarmSetup implements OnInit, OnDestroy {
   private readonly auth = inject(Auth);
   private readonly farmer = inject(Farmer);
   private readonly router = inject(Router);
@@ -48,6 +48,13 @@ export class FarmSetup implements OnInit {
   ngOnInit(): void {
     this.manageMode.set(this.route.snapshot.queryParamMap.get('manage') === '1');
     this.load();
+  }
+
+  ngOnDestroy(): void {
+    this.photos().forEach((photo) => {
+      if (photo.url.startsWith('blob:')) URL.revokeObjectURL(photo.url);
+    });
+    this.clearPreview();
   }
 
   protected load(): void {
@@ -190,9 +197,9 @@ export class FarmSetup implements OnInit {
           this.error.set(response.message || 'The farm photo could not be confirmed. Try again.');
           return;
         }
-        this.photos.set(response.data);
         this.selectedPhoto.set(null);
         this.clearPreview();
+        this.loadPhotos(id);
         if (this.farmReady() && !this.manageMode()) void this.router.navigate(['/dashboard/farmer']);
       },
       error: (err: { error?: { message?: string } }) => this.error.set(err.error?.message || 'The farm photo could not be uploaded. Try again.'),
@@ -237,8 +244,17 @@ export class FarmSetup implements OnInit {
   private loadPhotos(id: string): void {
     this.farmer.getProfileImages(id).subscribe({
       next: (response) => {
-        this.photos.set(response.data ?? []);
-        this.continueIfReady();
+        const photos = response.data ?? [];
+        forkJoin(photos.map((photo) => this.farmer.getImageObjectUrl(photo.url).pipe(
+          map((url) => ({ ...photo, url })),
+          catchError(() => of({ ...photo, url: '/placeholder.svg' })),
+        ))).subscribe((displayPhotos) => {
+          this.photos().forEach((photo) => {
+            if (photo.url.startsWith('blob:')) URL.revokeObjectURL(photo.url);
+          });
+          this.photos.set(displayPhotos);
+          this.continueIfReady();
+        });
       },
       error: () => this.error.set('Could not load your inspection photos. Try again.'),
     });

@@ -278,7 +278,7 @@
 
   <mat-card class="dashboard__card" id="farmer-orders">
     <mat-card-title class="dashboard__card-title">
-      Recent Orders
+      Recent Orders from buyers
     </mat-card-title>
     <mat-card-content>
       @if (ordersError(); as error) {
@@ -315,19 +315,54 @@
                   </span>
                 </td>
                 <td>
-                  <button mat-button (click)="viewOrder(order.id)" [attr.aria-expanded]="selectedOrder()?.id === order.id">
-                    {{ selectedOrder()?.id === order.id ? 'Close' : 'View' }}
-                  </button>
+                  <a mat-button [routerLink]="['/tracking', order.id]" [queryParams]="{ perspective: 'seller' }">
+                    Track details
+                  </a>
                 </td>
               </tr>
-              @if (selectedOrder()?.id === order.id) {
-                <tr class="dashboard__order-details">
-                  <td colspan="6">
-                    Order #{{ orderIdLabel(order.id) }} · {{ order.itemCount }} items ·
-                    {{ order.total | currency:'KES' }} · {{ order.status }}
-                  </td>
-                </tr>
-              }
+            }
+          </tbody>
+        </table>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="dashboard__card" id="farmer-input-orders">
+    <mat-card-title class="dashboard__card-title">
+      My input orders
+      <a mat-button routerLink="/orders">View all</a>
+    </mat-card-title>
+    <mat-card-content>
+      @if (inputOrdersError(); as error) {
+        <div class="dashboard__orders-error" role="alert">
+          <p>{{ error }}</p>
+          <button mat-stroked-button color="primary" (click)="loadInputOrders()">Try again</button>
+        </div>
+      } @else if (inputOrdersLoading() && inputOrders().length === 0) {
+        <div class="dashboard__loading" role="status"><mat-spinner diameter="32" /></div>
+      } @else if (inputOrders().length === 0) {
+        <div class="dashboard__orders-placeholder"><p>You have not placed any input orders yet.</p></div>
+      } @else {
+        <table class="dashboard__table">
+          <thead>
+            <tr><th>Order ID</th><th>Date</th><th>Inputs</th><th>Total</th><th>Status</th><th>Tracking</th></tr>
+          </thead>
+          <tbody>
+            @for (order of inputOrders().slice(0, 5); track order.id) {
+              <tr>
+                <td>{{ orderIdLabel(+order.id) }}</td>
+                <td>{{ order.createdAt | date:'short' }}</td>
+                <td>{{ inputOrderItems(order) }}</td>
+                <td>{{ order.total | currency:'KES' }}</td>
+                <td><span [class]="'dashboard__status--' + order.status.toLowerCase()">{{ order.status }}</span></td>
+                <td>
+                  @if (order.status !== 'CANCELLED' && order.status !== 'FAILED') {
+                    <a mat-button [routerLink]="['/tracking', order.id]">Track order</a>
+                  } @else {
+                    <span>Tracking ended</span>
+                  }
+                </td>
+              </tr>
             }
           </tbody>
         </table>

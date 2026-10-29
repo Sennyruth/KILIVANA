@@ -1,5 +1,5 @@
 import { Injectable, inject, computed, signal } from '@angular/core';
-import { Observable, of, tap, catchError, finalize, map } from 'rxjs';
+import { Observable, of, tap, catchError, finalize, map, switchMap } from 'rxjs';
 
 import { HttpService } from './http';
 import { ApiEndpoints } from '../../shared/api.config';
@@ -51,22 +51,53 @@ export class Order {
   }
 
   loadSellerOrders(): Observable<ApiResponse<SellerOrderSummary[]>> {
+    const role = this.auth.user()?.role;
+    if (role === 'FARMER') return this.loadFarmerOrders();
+    if (role === 'SUPPLIER') return this.loadSupplierOrders();
+
+    this._loading.set(false);
+    this._error.set('Sign in again to load seller orders.');
+    return of({ success: false, data: [], message: 'Sign in again to load seller orders.' });
+  }
+
+  loadFarmerOrders(): Observable<ApiResponse<SellerOrderSummary[]>> {
+    return this.loadOrdersForSeller('FARMER');
+  }
+
+  loadSupplierOrders(): Observable<ApiResponse<SellerOrderSummary[]>> {
+    return this.loadOrdersForSeller('SUPPLIER');
+  }
+
+  private loadOrdersForSeller(role: 'FARMER' | 'SUPPLIER'): Observable<ApiResponse<SellerOrderSummary[]>> {
     this._loading.set(true);
     this._error.set(null);
-    const sellerId = this.auth.user()?.id;
-    if (!sellerId) {
-      const message = 'Sign in again to load seller orders.';
-      this._error.set(message);
-      this._loading.set(false);
-      return of({ success: false, data: [], message });
-    }
-    return this.http.get<unknown>(ApiEndpoints.ORDERS.LIST, { sellerId }).pipe(
-      map((response) => ({
-        ...response,
-        data: response.success ? extractSellerOrders(response.data) : [],
-      })),
+    return this.auth.fetchProfile().pipe(
+      switchMap((profileResponse) => {
+        const profile = profileResponse.data && 'user' in profileResponse.data
+          ? profileResponse.data.user
+          : profileResponse.data;
+        const sellerId = profile?.id;
+        if (!profileResponse.success || !sellerId || profile.role !== role) {
+          const message = `The signed-in account is not authorized as this ${role.toLowerCase()}. Sign in with the matching seller account.`;
+          this._error.set(message);
+          return of({ success: false, data: [], message });
+        }
+
+        const endpoint = role === 'FARMER'
+          ? ApiEndpoints.ORDERS.FARMER(String(sellerId))
+          : ApiEndpoints.ORDERS.SUPPLIER(String(sellerId));
+        return this.http.get<unknown>(endpoint, { page: 0, size: 100 }).pipe(
+          map((response) => ({
+            ...response,
+            data: response.success ? extractSellerOrders(response.data) : [],
+          })),
+        );
+      }),
       catchError((error) => {
-        const message = error?.error?.message || 'Failed to load seller orders';
+        const message = error?.error?.message || error?.error?.error?.details ||
+          (error?.status === 403
+            ? 'The API denied access. The signed-in account ID and seller ID must match.'
+            : 'Failed to load seller orders');
         this._error.set(message);
         return of({ success: false, data: [], message } as ApiResponse<SellerOrderSummary[]>);
       }),
@@ -77,6 +108,7 @@ export class Order {
   loadMine(buyerId?: string): Observable<ApiResponse<{ orders: OrderModel[] }>> {
     this._loading.set(true);
     this._error.set(null);
+    this._orders.set([]);
     const resolvedBuyerId = buyerId || this.auth.user()?.id;
     if (!resolvedBuyerId) {
       this._loading.set(false);

@@ -7,6 +7,9 @@ export const API_ORIGIN = environment.apiOrigin;
 export const API_BASE = NGROK_URL ? `${NGROK_URL}/api/v1` : '/api/v1';
 
 export const ApiEndpoints = {
+  REGIONS: {
+    COUNTIES: `${API_BASE}/regions`,
+  },
   AUTH: {
     REGISTER: `${API_BASE}/auth/register`,
     LOGIN: `${API_BASE}/auth/login`,
@@ -47,6 +50,9 @@ export const ApiEndpoints = {
     CREATE: `${API_BASE}/orders`,
     CANCEL: (id: string) => `${API_BASE}/orders/${id}/cancel`,
     BUYER: (buyerId: string) => `${API_BASE}/orders/buyer/${buyerId}`,
+    SELLER: (sellerId: string) => `${API_BASE}/orders/seller/${sellerId}`,
+    FARMER: (farmerId: string) => `${API_BASE}/orders/seller/${farmerId}`,
+    SUPPLIER: (supplierId: string) => `${API_BASE}/orders/seller/${supplierId}`,
     TIMELINE: (id: string) => `${API_BASE}/orders/${id}/timeline`,
     SEARCH: `${API_BASE}/orders/search`,
   },

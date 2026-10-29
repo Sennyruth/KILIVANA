@@ -30,6 +30,7 @@ import {
   supplierGuard,
   farmerDashboardGuard,
   shoppingGuard,
+  trackingGuard,
   produceCatalogGuard,
 } from './shared/guards';
 
@@ -39,7 +40,7 @@ export const routes: Routes = [
   { path: 'register', component: Register, canActivate: [unauthGuard] },
   { path: 'forgot-password', component: ForgotPassword, canActivate: [unauthGuard] },
   { path: 'reset-password', component: ResetPassword },
-  { path: 'email-verification', component: EmailVerification, canActivate: [unauthGuard] },
+  { path: 'email-verification', component: EmailVerification },
   { path: 'logout', component: Logout, canActivate: [authGuard] },
   { path: 'products', component: ProductList, canActivate: [produceCatalogGuard] },
   { path: 'products/:id', component: ProductDetail, canActivate: [produceCatalogGuard] },
@@ -49,7 +50,7 @@ export const routes: Routes = [
   { path: 'checkout', component: Checkout, canActivate: [shoppingGuard] },
   { path: 'orders', component: OrderHistory, canActivate: [shoppingGuard] },
   { path: 'dashboard/supplier/orders', component: SupplierOrders, canActivate: [supplierGuard] },
-  { path: 'tracking/:orderId', component: OrderTracker, canActivate: [shoppingGuard] },
+  { path: 'tracking/:orderId', component: OrderTracker, canActivate: [trackingGuard] },
   { path: 'dashboard/farmer/setup', component: FarmSetup, canActivate: [farmerGuard] },
   { path: 'dashboard/farmer', component: FarmerDashboard, canActivate: [farmerDashboardGuard] },
   { path: 'dashboard/farmer/add-product', component: AddProduct, canActivate: [farmerGuard] },

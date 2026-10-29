@@ -83,7 +83,7 @@ export class Navbar {
       return [
         { label: 'Inputs', href: '/inputs' },
         { label: 'Cart', href: '/cart' },
-        { label: 'Orders', href: '/dashboard/farmer' },
+        { label: 'Orders', href: '/orders' },
       ];
     }
 
