@@ -33,6 +33,7 @@ export interface Order {
   deliveryFee: number;
   total: number;
   deliveryAddress: string;
+  pickupLocation?: string | null;
   phone: string;
   paymentMethod: 'MPESA' | 'BANK' | 'CASH' | 'CARD' | null;
   paymentStatus: 'PENDING' | 'PAID' | 'HELD' | 'SETTLED' | 'FAILED' | 'REFUNDED';

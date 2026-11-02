@@ -45,6 +45,13 @@
   font-weight: 400;
 }
 
+.dashboard__header-actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .dashboard__stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -451,6 +458,16 @@
     flex-direction: column;
     align-items: flex-start;
     padding: var(--space-5);
+  }
+
+  .dashboard__header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .dashboard__header-actions button,
+  .dashboard__header-actions a {
+    width: 100%;
   }
 
   .dashboard__title {

@@ -42,6 +42,18 @@ export const ApiEndpoints = {
     UPDATE: (itemId: string) => `${API_BASE}/cart/items/${itemId}`,
     REMOVE: (itemId: string) => `${API_BASE}/cart/items/${itemId}`,
     CLEAR: `${API_BASE}/cart`,
+    CLEAR_BY_ID: (cartId: string | number) => `${API_BASE}/carts/${cartId}`,
+  },
+
+  CHECKOUT: {
+    START: `${API_BASE}/checkout`,
+    DELIVERY_QUOTE: `${API_BASE}/checkout/delivery-quote`,
+    CREATE_ORDER: `${API_BASE}/checkout/order`,
+  },
+
+  PICKUP_STATIONS: {
+    AVAILABLE: `${API_BASE}/pickup-stations/available`,
+    AVAILABLE_BY_REGION: (region: string) => `${API_BASE}/pickup-stations/available/region/${encodeURIComponent(region)}`,
   },
 
   ORDERS: {

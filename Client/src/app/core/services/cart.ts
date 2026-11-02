@@ -104,11 +104,19 @@ export class Cart {
 
   syncMockCartForCheckout(): Observable<void> {
     const items = this.currentCart().items;
-    return this.http.delete<void>(ApiEndpoints.CART.CLEAR).pipe(
+    return this.http.get<unknown>(ApiEndpoints.CART.GET).pipe(
       switchMap((response) => {
-        if (!response.success) {
-          return throwError(() => new Error(response.message || 'Could not prepare cart for checkout.'));
+        if (!response.success || !response.data || typeof response.data !== 'object') {
+          return throwError(() => new Error(response.message || 'Could not load your server cart for checkout.'));
         }
+        const cartId = (response.data as Record<string, unknown>)['id'];
+        if (typeof cartId !== 'string' && typeof cartId !== 'number') {
+          return throwError(() => new Error('The server did not return a valid cart ID.'));
+        }
+        return this.http.delete<void>(ApiEndpoints.CART.CLEAR_BY_ID(cartId));
+      }),
+      switchMap((response) => {
+        if (!response.success) return throwError(() => new Error(response.message || 'Could not clear the server cart.'));
         return from(items).pipe(
           concatMap((item) =>
             this.http.post<CartModel>(ApiEndpoints.CART.ADD, {

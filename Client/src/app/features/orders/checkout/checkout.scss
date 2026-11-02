@@ -8,6 +8,13 @@
 .checkout__secure mat-icon { font-size: 19px; width: 19px; height: 19px; }
 .checkout__layout { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(330px, .85fr); gap: clamp(22px, 4vw, 48px); align-items: start; }
 .checkout-form { display: grid; gap: 22px; }
+.checkout__delivery-method { display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 18px; }
+.checkout__nearest { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; margin-bottom: 12px; border-color: #b6d7bd; color: #17603a; }
+.checkout__nearest mat-icon { width: 19px; height: 19px; font-size: 19px; }
+.checkout__station-details { display: grid; gap: 10px; margin-top: 2px; }
+.checkout__station-details a { color: #17603a; }
+.checkout__map-link { display: inline-flex; align-items: center; gap: 8px; width: fit-content; color: #17603a; font-size: .9rem; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.checkout__map-link mat-icon { width: 19px; height: 19px; font-size: 19px; }
 .checkout-panel { padding: clamp(20px, 3vw, 30px); border: 1px solid #d5e7d9; border-radius: 18px; background: #fff; box-shadow: 0 8px 24px #153b2410; }
 .checkout-panel__heading { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 24px; }
 .checkout-panel__step { display: grid; flex: 0 0 34px; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #e7f3e9; color: #17603a; font-weight: 800; }

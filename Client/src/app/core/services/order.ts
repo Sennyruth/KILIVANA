@@ -339,7 +339,10 @@ function normalizeOrder(value: unknown): OrderModel {
     subtotal,
     deliveryFee,
     total,
-    deliveryAddress: typeof order['deliveryAddress'] === 'string' ? order['deliveryAddress'] : '',
+    deliveryAddress: typeof order['deliveryAddress'] === 'string'
+      ? order['deliveryAddress']
+      : typeof order['pickupLocation'] === 'string' ? order['pickupLocation'] : '',
+    pickupLocation: typeof order['pickupLocation'] === 'string' ? order['pickupLocation'] : null,
     phone: typeof order['buyerPhone'] === 'string' ? order['buyerPhone'] : typeof order['phone'] === 'string' ? order['phone'] : '',
     paymentMethod: normalizePaymentMethod(order['paymentMethod']),
     paymentStatus: normalizePaymentStatus(order['paymentStatus']),

@@ -45,58 +45,99 @@
           <section class="checkout-panel">
             <div class="checkout-panel__heading">
               <span class="checkout-panel__step">1</span>
-              <div><h2 class="checkout__section-title">Delivery information</h2><p>Where should we bring your order?</p></div>
+              <div><h2 class="checkout__section-title">Delivery information</h2><p>Choose how you’d like to receive your order.</p></div>
             </div>
-          <div class="checkout-form__row">
-            <mat-form-field appearance="outline">
-              <mat-label>First name</mat-label>
-              <input matInput formControlName="firstName" />
-              @if (form.get('firstName')?.touched && form.get('firstName')?.invalid) {
-                <mat-error>First name is required and must be at least 2 characters</mat-error>
+            <mat-radio-group class="checkout__delivery-method" [value]="deliveryMethod()" (change)="deliveryMethod.set($event.value)" aria-label="Delivery method">
+              <mat-radio-button value="door">Door delivery</mat-radio-button>
+              <mat-radio-button value="pickup">Pickup point</mat-radio-button>
+            </mat-radio-group>
+            @if (deliveryMethod() === 'door') {
+              <div class="checkout-form__row">
+                <mat-form-field appearance="outline">
+                  <mat-label>First name</mat-label>
+                  <input matInput formControlName="firstName" />
+                  @if (form.get('firstName')?.touched && form.get('firstName')?.invalid) { <mat-error>First name is required and must be at least 2 characters</mat-error> }
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Last name</mat-label>
+                  <input matInput formControlName="lastName" />
+                  @if (form.get('lastName')?.touched && form.get('lastName')?.invalid) { <mat-error>Last name is required and must be at least 2 characters</mat-error> }
+                </mat-form-field>
+              </div>
+              <mat-form-field appearance="outline" class="checkout-form__full">
+                <mat-label>Delivery address</mat-label>
+                <textarea matInput rows="2" placeholder="Street, building, landmark" formControlName="address"></textarea>
+                @if (form.get('address')?.touched && form.get('address')?.invalid) { <mat-error>Address is required and must be at least 10 characters</mat-error> }
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="checkout-form__full">
+                <mat-label>County</mat-label>
+                <mat-select formControlName="county">
+                  <mat-option value="Nairobi">Nairobi</mat-option><mat-option value="Mombasa">Mombasa</mat-option>
+                  <mat-option value="Kisumu">Kisumu</mat-option><mat-option value="Uasin Gishu">Uasin Gishu</mat-option>
+                  <mat-option value="Nakuru">Nakuru</mat-option><mat-option value="Kiambu">Kiambu</mat-option>
+                  <mat-option value="Machakos">Machakos</mat-option><mat-option value="Kajiado">Kajiado</mat-option>
+                </mat-select>
+                @if (form.get('county')?.touched && form.get('county')?.invalid) { <mat-error>County is required</mat-error> }
+              </mat-form-field>
+            } @else {
+              <mat-radio-group class="checkout__delivery-method" [value]="pickupChoice()" (change)="pickupChoice.set($event.value)" aria-label="Pickup location option">
+                <mat-radio-button value="station">Choose a pickup station</mat-radio-button>
+                <mat-radio-button value="typed">Enter a pickup location</mat-radio-button>
+              </mat-radio-group>
+              @if (pickupChoice() === 'typed') {
+                <mat-form-field appearance="outline" class="checkout-form__full">
+                  <mat-label>Pickup location</mat-label>
+                  <textarea matInput rows="2" maxlength="500" placeholder="Enter the location where you’ll collect your order" formControlName="pickupLocation"></textarea>
+                  <mat-hint align="end">{{ (form.get('pickupLocation')?.value?.length || 0) }}/500</mat-hint>
+                  @if (form.get('pickupLocation')?.touched && !form.get('pickupLocation')?.value?.trim()) {
+                    <mat-error>Enter a pickup location</mat-error>
+                  }
+                </mat-form-field>
+                <p class="checkout__hint"><mat-icon>info</mat-icon>This location applies to this order only and won’t be saved to your pickup stations.</p>
+              } @else if (stationsLoading()) {
+                <div class="checkout__loading"><mat-spinner diameter="32" /><p>Loading pickup points…</p></div>
+              } @else if (pickupStations().length === 0) {
+                <p class="checkout__availability" role="status">No pickup points are available right now. You can enter a pickup location above.</p>
+              } @else {
+                <button mat-stroked-button class="checkout__nearest" type="button" (click)="findNearestPickupStation()" [disabled]="locatingNearestStation()">
+                  @if (locatingNearestStation()) { <mat-spinner diameter="18" /> } @else { <mat-icon>my_location</mat-icon> }
+                  {{ locatingNearestStation() ? 'Finding nearest point…' : 'Find nearest to me' }}
+                </button>
+                <mat-form-field appearance="outline" class="checkout-form__full">
+                  <mat-label>Available pickup points</mat-label>
+                  <mat-select [value]="selectedPickupStationId()" (selectionChange)="selectedPickupStationId.set($event.value)">
+                    @for (item of pickupStationsByDistance(); track item.station.id) {
+                      <mat-option [value]="item.station.id">
+                        {{ item.station.name }} · {{ item.station.region }}
+                        @if (item.distanceKm !== null) { · {{ item.distanceKm | number:'1.1-1' }} km }
+                      </mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (selectedPickupStation(); as station) {
+                  <div class="checkout__station-details">
+                    <p class="checkout__hint"><mat-icon>location_on</mat-icon>{{ station.address }}{{ (station.openingHours || station.hours) ? ' · ' + (station.openingHours || station.hours) : '' }}{{ station.pickupInstructions ? ' · ' + station.pickupInstructions : '' }}</p>
+                    @if (station.contactPhone || station.phone; as stationPhone) {
+                      <p class="checkout__hint"><mat-icon>call</mat-icon><a [href]="'tel:' + stationPhone">{{ stationPhone }}</a></p>
+                    }
+                    @if (mapUrl(station); as stationMapUrl) {
+                      <a class="checkout__map-link" [href]="stationMapUrl" target="_blank" rel="noopener noreferrer">
+                        <mat-icon>map</mat-icon> View pickup point on OpenStreetMap
+                      </a>
+                    } @else {
+                      <p class="checkout__hint" role="status"><mat-icon>info</mat-icon>Map location is not available for this pickup point.</p>
+                    }
+                  </div>
+                }
               }
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Last name</mat-label>
-              <input matInput formControlName="lastName" />
-              @if (form.get('lastName')?.touched && form.get('lastName')?.invalid) {
-                <mat-error>Last name is required and must be at least 2 characters</mat-error>
-              }
-            </mat-form-field>
-          </div>
-
-          <mat-form-field appearance="outline" class="checkout-form__full">
-            <mat-label>Delivery address</mat-label>
-            <textarea matInput rows="2" placeholder="Street, building, landmark" formControlName="address"></textarea>
-            @if (form.get('address')?.touched && form.get('address')?.invalid) {
-              <mat-error>Address is required and must be at least 10 characters</mat-error>
             }
-          </mat-form-field>
-
-          <div class="checkout-form__row">
-            <mat-form-field appearance="outline">
-              <mat-label>County</mat-label>
-              <mat-select formControlName="county">
-                <mat-option value="Nairobi">Nairobi</mat-option>
-                <mat-option value="Mombasa">Mombasa</mat-option>
-                <mat-option value="Kisumu">Kisumu</mat-option>
-                <mat-option value="Uasin Gishu">Uasin Gishu</mat-option>
-                <mat-option value="Nakuru">Nakuru</mat-option>
-                <mat-option value="Kiambu">Kiambu</mat-option>
-                <mat-option value="Machakos">Machakos</mat-option>
-                <mat-option value="Kajiado">Kajiado</mat-option>
-              </mat-select>
-              @if (form.get('county')?.touched && form.get('county')?.invalid) {
-                <mat-error>County is required</mat-error>
-              }
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Phone</mat-label>
+            <mat-form-field appearance="outline" class="checkout-form__full">
+              <mat-label>M-Pesa phone number</mat-label>
               <input matInput type="tel" autocomplete="tel" placeholder="+254712345678" formControlName="phone" />
               @if (form.get('phone')?.touched && form.get('phone')?.invalid) {
                 <mat-error>Enter a Kenyan number in international format, for example +254712345678</mat-error>
               }
             </mat-form-field>
-          </div>
           </section>
 
           <section class="checkout-panel checkout-panel--payment">

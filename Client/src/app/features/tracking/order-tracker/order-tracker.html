@@ -122,11 +122,11 @@
 
       <aside class="order-tracker__side">
         <section class="panel order-tracker__delivery" aria-labelledby="delivery-title">
-          <h2 id="delivery-title"><mat-icon>location_on</mat-icon> Delivery details</h2>
+          <h2 id="delivery-title"><mat-icon>location_on</mat-icon>{{ order()?.pickupLocation ? 'Pickup location' : 'Delivery details' }}</h2>
           @if (sellerPerspective) {
             <p>Delivery address and buyer contact details are not included in the seller tracking view.</p>
-          } @else if (order()?.deliveryAddress) {
-            <p>{{ order()?.deliveryAddress }}</p>
+          } @else if (order()?.pickupLocation || order()?.deliveryAddress) {
+            <p>{{ order()?.pickupLocation || order()?.deliveryAddress }}</p>
             @if (order()?.phone) {
               <span>Contact: {{ order()?.phone }}</span>
             }

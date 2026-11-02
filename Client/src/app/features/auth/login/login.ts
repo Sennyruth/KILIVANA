@@ -102,6 +102,6 @@ export class Login {
     const role = this.auth.role();
     if (role === 'FARMER') return '/dashboard/farmer';
     if (role === 'SUPPLIER') return '/dashboard/supplier';
-    return '/dashboard/buyer';
+    return '/products';
   }
 }
