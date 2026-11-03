@@ -324,19 +324,24 @@
 		border-top: 1px solid #e8efe9;
 	}
 
-	&__icon {
+	&__visual {
 		display: grid;
 		width: 42px;
 		height: 42px;
 		flex: 0 0 42px;
 		place-items: center;
+		overflow: hidden;
 		border-radius: 5px;
 		background: #eaf4ed;
 		color: #1f7132;
 
+		img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+
 		mat-icon {
-			width: 21px;
-			height: 21px;
 			font-size: 21px;
 		}
 	}

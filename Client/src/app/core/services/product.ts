@@ -417,6 +417,32 @@ export class Product {
     ).pipe(map((entries) => ({ success: true, message: 'Success', data: Object.fromEntries(entries) })));
   }
 
+  /** Loads each product's primary image for order and receipt views. */
+  loadPrimaryImagesFor(productIds: Array<string | number>): Observable<Record<string, string>> {
+    const ids = [...new Set(productIds.map(String))];
+    if (ids.length === 0) return of({});
+
+    return forkJoin(
+      ids.map((id) =>
+        this.loadImages(id).pipe(
+          switchMap((response) => {
+            const image = response.success
+              ? orderImages(response.data.filter((candidate) => !!candidate.url?.trim()))[0]
+              : undefined;
+            return image
+              ? this.displayImageUrl(image.url).pipe(map((url) => [id, url] as const))
+              : of([id, ''] as const);
+          }),
+          catchError(() => of([id, ''] as const)),
+        ),
+      ),
+    ).pipe(
+      map((entries) =>
+        Object.fromEntries(entries.filter(([, url]) => url.length > 0)),
+      ),
+    );
+  }
+
   private withImages(products: ProductModel[]): Observable<ProductModel[]> {
     if (products.length === 0) return of([]);
 

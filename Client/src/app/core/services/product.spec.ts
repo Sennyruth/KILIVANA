@@ -29,6 +29,34 @@ describe('Product', () => {
     expect(service).toBeTruthy();
   });
 
+  it('loads the primary image for each ordered product', () => {
+    let images: Record<string, string> | undefined;
+    service.loadPrimaryImagesFor(['39', 39, '40']).subscribe((result) => {
+      images = result;
+    });
+
+    httpTesting.expectOne(`${API_BASE}/products/39/images`).flush({
+      success: true,
+      message: 'Success',
+      data: [
+        { id: 2, url: 'https://images.example/secondary.jpg', isPrimary: false, sortOrder: 1 },
+        { id: 1, url: 'https://images.example/primary.jpg', isPrimary: true, sortOrder: 0 },
+      ],
+    });
+    httpTesting.expectOne(`${API_BASE}/products/40/images`).flush({
+      success: true,
+      message: 'Success',
+      data: [
+        { id: 3, url: 'https://images.example/other.jpg', isPrimary: true, sortOrder: 0 },
+      ],
+    });
+
+    expect(images).toEqual({
+      '39': 'https://images.example/primary.jpg',
+      '40': 'https://images.example/other.jpg',
+    });
+  });
+
   it('loads and normalizes the direct product response used by the backend', () => {
     let loadedProduct: { id: string; categoryId?: number; status?: string } | null | undefined;
     service.getById('39').subscribe((response) => {

@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { Auth } from '../../../core/services/auth';
 import { Order as OrderService } from '../../../core/services/order';
+import { Product as ProductService } from '../../../core/services/product';
 import { deliveryStatusLabel, Order, OrderStatus } from '../../../shared/order.model';
 import { OrderProgress } from './order-progress/order-progress';
 
@@ -18,6 +19,7 @@ type OrderFilter = 'ALL' | 'IN_PROGRESS' | 'DELIVERED' | 'CANCELLED';
 export class OrderHistory implements OnInit {
   private readonly auth = inject(Auth);
   private readonly orderService = inject(OrderService);
+  private readonly productService = inject(ProductService);
 
   protected readonly isFarmer = this.auth.isFarmer;
   protected readonly orders = this.orderService.orders;
@@ -25,6 +27,7 @@ export class OrderHistory implements OnInit {
   protected readonly error = this.orderService.error;
   protected readonly loadError = signal<string | null>(null);
   protected readonly filter = signal<OrderFilter>('ALL');
+  protected readonly productImages = signal<Record<string, string>>({});
 
   protected readonly visibleOrders = computed(() => {
     const orders = this.orders();
@@ -74,6 +77,16 @@ export class OrderHistory implements OnInit {
     }
 
     this.orderService.loadMine(buyerId).subscribe({
+      next: (response) => {
+        this.productImages.set({});
+        if (!response.success || !response.data) return;
+        const productIds = response.data.orders.flatMap((order) =>
+          order.items.map((item) => item.productId),
+        );
+        this.productService.loadPrimaryImagesFor(productIds).subscribe((images) => {
+          this.productImages.set(images);
+        });
+      },
       error: () => {
         // Error is handled by the error signal
       }
@@ -125,5 +138,15 @@ export class OrderHistory implements OnInit {
       currency: 'KES',
       maximumFractionDigits: 0,
     }).format(value);
+  }
+
+  protected imageForProduct(productId: string): string | null {
+    return this.productImages()[productId] ?? null;
+  }
+
+  protected onImageError(event: Event): void {
+    const image = event.target as HTMLImageElement;
+    image.onerror = null;
+    image.src = '/placeholder.svg';
   }
 }

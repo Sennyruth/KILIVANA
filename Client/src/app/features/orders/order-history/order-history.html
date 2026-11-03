@@ -83,7 +83,13 @@
 					<div class="order-card__items">
 						@for (item of order.items; track item.id) {
 							<div class="order-item">
-								<div class="order-item__icon"><mat-icon>eco</mat-icon></div>
+								<div class="order-item__visual">
+									@if (imageForProduct(item.productId); as imageUrl) {
+										<img [src]="imageUrl" [alt]="item.name" (error)="onImageError($event)" loading="lazy" />
+									} @else {
+										<mat-icon>eco</mat-icon>
+									}
+								</div>
 								<div class="order-item__description">
 									<strong>{{ item.name }}</strong>
 									<span>{{ item.quantity }} {{ item.unit }} × {{ formatTotal(item.price) }}</span>

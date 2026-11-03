@@ -4,12 +4,14 @@ import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { Auth } from '../../../core/services/auth';
 import { Order as OrderService } from '../../../core/services/order';
+import { Product as ProductService } from '../../../core/services/product';
 import type { Order } from '../../../shared/order.model';
 import { OrderHistory } from './order-history';
 
 describe('OrderHistory', () => {
   let fixture: ComponentFixture<OrderHistory>;
   let loadMine: ReturnType<typeof vi.fn>;
+  let loadPrimaryImagesFor: ReturnType<typeof vi.fn>;
   let orders: ReturnType<typeof signal<Order[]>>;
   let loading: ReturnType<typeof signal<boolean>>;
   let error: ReturnType<typeof signal<string | null>>;
@@ -48,6 +50,7 @@ describe('OrderHistory', () => {
     error = signal<string | null>(null);
     user = signal({ id: '5', name: 'Buyer', role: 'BUYER' });
     loadMine = vi.fn(() => of({ success: true, message: 'Success', data: { orders: [testOrder] } }));
+    loadPrimaryImagesFor = vi.fn(() => of({ '7': 'https://images.example/maize.jpg' }));
 
     await TestBed.configureTestingModule({
       imports: [OrderHistory],
@@ -65,6 +68,10 @@ describe('OrderHistory', () => {
             error: error.asReadonly(),
             loadMine,
           },
+        },
+        {
+          provide: ProductService,
+          useValue: { loadPrimaryImagesFor },
         },
       ],
     }).compileComponents();
@@ -93,6 +100,17 @@ describe('OrderHistory', () => {
     expect(
       fixture.nativeElement.querySelector('a[href="/tracking/42"]'),
     ).toBeTruthy();
+  });
+
+  it('shows product images for ordered items', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(loadPrimaryImagesFor).toHaveBeenCalledWith(['7']);
+    const image = fixture.nativeElement.querySelector('.order-item__visual img') as HTMLImageElement | null;
+    expect(image?.getAttribute('src')).toBe('https://images.example/maize.jpg');
+    expect(image?.getAttribute('alt')).toBe('Maize');
   });
 
   it('shows cancelled and failed orders without implying active shipment progress', async () => {
