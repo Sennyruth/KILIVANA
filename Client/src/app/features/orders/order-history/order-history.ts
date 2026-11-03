@@ -1,10 +1,10 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { Auth } from '../../../core/services/auth';
 import { Order as OrderService } from '../../../core/services/order';
-import { Order, OrderStatus } from '../../../shared/order.model';
+import { deliveryStatusLabel, Order, OrderStatus } from '../../../shared/order.model';
 import { OrderProgress } from './order-progress/order-progress';
 
 type OrderFilter = 'ALL' | 'IN_PROGRESS' | 'DELIVERED' | 'CANCELLED';
@@ -56,6 +56,11 @@ export class OrderHistory implements OnInit {
     this.loadOrders();
   }
 
+  @HostListener('window:focus')
+  protected refreshOrdersOnFocus(): void {
+    if (!this.loading()) this.loadOrders();
+  }
+
   protected loadOrders(): void {
     this.loadError.set(null);
     if (!this.auth.isBuyer() && !this.auth.isFarmer()) {
@@ -83,7 +88,9 @@ export class OrderHistory implements OnInit {
     return `KV-${id.slice(-8).toUpperCase()}`;
   }
 
-  protected statusLabel(status: OrderStatus): string {
+  protected statusLabel(status: OrderStatus, deliveryStatus?: string | null): string {
+    const dispatchLabel = deliveryStatusLabel(deliveryStatus);
+    if (dispatchLabel) return dispatchLabel;
     const labels: Record<OrderStatus, string> = {
       PENDING: 'Awaiting confirmation',
       CONFIRMED: 'Confirmed',

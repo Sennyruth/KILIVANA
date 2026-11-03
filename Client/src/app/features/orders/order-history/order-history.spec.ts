@@ -37,7 +37,7 @@ describe('OrderHistory', () => {
     deliveryAddress: 'Nairobi',
     phone: '0700000000',
     paymentMethod: 'MPESA',
-    paymentStatus: 'COMPLETED',
+    paymentStatus: 'PAID',
     createdAt: '2026-10-05T09:00:00Z',
     updatedAt: '2026-10-06T09:00:00Z',
   };
@@ -55,7 +55,7 @@ describe('OrderHistory', () => {
         provideRouter([]),
         {
           provide: Auth,
-          useValue: { user },
+          useValue: { user, isBuyer: () => true, isFarmer: () => false },
         },
         {
           provide: OrderService,
@@ -85,9 +85,9 @@ describe('OrderHistory', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Shipment progress');
-    expect(fixture.nativeElement.textContent).toContain('Order placed');
+    expect(fixture.nativeElement.textContent).toContain('Placed');
     expect(fixture.nativeElement.textContent).toContain('Confirmed');
-    expect(fixture.nativeElement.textContent).toContain('Shipped');
+    expect(fixture.nativeElement.textContent).toContain('In Transit');
     expect(fixture.nativeElement.textContent).toContain('Delivered');
     expect(fixture.nativeElement.textContent).toContain('On the way');
     expect(

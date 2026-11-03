@@ -190,6 +190,28 @@
 
 }
 
+.location-manager__list { display: grid; gap: var(--space-3); margin-bottom: var(--space-5); }
+.location-manager__intro { margin: 0 0 var(--space-4); color: var(--text-secondary); }
+.location-manager__item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-4); padding: var(--space-4); border: 1px solid var(--primary-100); border-radius: var(--radius-lg); background: linear-gradient(135deg, #fff, var(--primary-50)); }
+.location-manager__item--inactive { opacity: .7; }
+.location-manager__icon,
+.location-manager__form-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; color: var(--primary); background: var(--primary-100); }
+.location-manager__details h3 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); color: var(--primary-dark); }
+.location-manager__details p { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-1) 0; color: var(--text-secondary); }
+.location-manager__details p mat-icon { width: 18px; height: 18px; font-size: 18px; }
+.location-manager__badge { padding: 3px 9px; border-radius: 20px; background: #dcefe2; color: #176239; font-size: .72rem; font-weight: 700; }
+.location-manager__badge--inactive { background: #eceff1; color: #546e7a; }
+.location-manager__actions,
+.location-manager__form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.location-manager__form { display: grid; gap: var(--space-3); margin-top: var(--space-5); padding: var(--space-5); border: 1px solid var(--primary-100); border-radius: var(--radius-lg); background: #fbfdfb; }
+.location-manager__form-heading { display: flex; align-items: center; gap: var(--space-3); }
+.location-manager__form-heading h3 { margin: 0 0 var(--space-1); color: var(--primary-dark); }
+.location-manager__form-heading p { margin: 0; color: var(--text-secondary); font-size: .9rem; }
+.location-manager__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-3); }
+.location-manager__fields mat-form-field { width: 100%; }
+.location-manager__wide { grid-column: 1 / -1; }
+.location-manager__error { color: #b3261e; }
+
 .dashboard__empty {
   display: flex;
   flex-direction: column;
@@ -476,6 +498,23 @@
 
   .dashboard__stats {
     grid-template-columns: 1fr;
+  }
+
+  .location-manager__item {
+    grid-template-columns: auto 1fr;
+  }
+
+  .location-manager__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  .location-manager__fields {
+    grid-template-columns: 1fr;
+  }
+
+  .location-manager__wide {
+    grid-column: auto;
   }
 
   .dashboard__table {

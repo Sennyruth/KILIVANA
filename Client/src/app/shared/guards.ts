@@ -3,6 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { Auth } from '../core/services/auth';
 import { Farmer } from '../core/services/farmer';
+import { SellerLocationService } from '../core/services/seller-location';
 
 export const authGuard: CanActivateFn = () => {
   const auth = inject(Auth);
@@ -83,12 +84,29 @@ export const buyerGuard: CanActivateFn = () => {
   return router.createUrlTree(['/login']);
 };
 
-export const supplierGuard: CanActivateFn = () => {
+export const supplierRoleGuard: CanActivateFn = () => {
   const auth = inject(Auth);
   const router = inject(Router);
   if (auth.isSupplier()) return true;
   if (auth.isAuthenticated()) return router.createUrlTree(['/dashboard/farmer']);
   return router.createUrlTree(['/login']);
+};
+
+/** Require suppliers to save a warehouse before accessing supplier tools. */
+export const supplierGuard: CanActivateFn = () => {
+  const auth = inject(Auth);
+  const router = inject(Router);
+  const locations = inject(SellerLocationService);
+  if (!auth.isSupplier()) {
+    if (auth.isAuthenticated()) return router.createUrlTree(['/dashboard/farmer']);
+    return router.createUrlTree(['/login']);
+  }
+  return locations.getMyLocations().pipe(
+    map((response) => response.success && response.data?.some((location) => location.active)
+      ? true
+      : router.createUrlTree(['/dashboard/supplier/setup'])),
+    catchError(() => of(router.createUrlTree(['/dashboard/supplier/setup']))),
+  );
 };
 
 export const unauthGuard: CanActivateFn = () => {

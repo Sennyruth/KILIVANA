@@ -68,6 +68,9 @@ export const ApiEndpoints = {
     TIMELINE: (id: string) => `${API_BASE}/orders/${id}/timeline`,
     SEARCH: `${API_BASE}/orders/search`,
   },
+  LOGISTICS: {
+    TRACKING_EVENTS: (jobId: string | number) => `${API_BASE}/logistics/tracking-events/job/${jobId}`,
+  },
 
   DISPUTES: {
     CREATE: `${API_BASE}/disputes`,
@@ -108,6 +111,15 @@ export const ApiEndpoints = {
     LIST_MINE: `${API_BASE}/farmers/me/farms`,
     CREATE_MINE: `${API_BASE}/farmers/me/farms`,
     UPDATE_MINE: (farmId: string | number) => `${API_BASE}/farmers/me/farms/${farmId}`,
+  },
+
+  SELLER_LOCATIONS: {
+    LIST_MINE: `${API_BASE}/suppliers/me/warehouses`,
+    CREATE_MINE: `${API_BASE}/suppliers/me/warehouses`,
+    DETAIL: (locationId: string | number) => `${API_BASE}/suppliers/me/warehouses/${locationId}`,
+    UPDATE: (locationId: string | number) => `${API_BASE}/suppliers/me/warehouses/${locationId}`,
+    DEACTIVATE: (locationId: string | number) => `${API_BASE}/suppliers/me/warehouses/${locationId}`,
+    SET_DEFAULT: (locationId: string | number) => `${API_BASE}/suppliers/me/warehouses/${locationId}/default`,
   },
   
 } as const;

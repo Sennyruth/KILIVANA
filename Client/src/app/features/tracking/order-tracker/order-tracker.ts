@@ -6,6 +6,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Order as OrderService } from '../../../core/services/order';
 import { Auth } from '../../../core/services/auth';
 import type { Order as OrderModel, OrderStatus, SellerOrderSummary } from '../../../shared/order.model';
+import { deliveryStatusLabel } from '../../../shared/order.model';
 import type { TrackingEvent, TrackingStage } from '../../../shared/tracking.model';
 import { TrackingStepper } from '../../../shared/tracking-stepper/tracking-stepper';
 import { Tracking } from '../../../core/services/tracking';
@@ -37,6 +38,8 @@ export class OrderTracker implements OnInit {
   protected readonly loading = this.tracking.loading;
   protected readonly error = signal<string | null>(null);
   protected readonly detailError = signal<string | null>(null);
+  protected readonly deliveryEventsError = signal<string | null>(null);
+  protected readonly deliveryEvents = signal<TrackingEvent[]>([]);
   protected readonly order = signal<OrderModel | null>(null);
   protected readonly sellerOrder = signal<SellerOrderSummary | null>(null);
   protected readonly sellerOrderLoading = signal(false);
@@ -44,11 +47,18 @@ export class OrderTracker implements OnInit {
     const status = this.sellerPerspective ? this.sellerOrder()?.status : this.order()?.status;
     return status === 'CANCELLED' || status === 'FAILED' ? status as OrderStatus : null;
   });
-  protected readonly timelineEvents = computed(() =>
-    [...(this.history()?.events ?? [])].sort(
+  protected readonly timelineEvents = computed(() => {
+    const deliveryEvents = this.deliveryEvents();
+    const deliveryLabels = new Set(
+      deliveryEvents.map((event) => `${event.stage}:${event.label?.toLowerCase() ?? ''}`),
+    );
+    const orderEvents = (this.history()?.events ?? []).filter(
+      (event) => !deliveryLabels.has(`${event.stage}:${event.label?.toLowerCase() ?? ''}`),
+    );
+    return [...orderEvents, ...deliveryEvents].sort(
       (left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime(),
-    ),
-  );
+    );
+  });
   protected readonly currentStatus = computed(
     () => (this.sellerPerspective ? this.sellerOrder()?.status as OrderStatus | undefined : this.order()?.status)
       ?? this.history()?.currentStage ?? null,
@@ -79,6 +89,8 @@ export class OrderTracker implements OnInit {
   protected retry(): void {
     this.error.set(null);
     this.detailError.set(null);
+    this.deliveryEventsError.set(null);
+    this.deliveryEvents.set([]);
     this.tracking.clear();
     this.sellerOrder.set(null);
     this.sellerOrderLoading.set(false);
@@ -89,17 +101,18 @@ export class OrderTracker implements OnInit {
 
   protected stageLabel(stage: TrackingStage): string {
     const labels: Record<TrackingStage, string> = {
-      ORDER_PLACED: 'Order placed',
-      ORDER_CONFIRMED: 'Order confirmed',
-      PAYMENT_RECEIVED: 'Payment received',
-      SHIPPED: 'Shipped',
-      OUT_FOR_DELIVERY: 'Out for delivery',
+      PLACED: 'Order placed',
+      CONFIRMED: 'Order confirmed',
+      IN_TRANSIT: 'In transit',
       DELIVERED: 'Delivered',
+      COMPLETED: 'Completed',
     };
     return labels[stage];
   }
 
-  protected statusLabel(status: OrderStatus | TrackingStage): string {
+  protected statusLabel(status: OrderStatus | TrackingStage, deliveryStatus?: string | null): string {
+    const dispatchLabel = deliveryStatusLabel(deliveryStatus);
+    if (dispatchLabel) return dispatchLabel;
     const labels: Record<string, string> = {
       PENDING: 'Order received',
       CONFIRMED: 'Confirmed',
@@ -109,12 +122,9 @@ export class OrderTracker implements OnInit {
       IN_TRANSIT: 'In transit',
       OUT_FOR_DELIVERY: 'Out for delivery',
       DELIVERED: 'Delivered',
-      COMPLETED: 'Delivered',
+      COMPLETED: 'Completed',
       CANCELLED: 'Cancelled',
       FAILED: 'Delivery issue',
-      ORDER_PLACED: 'Order received',
-      ORDER_CONFIRMED: 'Confirmed',
-      PAYMENT_RECEIVED: 'Payment received',
     };
     return labels[status] ?? status;
   }
@@ -152,6 +162,7 @@ export class OrderTracker implements OnInit {
           return;
         }
         this.order.set(response.data.order);
+        this.loadDeliveryTrackingEvents(response.data.order.logisticsJobId);
       },
       error: () => this.detailError.set('Order details are temporarily unavailable.'),
     });
@@ -182,6 +193,20 @@ export class OrderTracker implements OnInit {
           ...summary,
           status: summary.status.toUpperCase() === 'PLACED' ? 'PENDING' : summary.status.toUpperCase(),
         });
+        if (summary.logisticsJobId) {
+          this.loadDeliveryTrackingEvents(summary.logisticsJobId);
+        } else {
+          this.orderService.getById(id).subscribe({
+            next: (details) => {
+              if (!details.success || !details.data) {
+                this.deliveryEventsError.set(details.message || 'Detailed delivery updates are unavailable.');
+                return;
+              }
+              this.loadDeliveryTrackingEvents(details.data.order.logisticsJobId);
+            },
+            error: () => this.deliveryEventsError.set('Detailed delivery updates could not be loaded.'),
+          });
+        }
         this.tracking.load(id).subscribe({
           next: (timeline) => {
             if (!timeline.success || !timeline.data) {
@@ -195,6 +220,23 @@ export class OrderTracker implements OnInit {
         this.sellerOrderLoading.set(false);
         this.error.set('Your seller order details could not be loaded. Please try again.');
       },
+    });
+  }
+
+  private loadDeliveryTrackingEvents(jobId?: number | null): void {
+    this.deliveryEvents.set([]);
+    this.deliveryEventsError.set(null);
+    if (!jobId) return;
+
+    this.tracking.loadDeliveryEvents(jobId).subscribe({
+      next: (response) => {
+        if (!response.success) {
+          this.deliveryEventsError.set(response.message || 'Driver updates are temporarily unavailable.');
+          return;
+        }
+        this.deliveryEvents.set(response.data ?? []);
+      },
+      error: () => this.deliveryEventsError.set('Driver updates could not be loaded. Please try again.'),
     });
   }
 }

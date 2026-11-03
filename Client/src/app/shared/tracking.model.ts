@@ -1,10 +1,9 @@
 export type TrackingStage =
-  | 'ORDER_PLACED'
-  | 'ORDER_CONFIRMED'
-  | 'PAYMENT_RECEIVED'
-  | 'SHIPPED'
-  | 'OUT_FOR_DELIVERY'
-  | 'DELIVERED';
+  | 'PLACED'
+  | 'CONFIRMED'
+  | 'IN_TRANSIT'
+  | 'DELIVERED'
+  | 'COMPLETED';
 
 export interface TrackingEvent {
   id: string;
@@ -23,10 +22,9 @@ export interface TrackingHistory {
 }
 
 export const TRACKING_STAGES: TrackingStage[] = [
-  'ORDER_PLACED',
-  'ORDER_CONFIRMED',
-  'PAYMENT_RECEIVED',
-  'SHIPPED',
-  'OUT_FOR_DELIVERY',
+  'PLACED',
+  'CONFIRMED',
+  'IN_TRANSIT',
   'DELIVERED',
+  'COMPLETED',
 ];

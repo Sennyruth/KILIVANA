@@ -1,5 +1,5 @@
 export const environment = {
   production: false,
-  ngrokUrl: '',
+  ngrokUrl: 'https://hankering-morphing-outclass.ngrok-free.dev',
   apiOrigin: 'https://hankering-morphing-outclass.ngrok-free.dev',
 };

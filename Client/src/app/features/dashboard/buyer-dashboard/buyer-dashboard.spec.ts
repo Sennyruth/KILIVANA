@@ -338,6 +338,11 @@ describe('BuyerDashboard', () => {
         'Track Order',
       );
     });
+
+    it('should show shipment progress on each recent order', () => {
+      expect(fixture.nativeElement.querySelectorAll('app-order-progress').length).toBe(3);
+      expect(fixture.nativeElement.textContent).toContain('Shipment progress');
+    });
   });
 
   describe('status badges', () => {
@@ -368,6 +373,7 @@ describe('BuyerDashboard', () => {
     it('should return correct status label from method', () => {
       expect((component as any).statusLabel('PENDING')).toBe('Pending');
       expect((component as any).statusLabel('CONFIRMED')).toBe('Confirmed');
+      expect((component as any).statusLabel('CONFIRMED', 'ASSIGNED')).toBe('Driver assigned');
       expect((component as any).statusLabel('PROCESSING')).toBe('Processing');
       expect((component as any).statusLabel('SHIPPED')).toBe('Shipped');
       expect((component as any).statusLabel('DELIVERED')).toBe('Delivered');

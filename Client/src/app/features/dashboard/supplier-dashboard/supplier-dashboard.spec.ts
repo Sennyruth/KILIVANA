@@ -5,6 +5,7 @@ import { of, throwError } from 'rxjs';
 import { Auth } from '../../../core/services/auth';
 import { Order } from '../../../core/services/order';
 import { Product } from '../../../core/services/product';
+import { SellerLocationService } from '../../../core/services/seller-location';
 import { NotificationService } from '../../../shared/notification/notification.service';
 import { SupplierDashboard } from './supplier-dashboard';
 
@@ -13,6 +14,7 @@ describe('SupplierDashboard', () => {
   let fixture: ComponentFixture<SupplierDashboard>;
   let loadSellerOrders: ReturnType<typeof vi.fn>;
   let loadSellerProducts: ReturnType<typeof vi.fn>;
+  let getMyLocations: ReturnType<typeof vi.fn>;
   let notificationError: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
@@ -21,6 +23,9 @@ describe('SupplierDashboard', () => {
       of({ success: true, message: 'Success', data: [] }),
     );
     loadSellerProducts = vi.fn(() =>
+      of({ success: true, message: 'Success', data: [] }),
+    );
+    getMyLocations = vi.fn(() =>
       of({ success: true, message: 'Success', data: [] }),
     );
 
@@ -37,7 +42,7 @@ describe('SupplierDashboard', () => {
         },
         {
           provide: Order,
-          useValue: { loadSellerOrders },
+          useValue: { loadSupplierOrders: loadSellerOrders },
         },
         {
           provide: Product,
@@ -45,6 +50,16 @@ describe('SupplierDashboard', () => {
             products: signal([]),
             loading: signal(false),
             loadSellerProducts,
+          },
+        },
+        {
+          provide: SellerLocationService,
+          useValue: {
+            getMyLocations,
+            createLocation: vi.fn(),
+            updateLocation: vi.fn(),
+            deactivateLocation: vi.fn(),
+            setDefaultLocation: vi.fn(),
           },
         },
         {
@@ -58,6 +73,7 @@ describe('SupplierDashboard', () => {
   async function createDashboardFixture(): Promise<void> {
     fixture = TestBed.createComponent(SupplierDashboard);
     component = fixture.componentInstance;
+    fixture.detectChanges();
     await fixture.whenStable();
   }
 
@@ -87,6 +103,16 @@ describe('SupplierDashboard', () => {
     const link = fixture.nativeElement.querySelector('.dashboard__browse-inputs') as HTMLAnchorElement;
     expect(link).toBeTruthy();
     expect(link.getAttribute('href')).toBe('/inputs');
+  });
+
+  it('loads and displays the warehouse location manager', async () => {
+    await createDashboardFixture();
+    fixture.detectChanges();
+
+    expect(getMyLocations).toHaveBeenCalledOnce();
+    expect(fixture.nativeElement.textContent).toContain('Warehouse locations');
+    expect(fixture.nativeElement.textContent).toContain('Add a warehouse');
+    expect(fixture.nativeElement.querySelector('#supplier-locations form')).toBeTruthy();
   });
 
   it('does not show an orders toast while loading the dashboard', async () => {

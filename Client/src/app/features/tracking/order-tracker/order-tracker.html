@@ -43,8 +43,10 @@
       </div>
       <div class="order-tracker__status-copy">
         <span class="order-tracker__status-caption">LATEST UPDATE</span>
-        <h2>{{ currentStatus() ? statusLabel(currentStatus()!) : 'Order received' }}</h2>
-        @if (timelineEvents().length) {
+        <h2>{{ currentStatus() ? statusLabel(currentStatus()!, sellerPerspective ? sellerOrder()?.deliveryStatus : order()?.deliveryStatus) : 'Order received' }}</h2>
+        @if (sellerPerspective ? sellerOrder()?.driverName : order()?.driverName; as driverName) {
+          <p>Assigned driver: {{ driverName }}</p>
+        } @else if (timelineEvents().length) {
           <p>{{ timelineEvents()[0].note || 'Your shipment progress is shown below.' }}</p>
         } @else {
           <p>We’ll show each shipment update here as it becomes available.</p>
@@ -76,7 +78,11 @@
           </div>
         </div>
       } @else {
-        <app-tracking-stepper [history]="history()" />
+        <app-tracking-stepper
+          [history]="history()"
+          [orderStatus]="sellerPerspective ? sellerOrder()?.status ?? null : order()?.status ?? null"
+          [deliveryStatus]="sellerPerspective ? sellerOrder()?.deliveryStatus ?? null : order()?.deliveryStatus ?? null"
+        />
       }
     </section>
 
@@ -88,6 +94,10 @@
             <p>Latest activity appears first.</p>
           </div>
         </div>
+
+        @if (deliveryEventsError(); as updatesError) {
+          <p class="order-tracker__no-events" role="status">{{ updatesError }}</p>
+        }
 
         @if (timelineEvents().length) {
           <ol class="order-tracker__events">

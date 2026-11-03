@@ -73,7 +73,7 @@
                 <td data-label="Your items">{{ order.itemCount }}</td>
                 <td data-label="Order total">{{ order.total | currency:'KES' }}</td>
                 <td data-label="Status">
-                  <span [class]="setStatusClass(order.status)">{{ statusLabel(order.status) }}</span>
+                  <span [class]="setStatusClass(order.status)">{{ statusLabel(order.status, order.deliveryStatus) }}</span>
                 </td>
                 <td data-label="Tracking">
                   <a mat-button [routerLink]="['/tracking', order.id]" [queryParams]="{ perspective: 'seller' }">

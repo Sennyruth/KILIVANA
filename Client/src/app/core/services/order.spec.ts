@@ -134,6 +134,37 @@ describe('Order', () => {
     });
   });
 
+  it('preserves assigned delivery details in buyer order history', () => {
+    let order: { status: string; deliveryStatus?: string | null; driverName?: string | null } | undefined;
+    service.loadMine('42').subscribe((response) => {
+      order = response.data?.orders[0];
+    });
+
+    httpTesting.expectOne(`${API_BASE}/orders/buyer/42`).flush({
+      success: true,
+      message: 'Success',
+      data: {
+        content: [{
+          id: 12,
+          buyerId: 3,
+          status: 'CONFIRMED',
+          deliveryStatus: 'assigned',
+          driverName: 'Driver One',
+          subtotal: 240,
+          deliveryFee: 0,
+          total: 240,
+          items: [],
+        }],
+      },
+    });
+
+    expect(order).toMatchObject({
+      status: 'CONFIRMED',
+      deliveryStatus: 'ASSIGNED',
+      driverName: 'Driver One',
+    });
+  });
+
   it('submits checkout details and reads the direct backend order response', () => {
     let createdOrderId: number | undefined;
     service.create({

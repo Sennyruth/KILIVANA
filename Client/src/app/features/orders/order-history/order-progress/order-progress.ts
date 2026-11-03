@@ -1,9 +1,9 @@
 import { Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import type { OrderStatus } from '../../../../shared/order.model';
+import { deliveryStatusLabel, type DeliveryStatus, type OrderStatus } from '../../../../shared/order.model';
 
-type ProgressStage = 'Order placed' | 'Confirmed' | 'Shipped' | 'Delivered';
+type ProgressStage = 'Placed' | 'Confirmed' | 'In Transit' | 'Delivered' | 'Completed';
 
 @Component({
   selector: 'app-order-progress',
@@ -13,14 +13,18 @@ type ProgressStage = 'Order placed' | 'Confirmed' | 'Shipped' | 'Delivered';
 })
 export class OrderProgress {
   readonly status = input.required<OrderStatus>();
+  readonly deliveryStatus = input<DeliveryStatus | null | undefined>(null);
   readonly orderId = input.required<string>();
   protected readonly stages: ProgressStage[] = [
-    'Order placed',
+    'Placed',
     'Confirmed',
-    'Shipped',
+    'In Transit',
     'Delivered',
+    'Completed',
   ];
-  protected readonly activeIndex = computed(() => this.getProgressIndex(this.status()));
+  protected readonly activeIndex = computed(() =>
+    Math.max(this.getProgressIndex(this.status()), this.getDeliveryProgressIndex(this.deliveryStatus())),
+  );
   protected readonly progressWidth = computed(() => {
     const index = this.activeIndex();
     return index < 0 ? 0 : (index / (this.stages.length - 1)) * 100;
@@ -29,7 +33,8 @@ export class OrderProgress {
     const status = this.status();
     if (status === 'CANCELLED') return 'This order was cancelled.';
     if (status === 'FAILED') return 'There is an issue with this delivery.';
-    return `${this.statusLabel(status)} · Shipment progress updates as your order moves`;
+    const dispatchLabel = deliveryStatusLabel(this.deliveryStatus());
+    return `${dispatchLabel ?? this.statusLabel(status)} · Shipment progress updates as your order moves`;
   });
   protected readonly terminal = computed(() => ['CANCELLED', 'FAILED'].includes(this.status()));
 
@@ -54,7 +59,7 @@ export class OrderProgress {
       READY_FOR_PICKUP: 'Ready for pickup',
       PICKED_UP: 'Picked up',
       IN_TRANSIT: 'In transit',
-      COMPLETED: 'Delivered',
+      COMPLETED: 'Completed',
       FAILED: 'Delivery issue',
     };
     return labels[status];
@@ -75,10 +80,30 @@ export class OrderProgress {
       case 'OUT_FOR_DELIVERY':
         return 2;
       case 'DELIVERED':
-      case 'COMPLETED':
         return 3;
+      case 'COMPLETED':
+        return 4;
       case 'CANCELLED':
       case 'FAILED':
+        return -1;
+    }
+  }
+
+  private getDeliveryProgressIndex(status?: DeliveryStatus | null): number {
+    switch (status) {
+      case 'ASSIGNED':
+      case 'ACCEPTED':
+      case 'EN_ROUTE_TO_PICKUP':
+      case 'ARRIVED_AT_PICKUP':
+        return 1;
+      case 'PICKED_UP':
+      case 'IN_TRANSIT':
+        return 2;
+      case 'ARRIVED_AT_DESTINATION':
+        return 2;
+      case 'DELIVERED':
+        return 3;
+      default:
         return -1;
     }
   }

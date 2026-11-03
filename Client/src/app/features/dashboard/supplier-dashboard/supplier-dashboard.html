@@ -55,6 +55,128 @@
     </div>
   </div>
 
+  <mat-card class="dashboard__card" id="supplier-locations">
+    <mat-card-title class="dashboard__card-title">
+      <mat-icon>warehouse</mat-icon>
+      Warehouse locations
+      <span class="dashboard__card-count">{{ locations().length }}</span>
+    </mat-card-title>
+    <mat-card-content>
+      <p class="location-manager__intro">
+        Manage the places where your supplies are stored and dispatched.
+      </p>
+
+      @if (locationsLoading()) {
+        <div class="dashboard__loading" role="status"><mat-spinner diameter="32" /></div>
+      } @else if (locations().length === 0 && !locationsError()) {
+        <div class="dashboard__empty">
+          <h3>No warehouse locations yet</h3>
+          <p>Add a warehouse with its address and map coordinates to coordinate deliveries.</p>
+        </div>
+      } @else {
+        <div class="location-manager__list">
+          @for (location of locations(); track location.id) {
+            <article class="location-manager__item" [class.location-manager__item--inactive]="!location.active">
+              <div class="location-manager__icon"><mat-icon>warehouse</mat-icon></div>
+              <div class="location-manager__details">
+                <h3>
+                  {{ location.name }}
+                  @if (location.defaultLocation) { <span class="location-manager__badge">Default dispatch</span> }
+                  @if (!location.active) { <span class="location-manager__badge location-manager__badge--inactive">Inactive</span> }
+                </h3>
+                <p><mat-icon>place</mat-icon>{{ location.address }}, {{ location.county }}</p>
+                @if (location.contactName || location.contactPhone) { <p><mat-icon>call</mat-icon>{{ location.contactName }}{{ location.contactName && location.contactPhone ? ' · ' : '' }}{{ location.contactPhone }}</p> }
+                @if (location.operatingHours) { <p><mat-icon>schedule</mat-icon>{{ location.operatingHours }}</p> }
+              </div>
+              <div class="location-manager__actions">
+                @if (location.active && !location.defaultLocation) {
+                  <button mat-stroked-button type="button" (click)="setDefaultLocation(location)">Set as default</button>
+                }
+                @if (location.active) {
+                  <button mat-icon-button type="button" (click)="editLocation(location)" aria-label="Edit warehouse"><mat-icon>edit</mat-icon></button>
+                  <button mat-icon-button color="warn" type="button" (click)="deactivateLocation(location)" aria-label="Deactivate warehouse"><mat-icon>delete_outline</mat-icon></button>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      }
+
+      @if (locationsError()) {
+        <p class="location-manager__error" role="alert">{{ locationsError() }}</p>
+        <button mat-button type="button" (click)="loadLocations()">Reload locations</button>
+      }
+
+      @if (!locationFormOpen() && !locationsLoading()) {
+        <button mat-stroked-button color="primary" type="button" (click)="openLocationForm()">
+          <mat-icon>add_location_alt</mat-icon>
+          Add warehouse
+        </button>
+      }
+
+      @if (locationFormOpen()) {
+        <form class="location-manager__form" [formGroup]="locationForm" (ngSubmit)="saveLocation()">
+          <div class="location-manager__form-heading">
+            <div class="location-manager__form-icon"><mat-icon>{{ editingLocationId() === null ? 'add_location_alt' : 'edit_location_alt' }}</mat-icon></div>
+            <div>
+              <h3>{{ editingLocationId() === null ? 'Add a warehouse' : 'Edit warehouse' }}</h3>
+              <p>Fields marked required are needed to save the location.</p>
+            </div>
+          </div>
+          <div class="location-manager__fields">
+            <mat-form-field appearance="outline">
+              <mat-label>Warehouse name</mat-label>
+              <input matInput formControlName="name" autocomplete="organization" />
+              @if (locationForm.controls.name.touched && locationForm.controls.name.invalid) { <mat-error>Enter a warehouse name.</mat-error> }
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>County</mat-label>
+              <input matInput formControlName="county" autocomplete="address-level1" />
+              @if (locationForm.controls.county.touched && locationForm.controls.county.invalid) { <mat-error>Enter a county.</mat-error> }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="location-manager__wide">
+              <mat-label>Street address or landmark</mat-label>
+              <input matInput formControlName="address" autocomplete="street-address" />
+              @if (locationForm.controls.address.touched && locationForm.controls.address.invalid) { <mat-error>Enter an address.</mat-error> }
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Latitude</mat-label>
+              <input matInput type="number" step="any" min="-90" max="90" formControlName="latitude" />
+              @if (locationForm.controls.latitude.touched && locationForm.controls.latitude.invalid) { <mat-error>Use a value from -90 to 90.</mat-error> }
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Longitude</mat-label>
+              <input matInput type="number" step="any" min="-180" max="180" formControlName="longitude" />
+              @if (locationForm.controls.longitude.touched && locationForm.controls.longitude.invalid) { <mat-error>Use a value from -180 to 180.</mat-error> }
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Contact name <span>(optional)</span></mat-label>
+              <input matInput formControlName="contactName" autocomplete="name" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Contact phone <span>(optional)</span></mat-label>
+              <input matInput type="tel" formControlName="contactPhone" autocomplete="tel" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="location-manager__wide">
+              <mat-label>Operating hours <span>(optional)</span></mat-label>
+              <input matInput formControlName="operatingHours" placeholder="e.g. Mon-Sat, 8:00-17:00" />
+            </mat-form-field>
+          </div>
+          @if (locationForm.touched && locationForm.invalid) {
+            <p class="location-manager__error" role="alert">Check the required fields and coordinate ranges.</p>
+          }
+          <div class="location-manager__form-actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="locationsSaving()">
+              @if (locationsSaving()) { <mat-spinner diameter="18" /> } @else { <mat-icon>save</mat-icon> }
+              {{ locationsSaving() ? 'Saving…' : editingLocationId() === null ? 'Save warehouse' : 'Save changes' }}
+            </button>
+            <button mat-button type="button" (click)="cancelLocationEdit()">Cancel</button>
+          </div>
+        </form>
+      }
+    </mat-card-content>
+  </mat-card>
+
   <mat-card class="dashboard__card">
     <mat-card-title class="dashboard__card-title">
       <mat-icon>inventory_2</mat-icon>
@@ -189,7 +311,7 @@
                 <td>{{ order.total | currency:'KES' }}</td>
                 <td>
                   <span [class]="'dashboard__status--' + order.status.toLowerCase()">
-                    {{ statusLabel(order.status) }}
+                    {{ statusLabel(order.status, order.deliveryStatus) }}
                   </span>
                 </td>
                 <td>

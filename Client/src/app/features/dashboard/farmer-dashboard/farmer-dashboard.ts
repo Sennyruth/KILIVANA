@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { RouterLink } from '@angular/router';
@@ -14,6 +14,7 @@ import { Farmer } from '../../../core/services/farmer';
 import { Auth } from '../../../core/services/auth';
 import type { Product as ProductModel } from '../../../shared/product.model';
 import type { Order as OrderRecord, SellerOrderSummary } from '../../../shared/order.model';
+import { deliveryStatusLabel } from '../../../shared/order.model';
 import type { FarmerProfileImage } from '../../../shared/farmer.model';
 import { NotificationService } from '../../../shared/notification/notification.service';
 import { catchError, forkJoin, map, of } from 'rxjs';
@@ -96,6 +97,11 @@ export class FarmerDashboard implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.clearFarmPhotoObjectUrls();
     this.clearFarmPhotoPreview();
+  }
+
+  @HostListener('window:focus')
+  protected refreshOrdersOnFocus(): void {
+    if (!this.orderService.loading()) this.loadOrders();
   }
 
   protected loadFarmProfile(): void {
@@ -296,6 +302,10 @@ export class FarmerDashboard implements OnInit, OnDestroy {
       },
       error: () => this.ordersError.set('Failed to load orders. Please try again.'),
     });
+  }
+
+  protected statusLabel(status: string, deliveryStatus?: string | null): string {
+    return deliveryStatusLabel(deliveryStatus) ?? status;
   }
 
   protected addProduct(): void {

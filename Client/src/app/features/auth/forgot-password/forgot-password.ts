@@ -32,9 +32,14 @@ export class ForgotPassword {
   protected readonly loading = computed(() => this.auth.loading());
   protected readonly error = computed(() => this.auth.error());
   protected readonly submitted = signal(false);
+  protected readonly confirmation = signal(
+    'If the account exists and email delivery is available, reset instructions will be sent.',
+  );
+  protected readonly requestError = signal<string | null>(null);
 
   protected onSubmit(): void {
     if (this.loading()) return;
+    this.requestError.set(null);
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -43,7 +48,14 @@ export class ForgotPassword {
     this.auth.forgotPassword(this.form.controls.email.value ?? '').subscribe({
       next: (response) => {
         if (response.success) {
+          this.confirmation.set(
+            typeof response.data === 'string' && response.data.trim()
+              ? response.data
+              : response.message || this.confirmation(),
+          );
           this.submitted.set(true);
+        } else {
+          this.requestError.set(response.message || 'Unable to request a password reset. Please try again.');
         }
       },
       error: () => undefined,

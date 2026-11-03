@@ -68,7 +68,7 @@
 							<h3>{{ orderNumber(order.id) }}</h3>
 						</div>
 						<span class="order-status" [class]="'order-status order-status--' + order.status.toLowerCase()">
-							<span></span>{{ statusLabel(order.status) }}
+							<span></span>{{ statusLabel(order.status, order.deliveryStatus) }}
 						</span>
 					</header>
 
@@ -78,7 +78,7 @@
 						<span><mat-icon>payments</mat-icon>{{ order.paymentMethod }}</span>
 					</div>
 
-					<app-order-progress [status]="order.status" [orderId]="order.id" />
+					<app-order-progress [status]="order.status" [orderId]="order.id" [deliveryStatus]="order.deliveryStatus" />
 
 					<div class="order-card__items">
 						@for (item of order.items; track item.id) {

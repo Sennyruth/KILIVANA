@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, provideRouter, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { Auth } from '../core/services/auth';
-import { produceCatalogGuard, shoppingGuard } from './guards';
+import { SellerLocationService } from '../core/services/seller-location';
+import { produceCatalogGuard, shoppingGuard, supplierGuard, supplierRoleGuard } from './guards';
+import { firstValueFrom, Observable, of } from 'rxjs';
 
 describe('shoppingGuard', () => {
   function runGuard(role: 'BUYER' | 'FARMER' | 'SUPPLIER' | null): boolean | UrlTree {
@@ -101,5 +103,59 @@ describe('produceCatalogGuard', () => {
     );
     expect(result).toBeInstanceOf(UrlTree);
     expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/dashboard/farmer');
+  });
+});
+
+describe('supplier onboarding guards', () => {
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('sends a supplier without an active warehouse to warehouse setup', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: Auth, useValue: { isSupplier: () => true, isAuthenticated: () => true } },
+        { provide: SellerLocationService, useValue: { getMyLocations: () => of({ success: true, data: [] }) } },
+      ],
+    });
+
+    const guardResult = TestBed.runInInjectionContext(() =>
+      supplierGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+    );
+    const result = await (guardResult instanceof Observable ? firstValueFrom(guardResult) : guardResult);
+    expect(result).toBeInstanceOf(UrlTree);
+    expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/dashboard/supplier/setup');
+  });
+
+  it('allows a supplier with an active warehouse to access the dashboard', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: Auth, useValue: { isSupplier: () => true, isAuthenticated: () => true } },
+        {
+          provide: SellerLocationService,
+          useValue: { getMyLocations: () => of({ success: true, data: [{ id: 1, active: true }] }) },
+        },
+      ],
+    });
+
+    const guardResult = TestBed.runInInjectionContext(() =>
+      supplierGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+    );
+    const result = await (guardResult instanceof Observable ? firstValueFrom(guardResult) : guardResult);
+    expect(result).toBe(true);
+  });
+
+  it('allows a supplier to access setup before a warehouse exists', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: Auth, useValue: { isSupplier: () => true } },
+      ],
+    });
+
+    const result = TestBed.runInInjectionContext(() =>
+      supplierRoleGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+    );
+    expect(result).toBe(true);
   });
 });

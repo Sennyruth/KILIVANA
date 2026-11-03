@@ -40,6 +40,8 @@ export class FarmSetup implements OnInit, OnDestroy {
     county: [this.auth.user()?.region ?? '', [Validators.required, Validators.maxLength(100)]],
     subCounty: ['', Validators.maxLength(100)],
     address: ['', Validators.maxLength(500)],
+    latitude: [null as number | null, [Validators.min(-90), Validators.max(90)]],
+    longitude: [null as number | null, [Validators.min(-180), Validators.max(180)]],
     sizeAcres: [1, [Validators.required, Validators.min(0.1)]],
     ownershipType: ['OWNED', Validators.required],
     description: ['', Validators.maxLength(1000)],
@@ -102,14 +104,24 @@ export class FarmSetup implements OnInit, OnDestroy {
       this.form.markAllAsTouched();
       return;
     }
+    const value = this.form.getRawValue();
+    const hasLatitude = value.latitude !== null;
+    const hasLongitude = value.longitude !== null;
+    if (hasLatitude !== hasLongitude) {
+      this.form.controls.latitude.markAsTouched();
+      this.form.controls.longitude.markAsTouched();
+      this.error.set('Enter both coordinates for the farm location, or leave both blank.');
+      return;
+    }
     const id = this.auth.user()?.id;
     if (!id) return;
-    const value = this.form.getRawValue();
     const request: FarmerFarmRequest = {
       name: value.farmName?.trim() ?? '',
       county: value.county?.trim() ?? '',
       subCounty: value.subCounty?.trim() || undefined,
       address: value.address?.trim() || undefined,
+      latitude: value.latitude ?? undefined,
+      longitude: value.longitude ?? undefined,
       sizeAcres: Number(value.sizeAcres),
       ownershipType: value.ownershipType as FarmerFarmRequest['ownershipType'],
       description: value.description?.trim() || undefined,
@@ -226,6 +238,8 @@ export class FarmSetup implements OnInit, OnDestroy {
             county: existingFarm.county,
             subCounty: existingFarm.subCounty ?? '',
             address: existingFarm.address ?? '',
+            latitude: existingFarm.latitude ?? null,
+            longitude: existingFarm.longitude ?? null,
             sizeAcres: existingFarm.sizeAcres,
             ownershipType: existingFarm.ownershipType,
             description: existingFarm.description ?? '',

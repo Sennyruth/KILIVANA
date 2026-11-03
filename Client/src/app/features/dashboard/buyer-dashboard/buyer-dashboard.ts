@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,8 +12,10 @@ import { Product } from '../../../core/services/product';
 import { Cart } from '../../../core/services/cart';
 import { ProductCard } from '../../../shared/product-card/product-card';
 import type { OrderStatus } from '../../../shared/order.model';
+import { deliveryStatusLabel } from '../../../shared/order.model';
 import type { Product as ProductModel } from '../../../shared/product.model';
 import { NotificationService } from '../../../shared/notification/notification.service';
+import { OrderProgress } from '../../orders/order-history/order-progress/order-progress';
 
 @Component({
   selector: 'app-buyer-dashboard',
@@ -27,6 +29,7 @@ import { NotificationService } from '../../../shared/notification/notification.s
     CurrencyPipe,
     DatePipe,
     ProductCard,
+    OrderProgress,
   ],
   styleUrl: './buyer-dashboard.scss',
   templateUrl: './buyer-dashboard.html',
@@ -93,6 +96,11 @@ export class BuyerDashboard implements OnInit {
     this.loadProducts();
   }
 
+  @HostListener('window:focus')
+  protected refreshOrdersOnFocus(): void {
+    if (!this.order.loading()) this.loadOrders();
+  }
+
   protected loadOrders(): void {
     const buyerId = this.auth.user()?.id;
     if (!buyerId || !/^\d+$/.test(buyerId)) {
@@ -115,7 +123,9 @@ export class BuyerDashboard implements OnInit {
     });
   }
 
-  protected statusLabel(status: OrderStatus): string {
+  protected statusLabel(status: OrderStatus, deliveryStatus?: string | null): string {
+    const dispatchLabel = deliveryStatusLabel(deliveryStatus);
+    if (dispatchLabel) return dispatchLabel;
     return this.order.statusLabel(status);
   }
 

@@ -1,0 +1,89 @@
+<main class="warehouse-setup">
+  <section class="warehouse-setup__card" aria-labelledby="warehouse-title">
+    <div class="warehouse-setup__icon"><mat-icon>warehouse</mat-icon></div>
+    <p class="warehouse-setup__eyebrow">One-time supplier setup</p>
+    <h1 id="warehouse-title">Where do you dispatch from?</h1>
+    <p class="warehouse-setup__intro">
+      Add your warehouse location so buyers and delivery partners know where your supplies are prepared.
+      You can add more locations from your dashboard later.
+    </p>
+
+    <form [formGroup]="form" (ngSubmit)="saveWarehouse()">
+      <div class="warehouse-setup__fields">
+        <mat-form-field appearance="outline">
+          <mat-label>Warehouse name</mat-label>
+          <input matInput formControlName="name" autocomplete="organization" placeholder="e.g. Main store" />
+          @if (form.controls.name.touched && form.controls.name.invalid) {
+            <mat-error>Enter your warehouse name.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>County</mat-label>
+          <input matInput formControlName="county" autocomplete="address-level1" placeholder="e.g. Kiambu" />
+          @if (form.controls.county.touched && form.controls.county.invalid) {
+            <mat-error>Enter the county.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="warehouse-setup__wide">
+          <mat-label>Street address or landmark</mat-label>
+          <input matInput formControlName="address" autocomplete="street-address" placeholder="Building, road, market, or nearby landmark" />
+          @if (form.controls.address.touched && form.controls.address.invalid) {
+            <mat-error>Enter the warehouse address.</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="warehouse-setup__coordinates warehouse-setup__wide">
+          <div>
+            <h2>Pin your warehouse</h2>
+            <p>Enter coordinates so delivery partners can locate the exact dispatch point.</p>
+          </div>
+          <mat-form-field appearance="outline">
+            <mat-label>Latitude</mat-label>
+            <input matInput type="number" step="any" min="-90" max="90" formControlName="latitude" placeholder="-1.2921" />
+            @if (form.controls.latitude.touched && form.controls.latitude.invalid) {
+              <mat-error>Enter a value from -90 to 90.</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Longitude</mat-label>
+            <input matInput type="number" step="any" min="-180" max="180" formControlName="longitude" placeholder="36.8219" />
+            @if (form.controls.longitude.touched && form.controls.longitude.invalid) {
+              <mat-error>Enter a value from -180 to 180.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Contact name <span>(optional)</span></mat-label>
+          <input matInput formControlName="contactName" autocomplete="name" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Contact phone <span>(optional)</span></mat-label>
+          <input matInput type="tel" formControlName="contactPhone" autocomplete="tel" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="warehouse-setup__wide">
+          <mat-label>Operating hours <span>(optional)</span></mat-label>
+          <input matInput formControlName="operatingHours" placeholder="e.g. Mon–Sat, 8:00–17:00" />
+        </mat-form-field>
+      </div>
+
+      @if (error()) {
+        <p class="warehouse-setup__error" role="alert">{{ error() }}</p>
+      }
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+        @if (saving()) {
+          <mat-spinner diameter="20" />
+          Saving warehouse…
+        } @else {
+          <ng-container>
+            Save warehouse and continue
+            <mat-icon>arrow_forward</mat-icon>
+          </ng-container>
+        }
+      </button>
+    </form>
+  </section>
+</main>

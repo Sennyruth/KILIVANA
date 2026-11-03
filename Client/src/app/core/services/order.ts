@@ -3,7 +3,7 @@ import { Observable, of, tap, catchError, finalize, map, switchMap } from 'rxjs'
 
 import { HttpService } from './http';
 import { ApiEndpoints } from '../../shared/api.config';
-import { Order as OrderModel, CreateOrderRequest, CreatedOrder, OrderStatus, SellerOrderSummary } from '../../shared/order.model';
+import { Order as OrderModel, CreateOrderRequest, CreatedOrder, DeliveryStatus, OrderStatus, SellerOrderSummary } from '../../shared/order.model';
 import { ApiResponse } from '../../shared/api-response';
 import { Auth } from './auth';
 
@@ -298,9 +298,14 @@ function normalizeSellerOrder(value: unknown): SellerOrderSummary | null {
     if (!item || typeof item !== 'object') return total;
     return total + Number((item as Record<string, unknown>)['quantity'] ?? 1);
   }, 0));
+  const deliveryStatus = normalizeDeliveryStatus(order['deliveryStatus']);
+  const logisticsJobId = normalizeLogisticsJobId(order['logisticsJobId']);
   return {
     id,
     status: String(order['status'] ?? 'PENDING').toUpperCase(),
+    ...(deliveryStatus ? { deliveryStatus } : {}),
+    ...(logisticsJobId ? { logisticsJobId } : {}),
+    ...(typeof order['driverName'] === 'string' ? { driverName: order['driverName'] } : {}),
     total: Number(order['total'] ?? 0),
     createdAt: String(order['createdAt'] ?? ''),
     itemCount: Number.isFinite(itemCount) ? itemCount : 0,
@@ -330,12 +335,17 @@ function normalizeOrder(value: unknown): OrderModel {
   if (![subtotal, deliveryFee, total].every(Number.isFinite)) {
     throw new Error('Invalid order totals returned by the API');
   }
+  const deliveryStatus = normalizeDeliveryStatus(order['deliveryStatus']);
+  const logisticsJobId = normalizeLogisticsJobId(order['logisticsJobId']);
   return {
     id: String(order['id']),
     buyerId: String(order['buyerId']),
     buyerName: typeof order['buyerName'] === 'string' ? order['buyerName'] : '',
     items: items.map(normalizeOrderItem),
     status: normalizeOrderStatus(order['status']),
+    ...(deliveryStatus ? { deliveryStatus } : {}),
+    ...(logisticsJobId ? { logisticsJobId } : {}),
+    ...(typeof order['driverName'] === 'string' ? { driverName: order['driverName'] } : {}),
     subtotal,
     deliveryFee,
     total,
@@ -382,6 +392,32 @@ function normalizeOrderStatus(value: unknown): OrderStatus {
   const status = String(value).toUpperCase();
   const mapping: Record<string, OrderStatus> = { PLACED: 'PENDING', DISPUTED: 'FAILED' };
   return mapping[status] ?? (isOrderStatus(status) ? status : 'PENDING');
+}
+
+function normalizeDeliveryStatus(value: unknown): DeliveryStatus | null {
+  const status = String(value ?? '').toUpperCase();
+  return isDeliveryStatus(status) ? status : null;
+}
+
+function normalizeLogisticsJobId(value: unknown): number | null {
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+function isDeliveryStatus(value: string): value is DeliveryStatus {
+  return [
+    'PENDING_ASSIGNMENT',
+    'ASSIGNED',
+    'ACCEPTED',
+    'EN_ROUTE_TO_PICKUP',
+    'ARRIVED_AT_PICKUP',
+    'PICKED_UP',
+    'IN_TRANSIT',
+    'ARRIVED_AT_DESTINATION',
+    'DELIVERED',
+    'CANCELLED',
+    'FAILED',
+  ].includes(value);
 }
 
 function normalizePaymentMethod(value: unknown): OrderModel['paymentMethod'] {

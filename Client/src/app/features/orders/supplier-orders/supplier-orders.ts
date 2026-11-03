@@ -1,5 +1,5 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { finalize } from 'rxjs';
 import { Order as OrderService } from '../../../core/services/order';
 import type { SellerOrderSummary } from '../../../shared/order.model';
+import { deliveryStatusLabel } from '../../../shared/order.model';
 import { NotificationService } from '../../../shared/notification/notification.service';
 
 type SupplierOrderFilter = 'ALL' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
@@ -49,6 +50,11 @@ export class SupplierOrders implements OnInit {
     this.loadOrders();
   }
 
+  @HostListener('window:focus')
+  protected refreshOrdersOnFocus(): void {
+    if (!this.loading()) this.loadOrders();
+  }
+
   protected loadOrders(): void {
     this.loading.set(true);
     this.error.set(null);
@@ -80,7 +86,9 @@ export class SupplierOrders implements OnInit {
     return `KV-${String(id).slice(-8).toUpperCase()}`;
   }
 
-  protected statusLabel(status: string): string {
+  protected statusLabel(status: string, deliveryStatus?: string | null): string {
+    const dispatchLabel = deliveryStatusLabel(deliveryStatus);
+    if (dispatchLabel) return dispatchLabel;
     const labels: Record<string, string> = {
       PENDING: 'Pending',
       CONFIRMED: 'Confirmed',

@@ -311,7 +311,7 @@
                 <td>{{ order.total | currency:'KES' }}</td>
                 <td>
                   <span [class]="'dashboard__status--' + order.status.toLowerCase()">
-                    {{ order.status }}
+                    {{ statusLabel(order.status, order.deliveryStatus) }}
                   </span>
                 </td>
                 <td>
@@ -354,7 +354,7 @@
                 <td>{{ order.createdAt | date:'short' }}</td>
                 <td>{{ inputOrderItems(order) }}</td>
                 <td>{{ order.total | currency:'KES' }}</td>
-                <td><span [class]="'dashboard__status--' + order.status.toLowerCase()">{{ order.status }}</span></td>
+                <td><span [class]="'dashboard__status--' + order.status.toLowerCase()">{{ statusLabel(order.status, order.deliveryStatus) }}</span></td>
                 <td>
                   @if (order.status !== 'CANCELLED' && order.status !== 'FAILED') {
                     <a mat-button [routerLink]="['/tracking', order.id]">Track order</a>

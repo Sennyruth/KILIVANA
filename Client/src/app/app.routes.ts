@@ -15,6 +15,7 @@ import { OrderTracker } from './features/tracking/order-tracker/order-tracker';
 import { FarmerDashboard } from './features/dashboard/farmer-dashboard/farmer-dashboard';
 import { BuyerDashboard } from './features/dashboard/buyer-dashboard/buyer-dashboard';
 import { SupplierDashboard } from './features/dashboard/supplier-dashboard/supplier-dashboard';
+import { WarehouseSetup } from './features/dashboard/supplier-dashboard/warehouse-setup/warehouse-setup';
 import { AddProduct } from './features/dashboard/farmer-dashboard/add-product/add-product';
 import { EditProduct } from './features/dashboard/farmer-dashboard/edit-product/edit-product';
 import { AddSupply } from './features/dashboard/supplier-dashboard/add-supply/add-supply';
@@ -29,6 +30,7 @@ import {
   buyerGuard,
   supplierGuard,
   farmerDashboardGuard,
+  supplierRoleGuard,
   shoppingGuard,
   trackingGuard,
   produceCatalogGuard,
@@ -56,6 +58,7 @@ export const routes: Routes = [
   { path: 'dashboard/farmer/add-product', component: AddProduct, canActivate: [farmerGuard] },
   { path: 'dashboard/farmer/edit-product/:id', component: EditProduct, canActivate: [farmerGuard] },
   { path: 'dashboard/buyer', component: BuyerDashboard, canActivate: [buyerGuard] },
+  { path: 'dashboard/supplier/setup', component: WarehouseSetup, canActivate: [supplierRoleGuard] },
   { path: 'dashboard/supplier', component: SupplierDashboard, canActivate: [supplierGuard] },
   { path: 'dashboard/supplier/add-supply', component: AddSupply, canActivate: [supplierGuard] },
   { path: 'dashboard/supplier/edit-supply/:id', component: EditSupply, canActivate: [supplierGuard] },
