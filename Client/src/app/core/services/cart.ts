@@ -2,11 +2,12 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, concatMap, from, map, of, switchMap, throwError, toArray } from 'rxjs';
 
 import { HttpService } from './http';
-import { ApiEndpoints } from '../../shared/api.config';
+import { API_ORIGIN, ApiEndpoints } from '../../shared/api.config';
 import { Cart as CartModel, CartItem } from '../../shared/cart.model';
 import { ApiResponse } from '../../shared/api-response';
 import { Product } from '../../shared/product.model';
 import { Auth } from './auth';
+import { Product as ProductService } from './product';
 
 const CART_STORAGE_KEY = 'kilivana_mock_cart';
 
@@ -14,6 +15,7 @@ const CART_STORAGE_KEY = 'kilivana_mock_cart';
 export class Cart {
   private readonly auth = inject(Auth);
   private readonly http = inject(HttpService);
+  private readonly productService = inject(ProductService);
   private readonly _cart = signal<CartModel | null>(this.loadSavedCart());
 
   readonly cart = this._cart.asReadonly();
@@ -25,7 +27,24 @@ export class Cart {
   load(): Observable<ApiResponse<CartModel>> {
     const cart = this.loadSavedCart() ?? this.emptyCart();
     this._cart.set(cart);
-    return of(this.response(cart, 'Cart loaded'));
+    const productIds = cart.items
+      .filter((item) => shouldReloadImage(item.imageUrl))
+      .map((item) => item.productId);
+    if (productIds.length === 0) return of(this.response(cart, 'Cart loaded'));
+
+    return this.productService.loadPrimaryImagesFor(productIds).pipe(
+      map((images) => {
+        const refreshedCart = this.withItems(
+          this.currentCart(),
+          this.currentCart().items.map((item) => {
+            if (!shouldReloadImage(item.imageUrl)) return item;
+            return { ...item, imageUrl: images[item.productId] ?? '' };
+          }),
+        );
+        this.saveCart(refreshedCart);
+        return this.response(refreshedCart, 'Cart loaded');
+      }),
+    );
   }
 
   addItem(product: Product, quantity: number): Observable<ApiResponse<CartModel>> {
@@ -202,5 +221,19 @@ export class Cart {
   private storageKey(): string {
     const user = this.auth.user();
     return user ? `${CART_STORAGE_KEY}_${user.role.toLowerCase()}_${user.id}` : `${CART_STORAGE_KEY}_guest`;
+  }
+}
+
+function shouldReloadImage(url: string): boolean {
+  if (!url || /^blob:/i.test(url) || /^\/(?:api\/v1\/images\/|uploads\/)/i.test(url)) {
+    return true;
+  }
+
+  try {
+    const imageUrl = new URL(url);
+    return imageUrl.origin === API_ORIGIN &&
+      (imageUrl.pathname.startsWith('/api/v1/images/') || imageUrl.pathname.startsWith('/uploads/'));
+  } catch {
+    return false;
   }
 }

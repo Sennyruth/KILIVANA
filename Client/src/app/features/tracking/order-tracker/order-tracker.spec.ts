@@ -6,6 +6,7 @@ import { Order as OrderService } from '../../../core/services/order';
 import { Tracking } from '../../../core/services/tracking';
 import { Auth } from '../../../core/services/auth';
 import type { TrackingHistory } from '../../../shared/tracking.model';
+import type { DeliveryStatus } from '../../../shared/order.model';
 import { OrderTracker } from './order-tracker';
 
 describe('OrderTracker', () => {
@@ -15,10 +16,12 @@ describe('OrderTracker', () => {
   let loadDeliveryEvents: ReturnType<typeof vi.fn>;
   let getById: ReturnType<typeof vi.fn>;
   let orderStatus: string;
+  let deliveryStatus: DeliveryStatus | null;
   let logisticsJobId: number | undefined;
 
   beforeEach(async () => {
     orderStatus = 'SHIPPED';
+    deliveryStatus = null;
     logisticsJobId = undefined;
     trackingHistory = signal<TrackingHistory | null>({
       orderId: '42',
@@ -80,6 +83,7 @@ describe('OrderTracker', () => {
               },
             ],
             status: orderStatus,
+            deliveryStatus,
             ...(logisticsJobId ? { logisticsJobId } : {}),
             subtotal: 300,
             deliveryFee: 0,
@@ -174,6 +178,28 @@ describe('OrderTracker', () => {
     expect(loadDeliveryEvents).toHaveBeenCalledWith(24);
     expect(fixture.nativeElement.textContent).toContain('Delivered');
     expect(fixture.nativeElement.textContent).toContain('Received by buyer');
+  });
+
+  it('keeps the active stage aligned with the order and delivery statuses', async () => {
+    orderStatus = 'DELIVERED';
+    deliveryStatus = 'DELIVERED';
+    trackingHistory.set({
+      orderId: '42',
+      currentStage: 'COMPLETED',
+      events: [],
+    });
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const activeStage = fixture.nativeElement.querySelector(
+      '.tracking-stepper__stage--active .tracking-stepper__stage-name',
+    ) as HTMLElement | null;
+    expect(activeStage?.textContent?.trim()).toBe('Delivered');
+    expect(
+      fixture.nativeElement.querySelector('.tracking-stepper__stage--active mat-icon')?.textContent?.trim(),
+    ).toBe('check');
   });
 
   it('shows a terminal message instead of active progress for cancelled orders', async () => {

@@ -1,7 +1,9 @@
-import { Component, computed, HostListener, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, HostListener, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { interval } from 'rxjs';
 import { Auth } from '../../../core/services/auth';
 import { Order as OrderService } from '../../../core/services/order';
 import { Product as ProductService } from '../../../core/services/product';
@@ -17,6 +19,7 @@ type OrderFilter = 'ALL' | 'IN_PROGRESS' | 'DELIVERED' | 'CANCELLED';
   templateUrl: './order-history.html',
 })
 export class OrderHistory implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(Auth);
   private readonly orderService = inject(OrderService);
   private readonly productService = inject(ProductService);
@@ -57,6 +60,11 @@ export class OrderHistory implements OnInit {
 
   ngOnInit(): void {
     this.loadOrders();
+    interval(10 * 60 * 1_000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (!this.loading()) this.loadOrders();
+      });
   }
 
   @HostListener('window:focus')

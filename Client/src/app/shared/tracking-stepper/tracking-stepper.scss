@@ -62,20 +62,11 @@
   }
 
   &__stage--active &__dot {
-    background: var(--primary-50);
-    border-color: var(--primary);
-    color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(46, 155, 66, 0.15);
-  }
-
-  &__pulse {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
     background: var(--primary);
-    opacity: 0.2;
-    animation: pulse 1.8s ease-out infinite;
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 0 0 5px rgba(46, 155, 66, 0.3);
+    animation: tracking-stepper-pulse 2.8s ease-out infinite;
   }
 
   &__icon {
@@ -146,14 +137,12 @@
   }
 }
 
-@keyframes pulse {
+@keyframes tracking-stepper-pulse {
   0% {
-    transform: scale(1);
-    opacity: 0.3;
+    box-shadow: 0 0 0 5px rgba(46, 155, 66, 0.35);
   }
   100% {
-    transform: scale(2.4);
-    opacity: 0;
+    box-shadow: 0 0 0 15px rgba(46, 155, 66, 0);
   }
 }
 

@@ -43,6 +43,8 @@ export interface CreateProductRequest {
   price: number;
   stockQty: number;
   minimumOrderQty: number;
+  farmId?: number;
+  warehouseId?: number;
 }
 
 /** What the forms provide; the service adds sellerId and sellerType. */

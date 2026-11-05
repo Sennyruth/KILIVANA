@@ -16,6 +16,30 @@
     font-weight: 600;
   }
 
+  &__warehouse-message {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-5);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid #cfe3d3;
+    border-radius: var(--radius-md);
+    background: #f1f8f2;
+    color: #174d27;
+
+    p {
+      flex: 1 1 100%;
+      margin: 0;
+    }
+
+    &--error {
+      border-color: #e6c6c2;
+      background: #fff7f6;
+      color: #8a2b24;
+    }
+  }
+
   &__card {
     margin-bottom: var(--space-6);
   }

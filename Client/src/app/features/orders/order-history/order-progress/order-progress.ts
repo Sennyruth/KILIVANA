@@ -2,8 +2,17 @@ import { Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { deliveryStatusLabel, type DeliveryStatus, type OrderStatus } from '../../../../shared/order.model';
+import { TRACKING_STAGES, trackingProgressIndex, type TrackingStage } from '../../../../shared/tracking.model';
 
 type ProgressStage = 'Placed' | 'Confirmed' | 'In Transit' | 'Delivered' | 'Completed';
+
+const STAGE_LABELS: Record<TrackingStage, ProgressStage> = {
+  PLACED: 'Placed',
+  CONFIRMED: 'Confirmed',
+  IN_TRANSIT: 'In Transit',
+  DELIVERED: 'Delivered',
+  COMPLETED: 'Completed',
+};
 
 @Component({
   selector: 'app-order-progress',
@@ -15,15 +24,9 @@ export class OrderProgress {
   readonly status = input.required<OrderStatus>();
   readonly deliveryStatus = input<DeliveryStatus | null | undefined>(null);
   readonly orderId = input.required<string>();
-  protected readonly stages: ProgressStage[] = [
-    'Placed',
-    'Confirmed',
-    'In Transit',
-    'Delivered',
-    'Completed',
-  ];
+  protected readonly stages: ProgressStage[] = TRACKING_STAGES.map((stage) => STAGE_LABELS[stage]);
   protected readonly activeIndex = computed(() =>
-    Math.max(this.getProgressIndex(this.status()), this.getDeliveryProgressIndex(this.deliveryStatus())),
+    trackingProgressIndex(this.status(), this.deliveryStatus()),
   );
   protected readonly progressWidth = computed(() => {
     const index = this.activeIndex();
@@ -65,46 +68,4 @@ export class OrderProgress {
     return labels[status];
   }
 
-  private getProgressIndex(status: OrderStatus): number {
-    switch (status) {
-      case 'PENDING':
-        return 0;
-      case 'CONFIRMED':
-      case 'PREPARING':
-      case 'PACKED':
-      case 'READY_FOR_PICKUP':
-        return 1;
-      case 'SHIPPED':
-      case 'IN_TRANSIT':
-      case 'PICKED_UP':
-      case 'OUT_FOR_DELIVERY':
-        return 2;
-      case 'DELIVERED':
-        return 3;
-      case 'COMPLETED':
-        return 4;
-      case 'CANCELLED':
-      case 'FAILED':
-        return -1;
-    }
-  }
-
-  private getDeliveryProgressIndex(status?: DeliveryStatus | null): number {
-    switch (status) {
-      case 'ASSIGNED':
-      case 'ACCEPTED':
-      case 'EN_ROUTE_TO_PICKUP':
-      case 'ARRIVED_AT_PICKUP':
-        return 1;
-      case 'PICKED_UP':
-      case 'IN_TRANSIT':
-        return 2;
-      case 'ARRIVED_AT_DESTINATION':
-        return 2;
-      case 'DELIVERED':
-        return 3;
-      default:
-        return -1;
-    }
-  }
 }

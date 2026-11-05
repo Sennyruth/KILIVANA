@@ -18,7 +18,7 @@
         <div [class]="stageClass(i)" role="listitem"
           [attr.aria-current]="i === activeIndex() ? 'step' : null">
           <span class="order-progress__dot">
-            @if (i < activeIndex()) {
+            @if (i <= activeIndex()) {
               <mat-icon>check</mat-icon>
             } @else {
               <span>{{ i + 1 }}</span>

@@ -147,6 +147,14 @@ describe('BuyerDashboard', () => {
     component = fixture.componentInstance;
   });
 
+  it('displays the buyer dashboard banner', () => {
+    fixture.detectChanges();
+
+    const banner = fixture.nativeElement.querySelector('.dashboard__header-image') as HTMLImageElement | null;
+    expect(banner?.getAttribute('ngsrc')).toBe('/buyer banner.jpg');
+    expect(banner?.alt).toBe('Fresh vegetables in a basket');
+  });
+
   describe('creation', () => {
     it('should create', () => {
       fixture.detectChanges();

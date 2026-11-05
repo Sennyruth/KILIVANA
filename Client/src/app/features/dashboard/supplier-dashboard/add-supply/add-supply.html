@@ -7,6 +7,27 @@
     <h1 class="add-supply__title">Add New Supply</h1>
   </header>
 
+  @if (warehousesLoading() || settingDefaultWarehouse()) {
+    <p class="add-supply__warehouse-message" role="status">
+      {{ settingDefaultWarehouse() ? 'Setting your active warehouse as the dispatch location…' : 'Checking your dispatch warehouse…' }}
+    </p>
+  } @else if (warehouseError()) {
+    <div class="add-supply__warehouse-message add-supply__warehouse-message--error" role="alert">
+      <p>{{ warehouseError() }}</p>
+      <button mat-button type="button" (click)="loadDispatchLocation()">Retry</button>
+      <a mat-button [routerLink]="['/dashboard/supplier']" fragment="supplier-locations">Manage warehouses</a>
+    </div>
+  } @else if (warehouseSetupMessage()) {
+    <div class="add-supply__warehouse-message add-supply__warehouse-message--error" role="alert">
+      <p>{{ warehouseSetupMessage() }}</p>
+      <a mat-button [routerLink]="['/dashboard/supplier']" fragment="supplier-locations">Manage warehouses</a>
+    </div>
+  } @else if (dispatchLocation(); as location) {
+    <p class="add-supply__warehouse-message" role="status">
+      Dispatch warehouse: <strong>{{ location.name }}</strong>
+    </p>
+  }
+
   <mat-card class="add-supply__card">
     <mat-card-content>
       <form [formGroup]="form" (ngSubmit)="submit()">

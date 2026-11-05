@@ -520,6 +520,82 @@ describe('Product', () => {
     ]);
   });
 
+  it('includes the selected dispatch warehouse when creating a supplier listing', () => {
+    service.createListingWithImages('supplier', {
+      categoryId: 13,
+      name: 'NPK Fertilizer',
+      description: 'Balanced fertilizer for healthy crop growth',
+      unit: 'bag',
+      price: 3200,
+      stockQty: 45,
+      minimumOrderQty: 1,
+      warehouseId: 12,
+    }, []).subscribe();
+
+    httpTesting.expectOne(`${API_BASE}/auth/me`).flush({
+      success: true,
+      message: 'Success',
+      data: { id: 8 },
+    });
+
+    const createRequest = httpTesting.expectOne(`${API_BASE}/products`);
+    expect(createRequest.request.body).toEqual({
+      sellerId: 8,
+      sellerType: 'SUPPLIER',
+      categoryId: 13,
+      name: 'NPK Fertilizer',
+      description: 'Balanced fertilizer for healthy crop growth',
+      unit: 'bag',
+      price: 3200,
+      stockQty: 45,
+      minimumOrderQty: 1,
+      warehouseId: 12,
+    });
+    createRequest.flush({
+      success: true,
+      message: 'Created',
+      data: { id: 40, images: [] },
+    });
+  });
+
+  it('includes the selected dispatch farm when creating a farmer listing', () => {
+    service.createListingWithImages('farmer', {
+      categoryId: 13,
+      name: 'Tomatoes',
+      description: 'Fresh tomatoes from the farm',
+      unit: 'kg',
+      price: 120,
+      stockQty: 10,
+      minimumOrderQty: 1,
+      farmId: 17,
+    }, []).subscribe();
+
+    httpTesting.expectOne(`${API_BASE}/auth/me`).flush({
+      success: true,
+      message: 'Success',
+      data: { id: 8 },
+    });
+
+    const createRequest = httpTesting.expectOne(`${API_BASE}/products`);
+    expect(createRequest.request.body).toEqual({
+      sellerId: 8,
+      sellerType: 'FARMER',
+      categoryId: 13,
+      name: 'Tomatoes',
+      description: 'Fresh tomatoes from the farm',
+      unit: 'kg',
+      price: 120,
+      stockQty: 10,
+      minimumOrderQty: 1,
+      farmId: 17,
+    });
+    createRequest.flush({
+      success: true,
+      message: 'Created',
+      data: { id: 40, images: [] },
+    });
+  });
+
   it('uploads each image using the single-image API field and marks the first image primary', () => {
     const files = [new File(['first'], 'first.jpg'), new File(['second'], 'second.jpg')];
     let succeeded = false;

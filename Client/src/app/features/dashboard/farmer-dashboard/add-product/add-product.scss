@@ -37,6 +37,11 @@
     font-size: 0.9rem;
   }
 
+  &__error {
+    margin: 0 0 var(--space-4);
+    color: var(--color-error, #b3261e);
+  }
+
   &__field {
     width: 100%;
     margin-bottom: var(--space-4);

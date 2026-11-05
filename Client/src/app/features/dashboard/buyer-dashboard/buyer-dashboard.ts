@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTabsModule } from '@angular/material/tabs';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, NgOptimizedImage } from '@angular/common';
 import { Auth } from '../../../core/services/auth';
 import { Order } from '../../../core/services/order';
 import { Product } from '../../../core/services/product';
@@ -28,6 +28,7 @@ import { OrderProgress } from '../../orders/order-history/order-progress/order-p
     MatTabsModule,
     CurrencyPipe,
     DatePipe,
+    NgOptimizedImage,
     ProductCard,
     OrderProgress,
   ],

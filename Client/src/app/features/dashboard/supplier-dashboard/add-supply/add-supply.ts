@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, computed, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -9,8 +9,11 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Product, ListingFormData } from '../../../../core/services/product';
+import { SellerLocationService } from '../../../../core/services/seller-location';
+import type { SellerLocation } from '../../../../shared/seller-location.model';
 import { ImageUpload } from '../../../../shared/image-upload/image-upload';
 import { NotificationService } from '../../../../shared/notification/notification.service';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-add-supply',
@@ -22,6 +25,7 @@ import { NotificationService } from '../../../../shared/notification/notificatio
     MatInputModule,
     MatSelectModule,
     MatProgressSpinnerModule,
+    RouterLink,
     ReactiveFormsModule,
     ImageUpload,
   ],
@@ -30,6 +34,7 @@ import { NotificationService } from '../../../../shared/notification/notificatio
 })
 export class AddSupply implements OnInit {
   protected readonly productService = inject(Product);
+  private readonly locationService = inject(SellerLocationService);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
@@ -54,15 +59,66 @@ export class AddSupply implements OnInit {
   protected readonly units = ['kg', 'liters', 'pieces', 'bags', 'boxes', 'units'];
   protected readonly submitting = signal<boolean>(false);
   protected readonly selectedImages = signal<File[]>([]);
+  protected readonly warehousesLoading = signal(true);
+  protected readonly settingDefaultWarehouse = signal(false);
+  protected readonly warehouseError = signal<string | null>(null);
+  protected readonly warehouseSetupMessage = signal<string | null>(null);
+  protected readonly dispatchLocation = signal<SellerLocation | null>(null);
 
   protected get canSubmit(): boolean {
-    return !this.submitting() && this.form.valid && this.selectedImages().length > 0;
+    return !this.submitting() &&
+      !this.warehousesLoading() &&
+      !this.settingDefaultWarehouse() &&
+      this.dispatchLocation() !== null &&
+      this.form.valid &&
+      this.selectedImages().length > 0;
   }
 
   ngOnInit(): void {
     if (!this.productService.categoriesLoading() && this.productService.categories().length === 0) {
       this.productService.reloadCategories();
     }
+    this.loadDispatchLocation();
+  }
+
+  protected loadDispatchLocation(): void {
+    this.warehousesLoading.set(true);
+    this.warehouseError.set(null);
+    this.warehouseSetupMessage.set(null);
+    this.dispatchLocation.set(null);
+    this.locationService.getMyLocations()
+      .pipe(finalize(() => this.warehousesLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          if (!response.success || !response.data) {
+            this.warehouseError.set(response.message || 'Could not load your warehouse locations.');
+            return;
+          }
+
+          const activeLocations = response.data.filter((location) => location.active);
+          const defaultLocation = activeLocations.find((location) => location.defaultLocation);
+          if (defaultLocation) {
+            this.dispatchLocation.set(defaultLocation);
+            return;
+          }
+
+          if (activeLocations.length === 1) {
+            this.setDefaultWarehouse(activeLocations[0]);
+            return;
+          }
+
+          this.warehouseSetupMessage.set(
+            activeLocations.length === 0
+              ? 'Add an active warehouse before creating a supply listing.'
+              : 'Choose a default dispatch warehouse before creating a supply listing.',
+          );
+        },
+        error: (error: { error?: { message?: string } }) => {
+          this.warehouseError.set(
+            error.error?.message || 'Could not load your warehouse locations. Try again.',
+          );
+        },
+      });
   }
 
   protected reloadCategories(): void {
@@ -71,6 +127,26 @@ export class AddSupply implements OnInit {
 
   protected onFilesSelected(files: File[]): void {
     this.selectedImages.set(files);
+  }
+
+  private setDefaultWarehouse(location: SellerLocation): void {
+    this.settingDefaultWarehouse.set(true);
+    this.locationService.setDefaultLocation(location.id)
+      .pipe(finalize(() => this.settingDefaultWarehouse.set(false)))
+      .subscribe({
+        next: (response) => {
+          if (!response.success || !response.data) {
+            this.warehouseError.set(response.message || 'Could not set the active warehouse as your dispatch location.');
+            return;
+          }
+          this.dispatchLocation.set({ ...location, ...response.data, defaultLocation: true });
+        },
+        error: (error: { error?: { message?: string } }) => {
+          this.warehouseError.set(
+            error.error?.message || 'Could not set the active warehouse as your dispatch location.',
+          );
+        },
+      });
   }
 
   protected submit(): void {
@@ -94,10 +170,16 @@ export class AddSupply implements OnInit {
   private createSupply(): void {
     const v = this.form.value;
     const selected = this.categories().find((c) => c.id === v.category);
+    const warehouseId = Number(this.dispatchLocation()?.id);
 
     if (!selected) {
       this.submitting.set(false);
       this.notification.error('Please choose a valid category');
+      return;
+    }
+    if (!Number.isSafeInteger(warehouseId) || warehouseId <= 0) {
+      this.submitting.set(false);
+      this.notification.error('Choose an active dispatch warehouse before adding this supply.');
       return;
     }
 
@@ -109,6 +191,7 @@ export class AddSupply implements OnInit {
       price: Number(v.price),
       stockQty: Number(v.quantity),
       minimumOrderQty: Number(v.minimumOrderQty),
+      warehouseId,
     };
 
     this.productService.createListingWithImages('supplier', data, this.selectedImages()).subscribe({

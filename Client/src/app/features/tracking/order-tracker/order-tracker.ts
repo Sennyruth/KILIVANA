@@ -1,8 +1,10 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { CurrencyPipe, DatePipe } from '@angular/common';
+import { finalize, interval } from 'rxjs';
 import { Order as OrderService } from '../../../core/services/order';
 import { Auth } from '../../../core/services/auth';
 import type { Order as OrderModel, OrderStatus, SellerOrderSummary } from '../../../shared/order.model';
@@ -18,6 +20,7 @@ import { Tracking } from '../../../core/services/tracking';
   templateUrl: './order-tracker.html',
 })
 export class OrderTracker implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly route = inject(ActivatedRoute);
   protected readonly tracking = inject(Tracking);
   private readonly orderService = inject(OrderService);
@@ -40,6 +43,9 @@ export class OrderTracker implements OnInit {
   protected readonly detailError = signal<string | null>(null);
   protected readonly deliveryEventsError = signal<string | null>(null);
   protected readonly deliveryEvents = signal<TrackingEvent[]>([]);
+  private readonly deliveryEventsLoading = signal(false);
+  private readonly orderDetailsLoading = signal(false);
+  private readonly latestOrderLoading = signal(false);
   protected readonly order = signal<OrderModel | null>(null);
   protected readonly sellerOrder = signal<SellerOrderSummary | null>(null);
   protected readonly sellerOrderLoading = signal(false);
@@ -81,9 +87,22 @@ export class OrderTracker implements OnInit {
 
   ngOnInit(): void {
     this.tracking.clear();
-    if (this.sellerPerspective && this.orderId() !== 'last') this.loadSellerTracking(this.orderId());
-    else if (this.orderId() === 'last') this.loadLatestOrder();
-    else this.loadTracking(this.orderId());
+    this.loadCurrentStatus();
+    interval(10 * 60 * 1_000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (
+          this.loading() ||
+          this.sellerOrderLoading() ||
+          this.deliveryEventsLoading() ||
+          this.orderDetailsLoading() ||
+          this.latestOrderLoading()
+        ) return;
+        this.error.set(null);
+        this.detailError.set(null);
+        this.deliveryEventsError.set(null);
+        this.loadCurrentStatus();
+      });
   }
 
   protected retry(): void {
@@ -94,6 +113,10 @@ export class OrderTracker implements OnInit {
     this.tracking.clear();
     this.sellerOrder.set(null);
     this.sellerOrderLoading.set(false);
+    this.loadCurrentStatus();
+  }
+
+  private loadCurrentStatus(): void {
     if (this.sellerPerspective && this.orderId() !== 'last') this.loadSellerTracking(this.orderId());
     else if (this.orderId() === 'last') this.loadLatestOrder();
     else this.loadTracking(this.orderId());
@@ -136,7 +159,8 @@ export class OrderTracker implements OnInit {
   }
 
   private loadLatestOrder(): void {
-    this.orderService.loadMine().subscribe({
+    this.latestOrderLoading.set(true);
+    this.orderService.loadMine().pipe(finalize(() => this.latestOrderLoading.set(false))).subscribe({
       next: (response) => {
         const orders = response.success ? response.data?.orders ?? [] : [];
         const latest = [...orders].sort(
@@ -155,17 +179,20 @@ export class OrderTracker implements OnInit {
   }
 
   private loadTracking(id: string): void {
-    this.orderService.getById(id).subscribe({
-      next: (response) => {
-        if (!response.success || !response.data) {
-          this.detailError.set(response.message || 'Order details are unavailable.');
-          return;
-        }
-        this.order.set(response.data.order);
-        this.loadDeliveryTrackingEvents(response.data.order.logisticsJobId);
-      },
-      error: () => this.detailError.set('Order details are temporarily unavailable.'),
-    });
+    this.orderDetailsLoading.set(true);
+    this.orderService.getById(id)
+      .pipe(finalize(() => this.orderDetailsLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          if (!response.success || !response.data) {
+            this.detailError.set(response.message || 'Order details are unavailable.');
+            return;
+          }
+          this.order.set(response.data.order);
+          this.loadDeliveryTrackingEvents(response.data.order.logisticsJobId);
+        },
+        error: () => this.detailError.set('Order details are temporarily unavailable.'),
+      });
 
     this.tracking.load(id).subscribe({
       next: (response) => {
@@ -196,16 +223,19 @@ export class OrderTracker implements OnInit {
         if (summary.logisticsJobId) {
           this.loadDeliveryTrackingEvents(summary.logisticsJobId);
         } else {
-          this.orderService.getById(id).subscribe({
-            next: (details) => {
-              if (!details.success || !details.data) {
-                this.deliveryEventsError.set(details.message || 'Detailed delivery updates are unavailable.');
-                return;
-              }
-              this.loadDeliveryTrackingEvents(details.data.order.logisticsJobId);
-            },
-            error: () => this.deliveryEventsError.set('Detailed delivery updates could not be loaded.'),
-          });
+          this.orderDetailsLoading.set(true);
+          this.orderService.getById(id)
+            .pipe(finalize(() => this.orderDetailsLoading.set(false)))
+            .subscribe({
+              next: (details) => {
+                if (!details.success || !details.data) {
+                  this.deliveryEventsError.set(details.message || 'Detailed delivery updates are unavailable.');
+                  return;
+                }
+                this.loadDeliveryTrackingEvents(details.data.order.logisticsJobId);
+              },
+              error: () => this.deliveryEventsError.set('Detailed delivery updates could not be loaded.'),
+            });
         }
         this.tracking.load(id).subscribe({
           next: (timeline) => {
@@ -224,19 +254,25 @@ export class OrderTracker implements OnInit {
   }
 
   private loadDeliveryTrackingEvents(jobId?: number | null): void {
-    this.deliveryEvents.set([]);
     this.deliveryEventsError.set(null);
-    if (!jobId) return;
+    if (!jobId) {
+      this.deliveryEvents.set([]);
+      this.deliveryEventsLoading.set(false);
+      return;
+    }
 
-    this.tracking.loadDeliveryEvents(jobId).subscribe({
-      next: (response) => {
-        if (!response.success) {
-          this.deliveryEventsError.set(response.message || 'Driver updates are temporarily unavailable.');
-          return;
-        }
-        this.deliveryEvents.set(response.data ?? []);
-      },
-      error: () => this.deliveryEventsError.set('Driver updates could not be loaded. Please try again.'),
-    });
+    this.deliveryEventsLoading.set(true);
+    this.tracking.loadDeliveryEvents(jobId)
+      .pipe(finalize(() => this.deliveryEventsLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          if (!response.success) {
+            this.deliveryEventsError.set(response.message || 'Driver updates are temporarily unavailable.');
+            return;
+          }
+          this.deliveryEvents.set(response.data ?? []);
+        },
+        error: () => this.deliveryEventsError.set('Driver updates could not be loaded. Please try again.'),
+      });
   }
 }

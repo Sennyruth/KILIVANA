@@ -2,7 +2,10 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { vi } from 'vitest';
+import { of } from 'rxjs';
 import { Cart } from './cart';
+import { Product } from './product';
 import { Product as ProductModel } from '../../shared/product.model';
 import { Auth } from './auth';
 import { API_BASE } from '../../shared/api.config';
@@ -11,6 +14,7 @@ describe('Cart', () => {
   let service: Cart;
   let httpTesting: HttpTestingController;
   let user: ReturnType<typeof signal<{ id: string; role: string } | null>>;
+  let loadPrimaryImagesFor: ReturnType<typeof vi.fn>;
 
   const product: ProductModel = {
     id: '39',
@@ -44,11 +48,13 @@ describe('Cart', () => {
     localStorage.removeItem('kilivana_mock_cart_buyer_3');
     localStorage.removeItem('kilivana_mock_cart_farmer_3');
     user = signal({ id: '3', role: 'BUYER' });
+    loadPrimaryImagesFor = vi.fn(() => of({} as Record<string, string>));
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: Auth, useValue: { user } },
+        { provide: Product, useValue: { loadPrimaryImagesFor } },
       ],
     });
     service = TestBed.inject(Cart);
@@ -100,6 +106,21 @@ describe('Cart', () => {
     expect(service.items()[0].name).toBe('Tomatoes');
   });
 
+  it('refreshes expired saved image URLs when the cart is loaded', () => {
+    const savedProduct = {
+      ...product,
+      images: [{ ...product.images[0], url: 'blob:expired-image-url' }],
+    };
+    service.addItem(savedProduct, 1).subscribe();
+    service.resetAfterLogout();
+    loadPrimaryImagesFor.mockReturnValue(of({ '39': 'blob:refreshed-image-url' }));
+
+    service.load().subscribe();
+
+    expect(loadPrimaryImagesFor).toHaveBeenCalledWith(['39']);
+    expect(service.items()[0].imageUrl).toBe('blob:refreshed-image-url');
+  });
+
   it('keeps the farmer and buyer carts separate for the same browser', () => {
     service.addItem(product, 2).subscribe();
 
@@ -148,7 +169,15 @@ describe('Cart', () => {
       completed = true;
     });
 
-    const clear = httpTesting.expectOne(`${API_BASE}/cart`);
+    const serverCart = httpTesting.expectOne(`${API_BASE}/cart`);
+    expect(serverCart.request.method).toBe('GET');
+    serverCart.flush({
+      success: true,
+      message: 'Loaded',
+      data: { id: 17 },
+    });
+
+    const clear = httpTesting.expectOne(`${API_BASE}/carts/17`);
     expect(clear.request.method).toBe('DELETE');
     clear.flush({ success: true, message: 'Cart cleared', data: null });
 

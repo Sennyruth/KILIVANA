@@ -59,7 +59,9 @@ export class EditSupply implements OnInit {
   protected readonly isLoading = signal(true);
 
   protected get canSubmit(): boolean {
-    return !this.submitting() && !this.isLoading() && this.form.valid;
+    return !this.submitting() &&
+      !this.isLoading() &&
+      (this.form.dirty || this.selectedImages().length > 0);
   }
 
   ngOnInit(): void {

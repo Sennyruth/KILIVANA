@@ -29,7 +29,7 @@
       <div class="order-tracker__spinner"></div>
       <p>Getting the latest shipment update…</p>
     </div>
-  } @else if (error()) {
+  } @else if (error() && !history()) {
     <div class="order-tracker__message order-tracker__message--error" role="alert">
       <mat-icon>local_shipping</mat-icon>
       <h2>Tracking update unavailable</h2>
@@ -37,6 +37,9 @@
       <button mat-raised-button color="primary" type="button" (click)="retry()">Try again</button>
     </div>
   } @else if (history()) {
+    @if (error()) {
+      <p class="order-tracker__detail-error" role="alert">{{ error() }}</p>
+    }
     <section class="order-tracker__status-card" aria-label="Current shipment status">
       <div class="order-tracker__status-icon">
         <mat-icon>local_shipping</mat-icon>

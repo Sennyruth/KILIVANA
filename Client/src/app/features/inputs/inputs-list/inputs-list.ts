@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,6 +14,7 @@ import { NotificationService } from '../../../shared/notification/notification.s
 @Component({
   selector: 'app-inputs-list',
   imports: [
+    NgOptimizedImage,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,

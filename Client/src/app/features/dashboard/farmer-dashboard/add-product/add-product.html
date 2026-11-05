@@ -64,6 +64,29 @@
               <mat-error>Unit is required</mat-error>
             }
           </mat-form-field>
+
+          <mat-form-field appearance="outline" class="add-product__field add-product__field--full">
+            <mat-label>Dispatch location (Farm) *</mat-label>
+            <mat-select formControlName="dispatchFarm" required>
+              @for (farm of activeFarms(); track farm.id) {
+                <mat-option [value]="farm.id">{{ farm.name }} — {{ farm.county }}</mat-option>
+              }
+            </mat-select>
+            @if (form.get('dispatchFarm')?.hasError('required')) {
+              <mat-error>Select an active farm for dispatch</mat-error>
+            }
+          </mat-form-field>
+          @if (farmsLoading()) {
+            <p class="add-product__hint" role="status">Loading your active farms…</p>
+          } @else if (farmsError()) {
+            <p class="add-product__error" role="alert">{{ farmsError() }}</p>
+            <button mat-stroked-button type="button" (click)="loadDispatchFarms()">Retry</button>
+          } @else if (!activeFarms().length) {
+            <p class="add-product__hint">
+              Add or activate a farm before creating a product listing.
+              <a routerLink="/dashboard/farmer/setup" [queryParams]="{ manage: 1 }">Manage farm</a>
+            </p>
+          }
         </div>
 
         <div class="add-product__section">

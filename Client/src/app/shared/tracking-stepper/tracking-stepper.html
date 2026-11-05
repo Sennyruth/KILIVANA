@@ -9,11 +9,8 @@
            [class.tracking-stepper__stage--active]="i === currentIndex()"
            [class.tracking-stepper__stage--pending]="i > currentIndex()">
         <div class="tracking-stepper__dot">
-          @if (i < currentIndex()) {
+          @if (i <= currentIndex()) {
             <mat-icon class="tracking-stepper__icon">check</mat-icon>
-          } @else if (i === currentIndex()) {
-            <div class="tracking-stepper__pulse"></div>
-            <mat-icon class="tracking-stepper__icon">radio_button_checked</mat-icon>
           } @else {
             <span class="tracking-stepper__number">{{ i + 1 }}</span>
           }

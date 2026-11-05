@@ -102,6 +102,21 @@ describe('OrderHistory', () => {
     ).toBeTruthy();
   });
 
+  it('uses the delivered stage when the order and delivery statuses are delivered', async () => {
+    orders.set([{ ...testOrder, status: 'DELIVERED', deliveryStatus: 'DELIVERED' }]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const activeStage = fixture.nativeElement.querySelector(
+      '.order-progress__stage--current .order-progress__label',
+    ) as HTMLElement | null;
+    expect(activeStage?.textContent?.trim()).toBe('Delivered');
+    expect(
+      fixture.nativeElement.querySelector('.order-progress__stage--current mat-icon')?.textContent?.trim(),
+    ).toBe('check');
+  });
+
   it('shows product images for ordered items', async () => {
     fixture.detectChanges();
     await fixture.whenStable();

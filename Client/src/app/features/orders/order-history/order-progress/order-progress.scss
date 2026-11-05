@@ -103,8 +103,11 @@
 }
 
 .order-progress__stage--current .order-progress__dot {
-  border-color: #1f7132;
-  color: #1f7132;
+  border-color: #2e9b42;
+  background: #2e9b42;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(46, 155, 66, 0.3);
+  animation: order-progress-pulse 1.8s ease-out infinite;
 }
 
 .order-progress__stage--complete .order-progress__label,
@@ -123,6 +126,15 @@
 
 .order-progress__terminal--failed {
   color: #a45b00;
+}
+
+@keyframes order-progress-pulse {
+  0% {
+    box-shadow: 0 0 0 4px rgba(46, 155, 66, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 13px rgba(46, 155, 66, 0);
+  }
 }
 
 @media (max-width: 520px) {

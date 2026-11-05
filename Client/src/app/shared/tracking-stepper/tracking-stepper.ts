@@ -1,6 +1,11 @@
 import { Component, input, computed } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { TrackingHistory, TrackingStage, TRACKING_STAGES as STAGE_ORDER } from '../tracking.model';
+import {
+  TrackingHistory,
+  TrackingStage,
+  TRACKING_STAGES as STAGE_ORDER,
+  trackingProgressIndex,
+} from '../tracking.model';
 import type { DeliveryStatus } from '../order.model';
 
 export const TRACKING_STAGES = STAGE_ORDER;
@@ -27,11 +32,10 @@ export class TrackingStepper {
 
   protected readonly currentIndex = computed(() => {
     const h = this.history();
-    const timelineIndex = h ? STAGE_ORDER.indexOf(h.currentStage) : 0;
-    return Math.max(
-      timelineIndex,
-      orderStatusIndex(this.orderStatus()),
-      deliveryStatusIndex(this.deliveryStatus()),
+    return trackingProgressIndex(
+      this.orderStatus(),
+      this.deliveryStatus(),
+      h?.currentStage ?? null,
     );
   });
 
@@ -80,48 +84,5 @@ export class TrackingStepper {
     } catch {
       return '';
     }
-  }
-}
-
-function orderStatusIndex(value: string | null): number {
-    switch (value?.toUpperCase() ?? null) {
-      case 'CONFIRMED':
-      case 'PREPARING':
-      case 'PACKED':
-      case 'READY_FOR_PICKUP':
-        return STAGE_ORDER.indexOf('CONFIRMED');
-      case 'SHIPPED':
-      case 'PICKED_UP':
-      case 'IN_TRANSIT':
-      case 'OUT_FOR_DELIVERY':
-        return STAGE_ORDER.indexOf('IN_TRANSIT');
-      case 'DELIVERED':
-        return STAGE_ORDER.indexOf('DELIVERED');
-      case 'COMPLETED':
-        return STAGE_ORDER.indexOf('COMPLETED');
-      case 'PENDING':
-      case 'CANCELLED':
-      case 'FAILED':
-        return STAGE_ORDER.indexOf('PLACED');
-      default:
-        return -1;
-    }
-  }
-
-function deliveryStatusIndex(status: DeliveryStatus | null): number {
-    switch (status) {
-      case 'ASSIGNED':
-      case 'ACCEPTED':
-      case 'EN_ROUTE_TO_PICKUP':
-      case 'ARRIVED_AT_PICKUP':
-        return STAGE_ORDER.indexOf('CONFIRMED');
-      case 'PICKED_UP':
-      case 'IN_TRANSIT':
-      case 'ARRIVED_AT_DESTINATION':
-        return STAGE_ORDER.indexOf('IN_TRANSIT');
-      case 'DELIVERED':
-        return STAGE_ORDER.indexOf('DELIVERED');
-      default:
-        return -1;
   }
 }

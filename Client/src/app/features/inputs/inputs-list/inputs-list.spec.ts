@@ -12,4 +12,11 @@ describe('InputsList', () => {
     await render(InputsList);
     expect(screen.getByText('Agricultural Inputs')).toBeTruthy();
   });
+
+  it('should display the inputs dashboard banner', async () => {
+    await render(InputsList);
+
+    const banner = screen.getByRole('img', { name: 'Farmer applying crop treatment in a field' });
+    expect(banner.getAttribute('ngsrc')).toBe('/inputs banner.jpg');
+  });
 });

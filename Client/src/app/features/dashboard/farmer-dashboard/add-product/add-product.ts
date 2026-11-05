@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, computed, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -10,8 +10,11 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Product, ListingFormData } from '../../../../core/services/product';
+import { Farmer } from '../../../../core/services/farmer';
+import type { FarmerFarm } from '../../../../shared/farm.model';
 import { ImageUpload } from '../../../../shared/image-upload/image-upload';
 import { NotificationService } from '../../../../shared/notification/notification.service';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-add-product',
@@ -25,6 +28,7 @@ import { NotificationService } from '../../../../shared/notification/notificatio
     MatCheckboxModule,
     MatProgressSpinnerModule,
     ReactiveFormsModule,
+    RouterLink,
     ImageUpload,
   ],
   styleUrl: './add-product.scss',
@@ -32,6 +36,7 @@ import { NotificationService } from '../../../../shared/notification/notificatio
 })
 export class AddProduct implements OnInit {
   protected readonly productService = inject(Product);
+  private readonly farmerService = inject(Farmer);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
@@ -44,6 +49,7 @@ export class AddProduct implements OnInit {
     quantity: ['', [Validators.required, Validators.min(1)]], 
     minimumOrderQty: [1, [Validators.required, Validators.min(1)]],
     unit: ['', [Validators.required]],
+    dispatchFarm: [null as number | string | null, [Validators.required]],
     available: [true], // not part of the backend schema, kept for the UI only
   });
 
@@ -57,15 +63,44 @@ export class AddProduct implements OnInit {
   protected readonly units = ['kg', 'g', 'liters', 'pieces', 'bunches', 'crates'];
   protected readonly submitting = signal<boolean>(false);
   protected readonly selectedImages = signal<File[]>([]);
+  protected readonly farmsLoading = signal(true);
+  protected readonly farmsError = signal<string | null>(null);
+  protected readonly activeFarms = signal<FarmerFarm[]>([]);
 
   protected get canSubmit(): boolean {
-    return !this.submitting() && this.form.valid && this.selectedImages().length > 0;
+    return !this.submitting() && !this.farmsLoading() &&
+      this.form.valid && this.selectedImages().length > 0;
   }
 
   ngOnInit(): void {
     if (this.productService.categories().length === 0) {
       this.productService.reloadCategories();
     }
+    this.loadDispatchFarms();
+  }
+
+  protected loadDispatchFarms(): void {
+    this.farmsLoading.set(true);
+    this.farmsError.set(null);
+    this.farmerService.getMyFarms()
+      .pipe(finalize(() => this.farmsLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          if (!response.success || !response.data) {
+            this.farmsError.set(response.message || 'Could not load your farms.');
+            return;
+          }
+
+          const farms = response.data.filter((farm) => farm.status?.toUpperCase() === 'ACTIVE');
+          this.activeFarms.set(farms);
+          if (farms.length === 1) {
+            this.form.controls['dispatchFarm'].setValue(farms[0].id);
+          }
+        },
+        error: (error: { error?: { message?: string } }) => {
+          this.farmsError.set(error.error?.message || 'Could not load your farms. Try again.');
+        },
+      });
   }
 
   protected onFilesSelected(files: File[]): void {
@@ -86,6 +121,11 @@ export class AddProduct implements OnInit {
       return;
     }
 
+    if (this.activeFarms().length === 0) {
+      this.notification.warning('Add an active farm before creating a product listing');
+      return;
+    }
+
     this.submitting.set(true);
     this.createProduct();
   }
@@ -93,10 +133,17 @@ export class AddProduct implements OnInit {
   private createProduct(): void {
     const v = this.form.value;
     const selected = this.categories().find((c) => c.id === v.category);
+    const farmId = Number(v.dispatchFarm);
 
     if (!selected) {
       this.submitting.set(false);
       this.notification.error('Please choose a valid category');
+      return;
+    }
+    if (!Number.isSafeInteger(farmId) || farmId <= 0 ||
+      !this.activeFarms().some((farm) => String(farm.id) === String(v.dispatchFarm))) {
+      this.submitting.set(false);
+      this.notification.error('Choose an active farm as your dispatch location.');
       return;
     }
 
@@ -108,6 +155,7 @@ export class AddProduct implements OnInit {
       price: Number(v.price),
       stockQty: Number(v.quantity),
       minimumOrderQty: Number(v.minimumOrderQty),
+      farmId,
     };
 
     this.productService.createListingWithImages('farmer', data, this.selectedImages()).subscribe({
