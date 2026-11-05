@@ -49,16 +49,10 @@
             </div>
             <mat-radio-group class="checkout__delivery-method" [value]="deliveryMethod()" (change)="deliveryMethod.set($event.value)" aria-label="Delivery method">
               <mat-radio-button value="door" class="checkout__method-option" [class.checkout__method-option--selected]="deliveryMethod() === 'door'">
-                <span class="checkout__method-content">
-                  <mat-icon>local_shipping</mat-icon>
-                  <span><strong>Door delivery</strong><small>Delivered to your address</small></span>
-                </span>
+                Door delivery
               </mat-radio-button>
               <mat-radio-button value="pickup" class="checkout__method-option" [class.checkout__method-option--selected]="deliveryMethod() === 'pickup'">
-                <span class="checkout__method-content">
-                  <mat-icon>storefront</mat-icon>
-                  <span><strong>Pickup point</strong><small>Collect from a nearby station</small></span>
-                </span>
+                Pickup point
               </mat-radio-button>
             </mat-radio-group>
             @if (deliveryMethod() === 'door') {
@@ -92,16 +86,10 @@
             } @else {
               <mat-radio-group class="checkout__delivery-method checkout__delivery-method--pickup" [value]="pickupChoice()" (change)="pickupChoice.set($event.value)" aria-label="Pickup location option">
                 <mat-radio-button value="station" class="checkout__method-option checkout__method-option--compact" [class.checkout__method-option--selected]="pickupChoice() === 'station'">
-                  <span class="checkout__method-content">
-                    <mat-icon>location_on</mat-icon>
-                    <span><strong>Choose a pickup station</strong><small>Select an available Kilivana point</small></span>
-                  </span>
+                  Choose a pickup station
                 </mat-radio-button>
                 <mat-radio-button value="typed" class="checkout__method-option checkout__method-option--compact" [class.checkout__method-option--selected]="pickupChoice() === 'typed'">
-                  <span class="checkout__method-content">
-                    <mat-icon>edit_location_alt</mat-icon>
-                    <span><strong>Enter a pickup location</strong><small>Choose a custom collection address</small></span>
-                  </span>
+                  Enter a pickup location
                 </mat-radio-button>
               </mat-radio-group>
               @if (pickupChoice() === 'typed') {
