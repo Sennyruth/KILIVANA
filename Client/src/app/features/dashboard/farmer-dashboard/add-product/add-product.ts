@@ -11,7 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Product, ListingFormData } from '../../../../core/services/product';
 import { Farmer } from '../../../../core/services/farmer';
-import type { FarmerFarm } from '../../../../shared/farm.model';
+import { hasFarmDispatchLocation, type FarmerFarm } from '../../../../shared/farm.model';
 import { ImageUpload } from '../../../../shared/image-upload/image-upload';
 import { NotificationService } from '../../../../shared/notification/notification.service';
 import { finalize } from 'rxjs';
@@ -66,10 +66,13 @@ export class AddProduct implements OnInit {
   protected readonly farmsLoading = signal(true);
   protected readonly farmsError = signal<string | null>(null);
   protected readonly activeFarms = signal<FarmerFarm[]>([]);
+  protected readonly dispatchReadyFarms = computed(() =>
+    this.activeFarms().filter(hasFarmDispatchLocation),
+  );
 
   protected get canSubmit(): boolean {
     return !this.submitting() && !this.farmsLoading() &&
-      this.form.valid && this.selectedImages().length > 0;
+      this.form.valid && this.dispatchReadyFarms().length > 0 && this.selectedImages().length > 0;
   }
 
   ngOnInit(): void {
@@ -93,8 +96,9 @@ export class AddProduct implements OnInit {
 
           const farms = response.data.filter((farm) => farm.status?.toUpperCase() === 'ACTIVE');
           this.activeFarms.set(farms);
-          if (farms.length === 1) {
-            this.form.controls['dispatchFarm'].setValue(farms[0].id);
+          const dispatchFarms = farms.filter(hasFarmDispatchLocation);
+          if (dispatchFarms.length === 1) {
+            this.form.controls['dispatchFarm'].setValue(dispatchFarms[0].id);
           }
         },
         error: (error: { error?: { message?: string } }) => {
@@ -125,6 +129,10 @@ export class AddProduct implements OnInit {
       this.notification.warning('Add an active farm before creating a product listing');
       return;
     }
+    if (this.dispatchReadyFarms().length === 0) {
+      this.notification.warning('Add a farm dispatch address and valid coordinates before creating a product listing.');
+      return;
+    }
 
     this.submitting.set(true);
     this.createProduct();
@@ -141,9 +149,9 @@ export class AddProduct implements OnInit {
       return;
     }
     if (!Number.isSafeInteger(farmId) || farmId <= 0 ||
-      !this.activeFarms().some((farm) => String(farm.id) === String(v.dispatchFarm))) {
+      !this.dispatchReadyFarms().some((farm) => String(farm.id) === String(v.dispatchFarm))) {
       this.submitting.set(false);
-      this.notification.error('Choose an active farm as your dispatch location.');
+      this.notification.error('Choose an active farm with a dispatch address and valid coordinates.');
       return;
     }
 

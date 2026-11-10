@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { finalize } from 'rxjs';
 import { Auth } from '../../../../core/services/auth';
 import { SellerLocationService } from '../../../../core/services/seller-location';
+import { getCurrentCoordinates } from '../../../../shared/dispatch-location';
 import type { SellerLocationRequest } from '../../../../shared/seller-location.model';
 
 @Component({
@@ -31,6 +32,7 @@ export class WarehouseSetup {
   private readonly fb = inject(FormBuilder);
 
   protected readonly saving = signal(false);
+  protected readonly locatingCoordinates = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly form = this.fb.group({
     name: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(255)]],
@@ -77,5 +79,16 @@ export class WarehouseSetup {
       error: (err: { error?: { message?: string } }) =>
         this.error.set(err.error?.message || 'Could not save your warehouse. Please try again.'),
     });
+  }
+
+  protected useCurrentLocation(): void {
+    if (this.locatingCoordinates()) return;
+    this.locatingCoordinates.set(true);
+    this.error.set(null);
+    void getCurrentCoordinates().then((coordinates) => {
+      this.form.patchValue(coordinates);
+    }).catch((error: Error) => {
+      this.error.set(error.message);
+    }).finally(() => this.locatingCoordinates.set(false));
   }
 }

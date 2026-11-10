@@ -294,6 +294,15 @@ describe('BuyerDashboard', () => {
       expect(labels).toContain('Delivered');
       expect(labels).toContain('Cancelled');
     });
+
+    it('keeps order summary cards text-only', () => {
+      expect(fixture.nativeElement.querySelector('.dashboard__stats mat-icon')).toBeNull();
+    });
+
+    it('keeps recent order details readable without decorative icons', () => {
+      expect(fixture.nativeElement.querySelector('.order-card__body mat-icon')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.order-card__link mat-icon')).toBeNull();
+    });
   });
 
   describe('recent orders', () => {

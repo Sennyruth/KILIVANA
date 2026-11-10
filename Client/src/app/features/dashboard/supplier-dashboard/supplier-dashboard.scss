@@ -103,7 +103,7 @@
   mat-icon {
     width: 24px;
     height: 24px;
-    font-size: 24px;
+    font-size: 1.5rem;
     color: var(--primary);
   }
 
@@ -184,7 +184,7 @@
   width: 100%;
 
   mat-icon {
-    font-size: 24px;
+    font-size: 1.5rem;
     color: var(--primary);
   }
 
@@ -198,7 +198,7 @@
 .location-manager__form-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; color: var(--primary); background: var(--primary-100); }
 .location-manager__details h3 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); color: var(--primary-dark); }
 .location-manager__details p { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-1) 0; color: var(--text-secondary); }
-.location-manager__details p mat-icon { width: 18px; height: 18px; font-size: 18px; }
+.location-manager__details p mat-icon { width: 18px; height: 18px; font-size: 1.125rem; }
 .location-manager__badge { padding: 3px 9px; border-radius: 20px; background: #dcefe2; color: #176239; font-size: .72rem; font-weight: 700; }
 .location-manager__badge--inactive { background: #eceff1; color: #546e7a; }
 .location-manager__actions,
@@ -457,7 +457,7 @@
 }
 
 .stat-card__icon {
-  font-size: 32px;
+  font-size: 2rem;
   color: var(--accent);
 }
 
@@ -534,7 +534,7 @@
     mat-icon {
       width: 22px;
       height: 22px;
-      font-size: 22px;
+      font-size: 1.375rem;
     }
   }
 

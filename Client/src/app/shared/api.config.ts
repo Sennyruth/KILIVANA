@@ -70,6 +70,8 @@ export const ApiEndpoints = {
   },
   LOGISTICS: {
     TRACKING_EVENTS: (jobId: string | number) => `${API_BASE}/logistics/tracking-events/job/${jobId}`,
+    BUYER_DELIVERY: (orderId: string | number) => `${API_BASE}/buyer/orders/${orderId}/delivery`,
+    SELLER_DELIVERIES: (orderId: string | number) => `${API_BASE}/seller/orders/${orderId}/deliveries`,
   },
 
   DISPUTES: {

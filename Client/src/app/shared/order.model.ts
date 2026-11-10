@@ -29,6 +29,7 @@ export type DeliveryStatus =
 export function deliveryStatusLabel(status?: string | null): string | null {
   if (!status) return null;
   const labels: Partial<Record<DeliveryStatus, string>> = {
+    PENDING_ASSIGNMENT: 'Awaiting driver assignment',
     ASSIGNED: 'Driver assigned',
     ACCEPTED: 'Driver accepted',
     EN_ROUTE_TO_PICKUP: 'Driver heading to pickup',

@@ -85,6 +85,9 @@
                   @if (!location.active) { <span class="location-manager__badge location-manager__badge--inactive">Inactive</span> }
                 </h3>
                 <p><mat-icon>place</mat-icon>{{ location.address }}, {{ location.county }}</p>
+                @if (location.active && !hasSellerDispatchLocation(location)) {
+                  <p class="location-manager__error" role="alert">Add a valid address and map coordinates before using this warehouse for orders.</p>
+                }
                 @if (location.contactName || location.contactPhone) { <p><mat-icon>call</mat-icon>{{ location.contactName }}{{ location.contactName && location.contactPhone ? ' · ' : '' }}{{ location.contactPhone }}</p> }
                 @if (location.operatingHours) { <p><mat-icon>schedule</mat-icon>{{ location.operatingHours }}</p> }
               </div>
@@ -149,6 +152,10 @@
               <input matInput type="number" step="any" min="-180" max="180" formControlName="longitude" />
               @if (locationForm.controls.longitude.touched && locationForm.controls.longitude.invalid) { <mat-error>Use a value from -180 to 180.</mat-error> }
             </mat-form-field>
+            <button mat-stroked-button class="location-manager__wide" type="button" (click)="useCurrentLocation()" [disabled]="locatingCoordinates()">
+              <mat-icon>my_location</mat-icon>
+              {{ locatingCoordinates() ? 'Getting location…' : 'Use my current location' }}
+            </button>
             <mat-form-field appearance="outline">
               <mat-label>Contact name <span>(optional)</span></mat-label>
               <input matInput formControlName="contactName" autocomplete="name" />

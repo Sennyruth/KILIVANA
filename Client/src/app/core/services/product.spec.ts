@@ -57,8 +57,8 @@ describe('Product', () => {
     });
   });
 
-  it('loads and normalizes the direct product response used by the backend', () => {
-    let loadedProduct: { id: string; categoryId?: number; status?: string } | null | undefined;
+  it('uses backend stockQty as available quantity because orders already decrement it', () => {
+    let loadedProduct: { id: string; categoryId?: number; status?: string; quantity: number } | null | undefined;
     service.getById('39').subscribe((response) => {
       loadedProduct = response.data;
     });
@@ -76,7 +76,7 @@ describe('Product', () => {
         unit: 'kg',
         price: 120,
         stockQty: 10,
-        reservedQty: 0,
+        reservedQty: 4,
         soldQty: 0,
         minimumOrderQty: 1,
         status: 'INACTIVE',
@@ -84,12 +84,54 @@ describe('Product', () => {
         images: [],
       },
     });
+    httpTesting.expectOne(`${API_BASE}/products/39/images`).flush({
+      success: true,
+      message: 'Success',
+      data: [],
+    });
 
     expect(loadedProduct).toMatchObject({
       id: '39',
       categoryId: 3,
-      status: 'INACTIVE',
+      quantity: 10,
     });
+  });
+
+  it('reduces displayed stock immediately after an order is created', () => {
+    service.loadAll().subscribe();
+    httpTesting.expectOne(`${API_BASE}/products`).flush({
+      success: true,
+      message: 'Success',
+      data: [
+        {
+          id: 51,
+          sellerId: 3,
+          sellerType: 'FARMER',
+          categoryId: 21,
+          name: 'Tomatoes',
+          description: 'Fresh tomatoes',
+          unit: 'kg',
+          price: 120,
+          stockQty: 10,
+          reservedQty: 0,
+          soldQty: 0,
+          minimumOrderQty: 1,
+          status: 'ACTIVE',
+          createdAt: '2026-10-07T10:00:00',
+          images: [],
+        },
+      ],
+    });
+    httpTesting.expectOne(`${API_BASE}/products/51/images`).flush({
+      success: true,
+      message: 'Success',
+      data: [],
+    });
+
+    service.applyStockReservation([{ productId: '51', quantity: 3 }]);
+
+    expect(service.products()[0].quantity).toBe(7);
+    expect(service.products()[0].available).toBe(true);
   });
 
   it('loads active listings for the buyer catalogue', () => {

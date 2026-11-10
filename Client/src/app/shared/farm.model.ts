@@ -1,4 +1,5 @@
 import type { FarmerProfileImage } from './farmer.model';
+import { hasValidDispatchCoordinates } from './dispatch-location';
 
 export type FarmOwnershipType = 'OWNED' | 'LEASED' | 'COMMUNAL';
 
@@ -28,6 +29,16 @@ export interface FarmerFarmRequest {
   sizeAcres: number;
   ownershipType: FarmOwnershipType;
   description?: string;
+}
+
+export function hasFarmDispatchAddress(farm: Pick<FarmerFarm, 'address'>): boolean {
+  return Boolean(farm.address?.trim());
+}
+
+export function hasFarmDispatchLocation(
+  farm: Pick<FarmerFarm, 'address' | 'latitude' | 'longitude'>,
+): boolean {
+  return hasValidDispatchCoordinates(farm);
 }
 
 /** Admin farmer details include farmer profile photos separately from per-farm images. */

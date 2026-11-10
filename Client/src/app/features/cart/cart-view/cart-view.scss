@@ -26,7 +26,7 @@
   border: 1px solid #d7eadb;
   border-radius: 17px;
 
-  mat-icon { width: 29px; height: 29px; font-size: 29px; }
+  mat-icon { width: 29px; height: 29px; font-size: 1.813rem; }
 }
 
 .cart-view__eyebrow {
@@ -92,7 +92,7 @@
   color: #39794d;
   background: #e9f4eb;
   border-radius: 18px;
-  font-size: 34px;
+  font-size: 2.125rem;
   line-height: 58px;
 }
 
@@ -155,7 +155,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 
-  mat-icon { width: 16px; height: 16px; color: #548063; font-size: 16px; }
+  mat-icon { width: 16px; height: 16px; color: #548063; font-size: 1rem; }
 }
 
 .cart-item__price { color: #647268; font-size: 0.88rem; font-weight: 650; }
@@ -253,7 +253,7 @@
   .cart-view__header { align-items: flex-start; }
   .cart-view__heading { align-items: flex-start; gap: 12px; }
   .cart-view__heading-icon { width: 48px; height: 48px; flex-basis: 48px; border-radius: 14px; }
-  .cart-view__heading-icon mat-icon { width: 25px; height: 25px; font-size: 25px; }
+  .cart-view__heading-icon mat-icon { width: 25px; height: 25px; font-size: 1.563rem; }
   .cart-view__subtitle { max-width: 320px; font-size: 0.86rem; }
   .cart-view__count { padding: 7px 10px; font-size: 0.75rem; }
 

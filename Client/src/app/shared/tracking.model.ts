@@ -15,6 +15,25 @@ export interface TrackingEvent {
   label?: string;
   note?: string;
   location?: string;
+  deliveryJobId?: number;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface DeliverySummary {
+  orderId: number;
+  orderStatus: string;
+  deliveries: DeliverySummaryItem[];
+}
+
+export interface DeliverySummaryItem {
+  deliveryJobId: number;
+  status: string;
+  destinationType: string;
+  assignedAt: string | null;
+  acceptedAt: string | null;
+  pickedUpAt: string | null;
+  completedAt: string | null;
 }
 
 export interface TrackingHistory {
@@ -72,6 +91,7 @@ function orderStatusIndex(status?: string | null): number {
 
 function deliveryStatusIndex(status?: DeliveryStatus | null): number {
   switch (status) {
+    case 'PENDING_ASSIGNMENT':
     case 'ASSIGNED':
     case 'ACCEPTED':
     case 'EN_ROUTE_TO_PICKUP':

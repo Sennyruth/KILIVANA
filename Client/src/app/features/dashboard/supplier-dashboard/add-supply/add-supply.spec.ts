@@ -94,7 +94,16 @@ describe('AddSupply', () => {
     await renderAddSupply([{ ...activeWarehouse, active: false }]);
 
     expect(
-      screen.getByText('Add an active warehouse before creating a supply listing.'),
+      screen.getByText('Add an active warehouse with an address and valid coordinates before creating a supply listing.'),
+    ).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Manage warehouses' })).toBeTruthy();
+  });
+
+  it('requires suppliers to repair active warehouses missing valid dispatch coordinates', async () => {
+    await renderAddSupply([{ ...activeWarehouse, latitude: null }]);
+
+    expect(
+      screen.getByText('Update an active warehouse with an address and valid coordinates before creating a supply listing.'),
     ).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Manage warehouses' })).toBeTruthy();
   });
@@ -106,7 +115,7 @@ describe('AddSupply', () => {
     ]);
 
     expect(
-      screen.getByText('Choose a default dispatch warehouse before creating a supply listing.'),
+      screen.getByText('Choose a default warehouse with an address and valid coordinates before creating a supply listing.'),
     ).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Manage warehouses' })).toBeTruthy();
   });

@@ -53,4 +53,14 @@ describe('TrackingStepper', () => {
     expect(stages[1].classList).toContain('tracking-stepper__stage--completed');
     expect(stages[2].classList).toContain('tracking-stepper__stage--active');
   });
+
+  it('shows dispatch preparation when the backend marks a job pending assignment', () => {
+    fixture.componentRef.setInput('history', confirmedHistory);
+    fixture.componentRef.setInput('orderStatus', 'PENDING');
+    fixture.componentRef.setInput('deliveryStatus', 'PENDING_ASSIGNMENT');
+    fixture.detectChanges();
+
+    const stages = fixture.nativeElement.querySelectorAll('.tracking-stepper__stage');
+    expect(stages[1].classList).toContain('tracking-stepper__stage--active');
+  });
 });

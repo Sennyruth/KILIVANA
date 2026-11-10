@@ -90,7 +90,7 @@
   background: #deefe2;
   border-radius: 13px;
 
-  mat-icon { width: 23px; height: 23px; font-size: 23px; }
+  mat-icon { width: 23px; height: 23px; font-size: 1.438rem; }
 }
 
 .farm-inspection-card__intro { margin: 0 0 18px; color: #647468; line-height: 1.55; }
@@ -151,7 +151,7 @@
     font-weight: 700;
     backdrop-filter: blur(6px);
 
-    mat-icon { width: 15px; height: 15px; color: #ffe08a; font-size: 15px; }
+    mat-icon { width: 15px; height: 15px; color: #ffe08a; font-size: 0.938rem; }
   }
 }
 
@@ -271,7 +271,7 @@
   mat-icon {
     width: 24px;
     height: 24px;
-    font-size: 24px;
+    font-size: 1.5rem;
     color: var(--primary);
   }
 
@@ -351,7 +351,7 @@
   border-bottom: 2px solid var(--primary-200);
 
   mat-icon {
-    font-size: 24px;
+    font-size: 1.5rem;
     color: var(--primary);
   }
 }
@@ -434,7 +434,7 @@
 
 .dashboard__rating-star {
   color: var(--accent);
-  font-size: 18px;
+  font-size: 1.125rem;
 }
 
 .dashboard__status--active {
@@ -530,7 +530,7 @@
   margin: var(--space-4);
 
   mat-icon {
-    font-size: 48px;
+    font-size: 3rem;
     color: var(--primary);
     opacity: 0.6;
   }
@@ -610,7 +610,7 @@
     mat-icon {
       width: 22px;
       height: 22px;
-      font-size: 22px;
+      font-size: 1.375rem;
     }
   }
 

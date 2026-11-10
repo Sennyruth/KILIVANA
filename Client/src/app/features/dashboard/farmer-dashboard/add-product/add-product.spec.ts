@@ -5,7 +5,7 @@ import { render, screen } from '@testing-library/angular';
 import { of } from 'rxjs';
 import { Product } from '../../../../core/services/product';
 import { Farmer } from '../../../../core/services/farmer';
-import type { FarmerFarm } from '../../../../shared/farm.model';
+import { hasFarmDispatchLocation, type FarmerFarm } from '../../../../shared/farm.model';
 import { NotificationService } from '../../../../shared/notification/notification.service';
 import { AddProduct } from './add-product';
 
@@ -15,6 +15,9 @@ describe('AddProduct', () => {
     farmerId: 8,
     name: 'Main Farm',
     county: 'Kiambu',
+    address: 'Farm road, Kiambu',
+    latitude: -1.2864,
+    longitude: 36.8172,
     sizeAcres: 5,
     ownershipType: 'OWNED',
     status: 'ACTIVE',
@@ -73,5 +76,18 @@ describe('AddProduct', () => {
     await renderAddProduct([{ ...activeFarm, status: 'INACTIVE' }]);
     expect(screen.getByText('Add or activate a farm before creating a product listing.')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Manage farm' })).toBeTruthy();
+  });
+
+  it('requires both a dispatch address and valid map coordinates', () => {
+    expect(hasFarmDispatchLocation(activeFarm)).toBe(true);
+    expect(hasFarmDispatchLocation({ ...activeFarm, address: '  ' })).toBe(false);
+    expect(hasFarmDispatchLocation({ ...activeFarm, latitude: null, longitude: null })).toBe(false);
+    expect(hasFarmDispatchLocation({ ...activeFarm, latitude: 91 })).toBe(false);
+  });
+
+  it('requires farmers to update farms without coordinates before listing products', async () => {
+    await renderAddProduct([{ ...activeFarm, latitude: null, longitude: null }]);
+    expect(screen.getByText(/valid map coordinates/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Update farm' })).toBeTruthy();
   });
 });

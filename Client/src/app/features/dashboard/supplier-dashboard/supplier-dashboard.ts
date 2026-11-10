@@ -17,6 +17,8 @@ import type { Product as ProductModel } from '../../../shared/product.model';
 import type { SellerOrderSummary } from '../../../shared/order.model';
 import { deliveryStatusLabel } from '../../../shared/order.model';
 import type { SellerLocation, SellerLocationRequest } from '../../../shared/seller-location.model';
+import { hasSellerDispatchLocation } from '../../../shared/seller-location.model';
+import { getCurrentCoordinates } from '../../../shared/dispatch-location';
 import { NotificationService } from '../../../shared/notification/notification.service';
 import { finalize } from 'rxjs';
 
@@ -52,6 +54,7 @@ export class SupplierDashboard implements OnInit {
   protected readonly locations = signal<SellerLocation[]>([]);
   protected readonly locationsLoading = signal(false);
   protected readonly locationsSaving = signal(false);
+  protected readonly locatingCoordinates = signal(false);
   protected readonly locationsError = signal<string | null>(null);
   protected readonly editingLocationId = signal<string | number | null>(null);
   protected readonly locationFormOpen = signal(false);
@@ -103,6 +106,8 @@ export class SupplierDashboard implements OnInit {
   protected readonly activeSupplies = computed(() => this.allProducts().filter(p => p.available).length);
   protected readonly filteredSuppliesCount = computed(() => this.products().length);
 
+  protected hasSellerDispatchLocation = hasSellerDispatchLocation;
+
   ngOnInit(): void {
     this.loadData();
   }
@@ -110,6 +115,7 @@ export class SupplierDashboard implements OnInit {
   @HostListener('window:focus')
   protected refreshOrdersOnFocus(): void {
     if (!this.ordersLoading()) this.loadOrders();
+    if (!this.productService.loading()) this.loadSupplies();
   }
 
   protected loadData(): void {
@@ -184,6 +190,17 @@ export class SupplierDashboard implements OnInit {
     });
   }
 
+  protected useCurrentLocation(): void {
+    if (this.locatingCoordinates()) return;
+    this.locatingCoordinates.set(true);
+    this.locationsError.set(null);
+    void getCurrentCoordinates().then((coordinates) => {
+      this.locationForm.patchValue(coordinates);
+    }).catch((error: Error) => {
+      this.locationsError.set(error.message);
+    }).finally(() => this.locatingCoordinates.set(false));
+  }
+
   protected editLocation(location: SellerLocation): void {
     this.locationFormOpen.set(true);
     this.editingLocationId.set(location.id);
@@ -231,7 +248,7 @@ export class SupplierDashboard implements OnInit {
   }
 
   protected setDefaultLocation(location: SellerLocation): void {
-    if (!location.active || location.defaultLocation) return;
+    if (!hasSellerDispatchLocation(location) || location.defaultLocation) return;
     this.locationsError.set(null);
     this.locationService.setDefaultLocation(location.id).subscribe({
       next: (response) => {

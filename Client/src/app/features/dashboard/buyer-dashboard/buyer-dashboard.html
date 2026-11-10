@@ -47,63 +47,42 @@
   @if (showContent() && hasOrders()) {
     <section class="dashboard__stats" aria-label="Order summary">
       <div class="stat-card">
-        <div class="dashboard__stat-icon dashboard__stat-icon--orders">
-          <mat-icon>shopping_cart</mat-icon>
-        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().total }}</span>
           <span class="stat-card__label">Total Orders</span>
         </div>
       </div>
       <div class="stat-card">
-        <div class="dashboard__stat-icon dashboard__stat-icon--pending">
-          <mat-icon>schedule</mat-icon>
-        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().pending }}</span>
           <span class="stat-card__label">Pending</span>
         </div>
       </div>
       <div class="stat-card">
-        <div class="dashboard__stat-icon dashboard__stat-icon--packed">
-          <mat-icon>inventory_2</mat-icon>
-        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().packed }}</span>
           <span class="stat-card__label">Packed</span>
         </div>
       </div>
       <div class="stat-card">
-        <div class="dashboard__stat-icon dashboard__stat-icon--shipped">
-          <mat-icon>local_shipping</mat-icon>
-        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().shipped }}</span>
           <span class="stat-card__label">Shipped</span>
         </div>
       </div>
       <div class="stat-card">
-        <div class="dashboard__stat-icon dashboard__stat-icon--delivery">
-          <mat-icon>near_me</mat-icon>
-        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().outForDelivery }}</span>
           <span class="stat-card__label">Out for Delivery</span>
         </div>
       </div>
       <div class="stat-card">
-        <div class="dashboard__stat-icon dashboard__stat-icon--delivered">
-          <mat-icon>task_alt</mat-icon>
-        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().delivered }}</span>
           <span class="stat-card__label">Delivered</span>
         </div>
       </div>
       <div class="stat-card">
-        <div class="dashboard__stat-icon dashboard__stat-icon--cancelled">
-          <mat-icon>cancel</mat-icon>
-        </div>
         <div class="stat-card__content">
           <span class="stat-card__value">{{ stats().cancelled }}</span>
           <span class="stat-card__label">Cancelled</span>
@@ -124,15 +103,12 @@
             </div>
             <div class="order-card__body">
               <span class="order-card__date" aria-label="Date">
-                <mat-icon>calendar_today</mat-icon>
                 {{ order.createdAt | date:'mediumDate' }}
               </span>
               <span class="order-card__total" aria-label="Total">
-                <mat-icon>payments</mat-icon>
                 {{ order.total | currency:'KES' }}
               </span>
               <span class="order-card__items" aria-label="Items">
-                <mat-icon>inventory_2</mat-icon>
                 {{ order.items.length }} item(s)
               </span>
             </div>
@@ -147,7 +123,6 @@
               aria-label="Track order #{{ order.id }}"
             >
               Track Order
-              <mat-icon>arrow_forward</mat-icon>
             </a>
           </div>
         }
@@ -174,7 +149,6 @@
             (click)="selectCategory('ALL')"
             class="dashboard__category-link"
           >
-            <mat-icon aria-hidden="true">apps</mat-icon>
             All Categories
             <span class="dashboard__category-count">{{ allProducts().length }}</span>
           </a>
@@ -185,7 +159,6 @@
               (click)="selectCategory(category)"
               class="dashboard__category-link"
             >
-              <mat-icon aria-hidden="true">{{ categoryIcon(category) }}</mat-icon>
               {{ categoryLabel(category) }}
               <span class="dashboard__category-count">{{ allProducts().filter(p => p.category === category).length }}</span>
             </a>

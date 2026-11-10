@@ -66,7 +66,7 @@
     color: #6d8b76;
     background: linear-gradient(135deg, #f5f8f4, #e8f1e8);
 
-    mat-icon { width: 36px; height: 36px; font-size: 36px; }
+    mat-icon { width: 36px; height: 36px; font-size: 2.25rem; }
     span { font-size: 0.8rem; font-weight: 600; }
   }
 
@@ -107,7 +107,7 @@
     font-weight: 700;
   }
 
-  &__star { color: #e39a16; font-size: 17px; }
+  &__star { color: #e39a16; font-size: 1.063rem; }
   &__reviews { color: #68766b; font-size: 0.72rem; font-weight: 500; }
 
   &__body {
@@ -199,7 +199,7 @@
     background: #edf6ef;
     border-radius: 50%;
 
-    mat-icon { width: 19px; height: 19px; font-size: 19px; }
+    mat-icon { width: 19px; height: 19px; font-size: 1.188rem; }
   }
 
   &__seller-copy {
@@ -212,7 +212,7 @@
 
   &__seller-label { color: #7b877d; font-size: 0.66rem; font-weight: 600; }
   &__seller-name { overflow: hidden; color: #334638; font-size: 0.82rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-  &__verified { width: 18px; height: 18px; color: #238149; font-size: 18px; }
+  &__verified { width: 18px; height: 18px; color: #238149; font-size: 1.125rem; }
 
   &__location {
     display: inline-flex;
@@ -225,7 +225,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    mat-icon { width: 15px; height: 15px; flex: 0 0 15px; font-size: 15px; }
+    mat-icon { width: 15px; height: 15px; flex: 0 0 15px; font-size: 0.938rem; }
   }
 
   &__footer {
@@ -260,7 +260,7 @@
     font-weight: 750;
     transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
 
-    mat-icon { width: 19px; height: 19px; font-size: 19px; }
+    mat-icon { width: 19px; height: 19px; font-size: 1.188rem; }
 
     &:hover:not(:disabled) { background: #12552e; transform: translateY(-1px); box-shadow: 0 6px 14px rgba(27, 107, 59, 0.26); }
     &:focus-visible { outline: 3px solid #f2b748; outline-offset: 2px; }

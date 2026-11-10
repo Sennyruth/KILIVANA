@@ -38,6 +38,10 @@
           <div>
             <h2>Pin your warehouse</h2>
             <p>Enter coordinates so delivery partners can locate the exact dispatch point.</p>
+            <button mat-stroked-button type="button" (click)="useCurrentLocation()" [disabled]="locatingCoordinates()">
+              <mat-icon>my_location</mat-icon>
+              {{ locatingCoordinates() ? 'Getting location…' : 'Use my current location' }}
+            </button>
           </div>
           <mat-form-field appearance="outline">
             <mat-label>Latitude</mat-label>

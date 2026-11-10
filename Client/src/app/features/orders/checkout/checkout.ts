@@ -78,6 +78,13 @@ export function pickupDistanceKm(
   return 6371 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
+export function formatCheckoutError(message: string): string {
+  if (/product dispatch location requires an address and valid coordinates/i.test(message)) {
+    return 'A farmer or supplier has not added a valid dispatch address and map pin. The seller must update their farm or warehouse location before checkout can continue.';
+  }
+  return message;
+}
+
 interface DeliveryQuote {
   quoteId: string;
   deliveryFee: number;
@@ -123,7 +130,7 @@ export class Checkout implements OnInit {
   protected readonly selectedPickupStationId = signal<number | null>(null);
   protected readonly stationsLoading = signal(false);
   protected readonly locatingNearestStation = signal(false);
-  protected readonly deliveryMethod = signal<'door' | 'pickup'>('door');
+  protected readonly deliveryMethod = signal<'door' | 'pickup'>('pickup');
   protected readonly pickupChoice = signal<'station' | 'typed'>('station');
   private readonly userLocation = signal<Coordinates | null>(null);
   private readonly quotedSubtotal = signal<number | null>(null);
@@ -279,7 +286,6 @@ export class Checkout implements OnInit {
               this.quotedDelivery.set(Number(quoteResponse.data.deliveryFee));
               this.http.post<number>(ApiEndpoints.CHECKOUT.CREATE_ORDER, {
                 quoteId: quoteResponse.data.quoteId,
-                phoneNumber: String(this.form.get('phone')?.value ?? '').replace(/^\+/, ''),
               }).subscribe({
                 next: (orderResponse) => {
                   if (!orderResponse.success || !orderResponse.data) {
@@ -345,7 +351,7 @@ export class Checkout implements OnInit {
 
   private failCheckout(message: string): void {
     this.submitting.set(false);
-    this.notification.error(message);
+    this.notification.error(formatCheckoutError(message));
   }
 
   protected retryPayment(): void {

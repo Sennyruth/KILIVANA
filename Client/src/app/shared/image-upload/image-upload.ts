@@ -16,10 +16,10 @@ export class ImageUpload {
   protected readonly dragOver = signal(false);
   protected readonly uploadProgress = signal(0);
   protected readonly maxFiles = 5;
-  protected readonly maxFileSize = 5 * 1024 * 1024; // 5MB
-  protected readonly compressionQuality = 0.7; // 70% quality
-  protected readonly maxWidth = 1920; // Max width for compression
-  protected readonly maxHeight = 1080; // Max height for c
+  protected readonly maxFileSize = 5 * 1024 * 1024; 
+  protected readonly compressionQuality = 0.7; 
+  protected readonly maxWidth = 1920; 
+  protected readonly maxHeight = 1080; 
 
   protected readonly filesSelected = output<File[]>();
   protected readonly uploaded = output<string[]>();

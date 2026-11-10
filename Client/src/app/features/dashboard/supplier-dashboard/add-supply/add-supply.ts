@@ -10,7 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Product, ListingFormData } from '../../../../core/services/product';
 import { SellerLocationService } from '../../../../core/services/seller-location';
-import type { SellerLocation } from '../../../../shared/seller-location.model';
+import { hasSellerDispatchLocation, type SellerLocation } from '../../../../shared/seller-location.model';
 import { ImageUpload } from '../../../../shared/image-upload/image-upload';
 import { NotificationService } from '../../../../shared/notification/notification.service';
 import { finalize } from 'rxjs';
@@ -95,7 +95,8 @@ export class AddSupply implements OnInit {
             return;
           }
 
-          const activeLocations = response.data.filter((location) => location.active);
+          const activeLocations = response.data.filter(hasSellerDispatchLocation);
+          const hasActiveLocations = response.data.some((location) => location.active);
           const defaultLocation = activeLocations.find((location) => location.defaultLocation);
           if (defaultLocation) {
             this.dispatchLocation.set(defaultLocation);
@@ -109,8 +110,10 @@ export class AddSupply implements OnInit {
 
           this.warehouseSetupMessage.set(
             activeLocations.length === 0
-              ? 'Add an active warehouse before creating a supply listing.'
-              : 'Choose a default dispatch warehouse before creating a supply listing.',
+              ? hasActiveLocations
+                ? 'Update an active warehouse with an address and valid coordinates before creating a supply listing.'
+                : 'Add an active warehouse with an address and valid coordinates before creating a supply listing.'
+              : 'Choose a default warehouse with an address and valid coordinates before creating a supply listing.',
           );
         },
         error: (error: { error?: { message?: string } }) => {

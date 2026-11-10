@@ -68,7 +68,7 @@
           <mat-form-field appearance="outline" class="add-product__field add-product__field--full">
             <mat-label>Dispatch location (Farm) *</mat-label>
             <mat-select formControlName="dispatchFarm" required>
-              @for (farm of activeFarms(); track farm.id) {
+              @for (farm of dispatchReadyFarms(); track farm.id) {
                 <mat-option [value]="farm.id">{{ farm.name }} — {{ farm.county }}</mat-option>
               }
             </mat-select>
@@ -85,6 +85,11 @@
             <p class="add-product__hint">
               Add or activate a farm before creating a product listing.
               <a routerLink="/dashboard/farmer/setup" [queryParams]="{ manage: 1 }">Manage farm</a>
+            </p>
+          } @else if (!dispatchReadyFarms().length) {
+            <p class="add-product__hint">
+              Add a dispatch address and valid map coordinates to your active farm before listing products.
+              <a routerLink="/dashboard/farmer/setup" [queryParams]="{ manage: 1 }">Update farm</a>
             </p>
           }
         </div>

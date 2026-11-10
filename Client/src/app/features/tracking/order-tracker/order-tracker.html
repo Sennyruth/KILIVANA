@@ -6,8 +6,8 @@
     </a>
     <div class="order-tracker__heading">
       <div>
-        <p class="order-tracker__eyebrow">{{ sellerPerspective ? (sellerOrderSubject() === 'farmer' ? 'FARMER ORDER' : 'BUYER ORDER') : 'YOUR DELIVERY' }}</p>
-        <h1 class="order-tracker__title">{{ sellerPerspective ? 'Track ' + sellerOrderSubject() + ' order' : 'Track your order' }}</h1>
+        <p class="order-tracker__eyebrow">{{ sellerPerspective ? 'YOUR SALE' : 'YOUR DELIVERY' }}</p>
+        <h1 class="order-tracker__title">{{ sellerPerspective ? 'Track this sale' : 'Track your order' }}</h1>
         <p class="order-tracker__subtitle">
           Order #{{ order()?.id ?? sellerOrder()?.id ?? orderId() }}
           @if (order()?.createdAt; as placedAt) {
@@ -72,6 +72,19 @@
           <span class="order-tracker__cancelled">{{ statusLabel(status) }}</span>
         }
       </div>
+      @if (deliverySummary()?.deliveries?.length) {
+        <div class="order-tracker__deliveries" aria-label="Delivery legs">
+          @for (delivery of deliverySummary()!.deliveries; track delivery.deliveryJobId) {
+            <p>
+              <strong>Delivery #{{ delivery.deliveryJobId }}</strong>
+              · {{ deliveryStatusText(delivery.status) }}
+              @if (delivery.destinationType) {
+                <span> · {{ destinationTypeText(delivery.destinationType) }}</span>
+              }
+            </p>
+          }
+        </div>
+      }
       @if (terminalStatus(); as status) {
         <div class="order-tracker__terminal" role="status">
           <mat-icon>{{ status === 'CANCELLED' ? 'cancel' : 'error_outline' }}</mat-icon>
@@ -121,6 +134,17 @@
                     <p class="order-tracker__event-location">
                       <mat-icon>location_on</mat-icon>
                       {{ event.location }}
+                    </p>
+                  }
+                  @if (event.deliveryJobId) {
+                    <p class="order-tracker__event-location">Delivery #{{ event.deliveryJobId }}</p>
+                  }
+                  @if (eventMapUrl(event); as mapUrl) {
+                    <p class="order-tracker__event-location">
+                      <mat-icon>place</mat-icon>
+                      <a [href]="mapUrl" target="_blank" rel="noopener noreferrer">
+                        {{ event.latitude }}, {{ event.longitude }}
+                      </a>
                     </p>
                   }
                   <time [attr.datetime]="event.timestamp">{{ event.timestamp | date:'medium' }}</time>

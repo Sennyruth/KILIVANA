@@ -458,11 +458,11 @@ export class Product {
           );
 
         return images$.pipe(
-          switchMap((images) => forkJoin(
-            images.map((image) => this.displayImageUrl(image.url).pipe(
+          switchMap((images) => images.length
+            ? forkJoin(images.map((image) => this.displayImageUrl(image.url).pipe(
               map((url) => ({ ...image, url })),
-            )),
-          )),
+            )))
+            : of([] as ProductImage[])),
           map((images) => ({ ...product, images })),
         );
       }),
@@ -488,7 +488,7 @@ export class Product {
     const categoryType = this._categories().find((item) => item.id === response.categoryId)?.type;
     const normalizedStatus = normalizeStatus(response.status);
     const sellerType = response.sellerType?.toUpperCase();
-    const quantity = Math.max(0, Number(response.stockQty ?? 0) - Number(response.reservedQty ?? 0));
+    const quantity = Math.max(0, Number(response.stockQty ?? 0));
     return {
       id: String(response.id),
       name: response.name ?? '',

@@ -21,6 +21,7 @@ export interface FarmerProfileImage {
   createdAt?: string;
 }
 
+
 export interface FarmerProfileResponse {
   id: number;
   userId?: number;

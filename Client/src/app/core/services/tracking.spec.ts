@@ -110,7 +110,8 @@ describe('Tracking', () => {
             id: 8,
             status: 'DELIVERED',
             note: 'Received by buyer',
-            locationName: 'Nairobi',
+            latitude: -1.2921,
+            longitude: 36.8219,
             recordedAt: '2026-10-08T09:00:00',
           },
           {
@@ -146,9 +147,28 @@ describe('Tracking', () => {
         timestamp: '2026-10-08T09:00:00',
         label: 'Delivered',
         note: 'Received by buyer',
-        location: 'Nairobi',
+        latitude: -1.2921,
+        longitude: 36.8219,
       },
     ]);
+  });
+
+  it('uses the backend buyer and seller delivery summary routes', () => {
+    get.mockReturnValueOnce(of({
+      success: true,
+      message: 'Success',
+      data: { orderId: 42, orderStatus: 'IN_TRANSIT', deliveries: [] },
+    }));
+    service.loadBuyerDeliverySummary(42).subscribe();
+    expect(get).toHaveBeenLastCalledWith(ApiEndpoints.LOGISTICS.BUYER_DELIVERY(42));
+
+    get.mockReturnValueOnce(of({
+      success: true,
+      message: 'Success',
+      data: { orderId: 42, orderStatus: 'IN_TRANSIT', deliveries: [] },
+    }));
+    service.loadSellerDeliverySummary(42).subscribe();
+    expect(get).toHaveBeenLastCalledWith(ApiEndpoints.LOGISTICS.SELLER_DELIVERIES(42));
   });
 
   it('marks the latest active delivery scan as in progress', () => {

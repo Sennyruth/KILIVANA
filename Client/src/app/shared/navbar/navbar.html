@@ -17,7 +17,10 @@
         </a>
       }
       @if (showDashboardLink()) {
-        <a class="navbar__link" [routerLink]="dashboardHref()" routerLinkActive>
+        <a class="navbar__link" [routerLink]="dashboardHref()"
+           routerLinkActive="navbar__link--active"
+           [routerLinkActiveOptions]="{ exact: true }"
+           ariaCurrentWhenActive="page">
           Dashboard
         </a>
       }
@@ -82,7 +85,13 @@
       </a>
     }
     @if (showDashboardLink()) {
-      <a class="navbar__mobile-link" [routerLink]="dashboardHref()" (click)="closeMobileMenu()">Dashboard</a>
+      <a class="navbar__mobile-link" [routerLink]="dashboardHref()"
+         (click)="closeMobileMenu()"
+         routerLinkActive="navbar__mobile-link--active"
+         [routerLinkActiveOptions]="{ exact: true }"
+         ariaCurrentWhenActive="page">
+        Dashboard
+      </a>
     }
   </div>
 </div>

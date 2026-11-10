@@ -43,4 +43,27 @@ describe('Farmer', () => {
       createdAt: undefined,
     });
   });
+
+  it('creates a farm with latitude and longitude coordinates', () => {
+    const request = {
+      name: 'Green Valley Farm',
+      county: 'Nakuru',
+      address: 'Farm road, Nakuru',
+      latitude: -1.2921,
+      longitude: 36.8219,
+      sizeAcres: 10,
+      ownershipType: 'OWNED' as const,
+    };
+
+    service.createFarm(request).subscribe();
+
+    const createRequest = httpTesting.expectOne(`${API_BASE}/farmers/me/farms`);
+    expect(createRequest.request.method).toBe('POST');
+    expect(createRequest.request.body).toEqual(request);
+    createRequest.flush({
+      success: true,
+      message: 'Success',
+      data: { id: 1, farmerId: 23, ...request },
+    });
+  });
 });

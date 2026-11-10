@@ -17,10 +17,16 @@
             <label>Sub-county <span>(optional)</span><input formControlName="subCounty" /></label>
           </div>
           @if (form.controls.county.touched && form.controls.county.invalid) { <small>Enter your county.</small> }
-          <label>Farm address or landmark <span>(optional)</span><textarea formControlName="address" rows="2" placeholder="Village, road, or nearby landmark"></textarea></label>
+          <label>Farm dispatch address or landmark<textarea formControlName="address" rows="2" placeholder="Village, road, or nearby landmark"></textarea></label>
+          @if (form.controls.address.touched && form.controls.address.invalid) { <small>Enter the farm address or a nearby landmark.</small> }
+          <p>Dispatch coordinates are required so delivery partners can find your farm.</p>
+          <button mat-stroked-button type="button" (click)="useCurrentLocation()" [disabled]="locatingCoordinates()">
+            <mat-icon>my_location</mat-icon>
+            {{ locatingCoordinates() ? 'Getting location…' : 'Use my current location' }}
+          </button>
           <div class="setup-form__row">
-            <label>Latitude <span>(optional; -90 to 90)</span><input type="number" step="any" min="-90" max="90" formControlName="latitude" /></label>
-            <label>Longitude <span>(optional; -180 to 180)</span><input type="number" step="any" min="-180" max="180" formControlName="longitude" /></label>
+            <label>Latitude <span>(required, -90 to 90)</span><input type="number" min="-90" max="90" step="any" formControlName="latitude" inputmode="decimal" /></label>
+            <label>Longitude <span>(required, -180 to 180)</span><input type="number" min="-180" max="180" step="any" formControlName="longitude" inputmode="decimal" /></label>
           </div>
           @if (form.controls.latitude.touched && form.controls.latitude.invalid) { <small>Enter a latitude between -90 and 90.</small> }
           @if (form.controls.longitude.touched && form.controls.longitude.invalid) { <small>Enter a longitude between -180 and 180.</small> }

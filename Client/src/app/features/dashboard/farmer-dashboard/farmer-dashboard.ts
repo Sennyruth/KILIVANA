@@ -102,6 +102,7 @@ export class FarmerDashboard implements OnInit, OnDestroy {
   @HostListener('window:focus')
   protected refreshOrdersOnFocus(): void {
     if (!this.orderService.loading()) this.loadOrders();
+    if (!this.productService.loading()) this.refreshProducts();
   }
 
   protected loadFarmProfile(): void {

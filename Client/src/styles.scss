@@ -33,6 +33,7 @@ $kilivana-brand-overrides: (
 );
 
 html {
+  font-size: 87.5%;
   @include mat.all-component-themes($kilivana-theme);
   @include mat.theme-overrides($kilivana-brand-overrides);
 }

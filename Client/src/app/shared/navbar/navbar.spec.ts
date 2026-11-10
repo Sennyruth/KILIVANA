@@ -1,11 +1,14 @@
-import { signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { Auth } from '../../core/services/auth';
 import { Cart } from '../../core/services/cart';
 import { NotificationService } from '../notification/notification.service';
 import { Navbar } from './navbar';
+
+@Component({ selector: 'app-test-route', template: '' })
+class TestRoute {}
 
 describe('Navbar', () => {
   let fixture: ComponentFixture<Navbar>;
@@ -25,7 +28,7 @@ describe('Navbar', () => {
     await TestBed.configureTestingModule({
       imports: [Navbar],
       providers: [
-        provideRouter([]),
+        provideRouter([{ path: 'dashboard/buyer', component: TestRoute }]),
         {
           provide: Auth,
           useValue: {
@@ -84,6 +87,24 @@ describe('Navbar', () => {
     const links = Array.from(fixture.nativeElement.querySelectorAll('.navbar__link')) as HTMLAnchorElement[];
     expect(links.map((link) => link.textContent?.trim())).toContain('Orders');
     expect(links.some((link) => link.getAttribute('href') === '/dashboard/supplier/orders')).toBe(true);
+  });
+
+  it('highlights the buyer dashboard link when its route is active', async () => {
+    fixture.detectChanges();
+    await TestBed.inject(Router).navigateByUrl('/dashboard/buyer');
+    fixture.detectChanges();
+
+    const desktopLink = fixture.nativeElement.querySelector(
+      '.navbar__nav .navbar__link[href="/dashboard/buyer"]',
+    ) as HTMLAnchorElement;
+    const mobileLink = fixture.nativeElement.querySelector(
+      '.navbar__mobile .navbar__mobile-link[href="/dashboard/buyer"]',
+    ) as HTMLAnchorElement;
+
+    expect(desktopLink.classList.contains('navbar__link--active')).toBe(true);
+    expect(desktopLink.getAttribute('aria-current')).toBe('page');
+    expect(mobileLink.classList.contains('navbar__mobile-link--active')).toBe(true);
+    expect(mobileLink.getAttribute('aria-current')).toBe('page');
   });
 
   it('clears the cart when the user logs out', async () => {

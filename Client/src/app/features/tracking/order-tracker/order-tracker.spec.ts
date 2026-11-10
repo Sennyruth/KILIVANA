@@ -5,7 +5,7 @@ import { of } from 'rxjs';
 import { Order as OrderService } from '../../../core/services/order';
 import { Tracking } from '../../../core/services/tracking';
 import { Auth } from '../../../core/services/auth';
-import type { TrackingHistory } from '../../../shared/tracking.model';
+import type { DeliverySummary, TrackingHistory } from '../../../shared/tracking.model';
 import type { DeliveryStatus } from '../../../shared/order.model';
 import { OrderTracker } from './order-tracker';
 
@@ -18,11 +18,22 @@ describe('OrderTracker', () => {
   let orderStatus: string;
   let deliveryStatus: DeliveryStatus | null;
   let logisticsJobId: number | undefined;
+  let buyerDeliverySummary: DeliverySummary;
+  let sellerDeliverySummary: DeliverySummary;
+  let sellerPerspective: string | null;
+  let currentUser: ReturnType<typeof signal<{ role: string } | null>>;
+  let loadBuyerDeliverySummary: ReturnType<typeof vi.fn>;
+  let loadSellerDeliverySummary: ReturnType<typeof vi.fn>;
+  let loadSellerOrders: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     orderStatus = 'SHIPPED';
     deliveryStatus = null;
     logisticsJobId = undefined;
+    sellerPerspective = null;
+    currentUser = signal({ role: 'BUYER' });
+    buyerDeliverySummary = { orderId: 42, orderStatus: 'SHIPPED', deliveries: [] };
+    sellerDeliverySummary = { orderId: 42, orderStatus: 'SHIPPED', deliveries: [] };
     trackingHistory = signal<TrackingHistory | null>({
       orderId: '42',
       currentStage: 'IN_TRANSIT',
@@ -60,6 +71,25 @@ describe('OrderTracker', () => {
             note: 'Received by buyer',
           },
         ],
+      }),
+    );
+    loadBuyerDeliverySummary = vi.fn(() =>
+      of({ success: true, message: 'Success', data: buyerDeliverySummary }),
+    );
+    loadSellerDeliverySummary = vi.fn(() =>
+      of({ success: true, message: 'Success', data: sellerDeliverySummary }),
+    );
+    loadSellerOrders = vi.fn(() =>
+      of({
+        success: true,
+        message: 'Success',
+        data: [{
+          id: 42,
+          status: 'SHIPPED',
+          total: 300,
+          createdAt: '2026-10-05T09:00:00Z',
+          itemCount: 2,
+        }],
       }),
     );
     getById = vi.fn(() =>
@@ -108,14 +138,14 @@ describe('OrderTracker', () => {
           useValue: {
             snapshot: {
               paramMap: { get: () => '42' },
-              queryParamMap: { get: () => null },
+              queryParamMap: { get: () => sellerPerspective },
             },
           },
         },
         {
           provide: Auth,
           useValue: {
-            user: signal(null),
+            user: currentUser,
             isFarmer: () => false,
             isSupplier: () => false,
           },
@@ -128,6 +158,8 @@ describe('OrderTracker', () => {
             clear: vi.fn(),
             load: loadTracking,
             loadDeliveryEvents,
+            loadBuyerDeliverySummary,
+            loadSellerDeliverySummary,
           },
         },
         {
@@ -135,6 +167,7 @@ describe('OrderTracker', () => {
           useValue: {
             getById,
             loadMine: vi.fn(),
+            loadSellerOrders,
           },
         },
       ],
@@ -170,15 +203,76 @@ describe('OrderTracker', () => {
   });
 
   it('includes backend delivery events in shipment updates', async () => {
-    logisticsJobId = 24;
+    buyerDeliverySummary = {
+      orderId: 42,
+      orderStatus: 'IN_TRANSIT',
+      deliveries: [{
+        deliveryJobId: 24,
+        status: 'IN_TRANSIT',
+        destinationType: 'DOOR_DELIVERY',
+        assignedAt: null,
+        acceptedAt: null,
+        pickedUpAt: null,
+        completedAt: null,
+      }],
+    };
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
 
     expect(loadDeliveryEvents).toHaveBeenCalledWith(24);
+    expect(loadBuyerDeliverySummary).toHaveBeenCalledWith('42');
     expect(fixture.nativeElement.textContent).toContain('Delivered');
     expect(fixture.nativeElement.textContent).toContain('Received by buyer');
+    expect(fixture.nativeElement.textContent).toContain('door delivery');
   });
+
+  it.each(['FARMER', 'SUPPLIER'])(
+    'loads seller-scoped delivery jobs for a %s seller',
+    async (role) => {
+      sellerPerspective = 'seller';
+      currentUser.set({ role });
+      fixture.destroy();
+      fixture = TestBed.createComponent(OrderTracker);
+      sellerDeliverySummary = {
+        orderId: 42,
+        orderStatus: 'IN_TRANSIT',
+        deliveries: [
+          {
+            deliveryJobId: 24,
+            status: 'IN_TRANSIT',
+            destinationType: 'DOOR_DELIVERY',
+            assignedAt: null,
+            acceptedAt: null,
+            pickedUpAt: null,
+            completedAt: null,
+          },
+          {
+            deliveryJobId: 25,
+            status: 'DELIVERED',
+            destinationType: 'PICKUP_STATION',
+            assignedAt: null,
+            acceptedAt: null,
+            pickedUpAt: null,
+            completedAt: '2026-10-07T09:00:00Z',
+          },
+        ],
+      };
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(loadSellerOrders).toHaveBeenCalled();
+      expect(loadSellerDeliverySummary).toHaveBeenCalledWith('42');
+      expect(loadDeliveryEvents).toHaveBeenNthCalledWith(1, 24);
+      expect(loadDeliveryEvents).toHaveBeenNthCalledWith(2, 25);
+      expect(fixture.nativeElement.textContent).toContain('YOUR SALE');
+      expect(fixture.nativeElement.textContent).toContain('Delivery #24');
+      expect(fixture.nativeElement.textContent).toContain('Delivery #25');
+      expect(getById).not.toHaveBeenCalled();
+    },
+  );
 
   it('keeps the active stage aligned with the order and delivery statuses', async () => {
     orderStatus = 'DELIVERED';

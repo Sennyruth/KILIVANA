@@ -8,7 +8,8 @@ import { catchError, finalize, forkJoin, map, of, switchMap, throwError } from '
 import { Auth } from '../../../../core/services/auth';
 import { Farmer } from '../../../../core/services/farmer';
 import type { FarmerProfileImage } from '../../../../shared/farmer.model';
-import type { FarmerFarm, FarmerFarmRequest } from '../../../../shared/farm.model';
+import { getCurrentCoordinates } from '../../../../shared/dispatch-location';
+import { hasFarmDispatchLocation, type FarmerFarm, type FarmerFarmRequest } from '../../../../shared/farm.model';
 
 @Component({
   selector: 'app-farm-setup',
@@ -26,6 +27,7 @@ export class FarmSetup implements OnInit, OnDestroy {
 
   protected readonly loading = signal(true);
   protected readonly savingFarm = signal(false);
+  protected readonly locatingCoordinates = signal(false);
   protected readonly uploadingPhoto = signal(false);
   protected readonly profileReady = signal(false);
   protected readonly farmReady = signal(false);
@@ -39,9 +41,9 @@ export class FarmSetup implements OnInit, OnDestroy {
     farmName: [`${this.auth.user()?.name ?? ''} Farm`.trim(), [Validators.required, Validators.maxLength(120)]],
     county: [this.auth.user()?.region ?? '', [Validators.required, Validators.maxLength(100)]],
     subCounty: ['', Validators.maxLength(100)],
-    address: ['', Validators.maxLength(500)],
-    latitude: [null as number | null, [Validators.min(-90), Validators.max(90)]],
-    longitude: [null as number | null, [Validators.min(-180), Validators.max(180)]],
+    address: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(500)]],
+    latitude: [null as number | null, [Validators.required, Validators.min(-90), Validators.max(90)]],
+    longitude: [null as number | null, [Validators.required, Validators.min(-180), Validators.max(180)]],
     sizeAcres: [1, [Validators.required, Validators.min(0.1)]],
     ownershipType: ['OWNED', Validators.required],
     description: ['', Validators.maxLength(1000)],
@@ -105,16 +107,6 @@ export class FarmSetup implements OnInit, OnDestroy {
       return;
     }
     const value = this.form.getRawValue();
-    const hasLatitude = value.latitude !== null;
-    const hasLongitude = value.longitude !== null;
-    if (hasLatitude !== hasLongitude) {
-      this.form.controls.latitude.markAsTouched();
-      this.form.controls.longitude.markAsTouched();
-      this.error.set('Enter both coordinates for the farm location, or leave both blank.');
-      return;
-    }
-    const id = this.auth.user()?.id;
-    if (!id) return;
     const request: FarmerFarmRequest = {
       name: value.farmName?.trim() ?? '',
       county: value.county?.trim() ?? '',
@@ -126,6 +118,15 @@ export class FarmSetup implements OnInit, OnDestroy {
       ownershipType: value.ownershipType as FarmerFarmRequest['ownershipType'],
       description: value.description?.trim() || undefined,
     };
+    if (!hasFarmDispatchLocation(request)) {
+      this.form.controls.address.markAsTouched();
+      this.form.controls.latitude.markAsTouched();
+      this.form.controls.longitude.markAsTouched();
+      this.error.set('Enter the farm dispatch address and valid latitude and longitude coordinates.');
+      return;
+    }
+    const id = this.auth.user()?.id;
+    if (!id) return;
     const profileRequest = {
       farmName: request.name,
       location: [request.subCounty, request.county].filter(Boolean).join(', '),
@@ -147,12 +148,16 @@ export class FarmSetup implements OnInit, OnDestroy {
         const existingFarm = this.farm();
         if (existingFarm) return this.farmer.updateFarm(existingFarm.id, request);
         return this.farmer.getMyFarms().pipe(
-          map((farmsResponse) => {
-            const linkedFarm = farmsResponse.data?.[0];
+          switchMap((farmsResponse) => {
+            const linkedFarm = farmsResponse.data?.find(
+              (farm) => farm.name.trim().toLowerCase() === request.name.trim().toLowerCase(),
+            );
             if (!farmsResponse.success || !linkedFarm) {
-              throw new Error(farmsResponse.message || 'The farm profile was saved, but its linked farm could not be loaded.');
+              return throwError(() => new Error(
+                farmsResponse.message || 'The farm profile was saved, but its linked farm could not be loaded.',
+              ));
             }
-            return { ...farmsResponse, data: linkedFarm };
+            return this.farmer.updateFarm(linkedFarm.id, request);
           }),
         );
       }),
@@ -165,13 +170,24 @@ export class FarmSetup implements OnInit, OnDestroy {
         }
         this.profileReady.set(true);
         this.farm.set(response.data);
-        this.farmReady.set(true);
+        this.farmReady.set(hasFarmDispatchLocation(response.data));
         if (this.photos().length && !this.manageMode()) void this.router.navigate(['/dashboard/farmer']);
       },
       error: (err: { error?: { message?: string }; message?: string }) => {
         this.error.set(err.error?.message || err.message || 'Could not save your farm. Try again.');
       },
     });
+  }
+
+  protected useCurrentLocation(): void {
+    if (this.locatingCoordinates()) return;
+    this.locatingCoordinates.set(true);
+    this.error.set(null);
+    void getCurrentCoordinates().then((coordinates) => {
+      this.form.patchValue(coordinates);
+    }).catch((error: Error) => {
+      this.error.set(error.message);
+    }).finally(() => this.locatingCoordinates.set(false));
   }
 
   protected onPhotoSelected(event: Event): void {
@@ -231,7 +247,7 @@ export class FarmSetup implements OnInit, OnDestroy {
       next: (response) => {
         const existingFarm = response.data?.[0] ?? null;
         this.farm.set(existingFarm);
-        this.farmReady.set(response.success && !!existingFarm);
+        this.farmReady.set(response.success && !!existingFarm && hasFarmDispatchLocation(existingFarm));
         if (existingFarm) {
           this.form.patchValue({
             farmName: existingFarm.name,

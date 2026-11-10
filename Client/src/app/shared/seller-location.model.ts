@@ -1,10 +1,12 @@
+import { hasValidDispatchCoordinates } from './dispatch-location';
+
 export interface SellerLocation {
   id: number | string;
   name: string;
   address: string;
   county: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   contactName?: string | null;
   contactPhone?: string | null;
   operatingHours?: string | null;
@@ -23,4 +25,11 @@ export interface SellerLocationRequest {
   contactName?: string;
   contactPhone?: string;
   operatingHours?: string;
+}
+
+export function hasSellerDispatchLocation(location: Pick<
+  SellerLocation,
+  'address' | 'latitude' | 'longitude' | 'active'
+>): boolean {
+  return location.active && hasValidDispatchCoordinates(location);
 }

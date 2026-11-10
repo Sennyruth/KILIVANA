@@ -3,7 +3,12 @@ import { Observable, finalize, map } from 'rxjs';
 
 import { HttpService } from './http';
 import { ApiEndpoints } from '../../shared/api.config';
-import { TrackingEvent, TrackingHistory, TrackingStage } from '../../shared/tracking.model';
+import {
+  DeliverySummary,
+  TrackingEvent,
+  TrackingHistory,
+  TrackingStage,
+} from '../../shared/tracking.model';
 import { ApiResponse } from '../../shared/api-response';
 import { DeliveryStatus, OrderStatus, deliveryStatusLabel } from '../../shared/order.model';
 
@@ -26,6 +31,8 @@ interface LogisticsTrackingEvent {
   id: number | string;
   status: string;
   note: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   location?: string | null;
   locationName?: string | null;
   recordedAt: string;
@@ -100,6 +107,7 @@ export class Tracking {
             data: events.map((event, index): TrackingEvent => {
               const status = normalizeDeliveryStatus(event.status);
               const isLatest = index === events.length - 1;
+              const coordinates = validCoordinates(event.latitude, event.longitude);
               return {
                 id: `delivery-${event.id}`,
                 stage: stageForDeliveryStatus(status, this.history()?.currentStage ?? 'CONFIRMED'),
@@ -107,6 +115,7 @@ export class Tracking {
                 timestamp: event.recordedAt,
                 label: deliveryStatusLabel(status) ?? statusLabelForDelivery(status),
                 ...(event.note ? { note: event.note } : {}),
+                ...(coordinates ?? {}),
                 ...(typeof event.locationName === 'string'
                   ? { location: event.locationName }
                   : typeof event.location === 'string'
@@ -117,6 +126,14 @@ export class Tracking {
           };
         }),
       );
+  }
+
+  loadBuyerDeliverySummary(orderId: string | number): Observable<ApiResponse<DeliverySummary>> {
+    return this.http.get<DeliverySummary>(ApiEndpoints.LOGISTICS.BUYER_DELIVERY(orderId));
+  }
+
+  loadSellerDeliverySummary(orderId: string | number): Observable<ApiResponse<DeliverySummary>> {
+    return this.http.get<DeliverySummary>(ApiEndpoints.LOGISTICS.SELLER_DELIVERIES(orderId));
   }
 
   stageIndex(stage: TrackingStage): number {
@@ -130,6 +147,22 @@ export class Tracking {
   eventForStage(history: TrackingHistory, stage: TrackingStage) {
     return history.events.find((e) => e.stage === stage) ?? null;
   }
+}
+
+function validCoordinates(
+  latitude?: number | null,
+  longitude?: number | null,
+): Pick<TrackingEvent, 'latitude' | 'longitude'> | null {
+  if (
+    latitude == null ||
+    !Number.isFinite(latitude) ||
+    Math.abs(latitude) > 90 ||
+    longitude == null ||
+    !Number.isFinite(longitude) ||
+    Math.abs(longitude) > 180
+  ) return null;
+
+  return { latitude, longitude };
 }
 
 function normalizeDeliveryStatus(value: string): DeliveryStatus {

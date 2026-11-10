@@ -4,12 +4,17 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { finalize, interval } from 'rxjs';
+import { finalize, forkJoin, interval } from 'rxjs';
 import { Order as OrderService } from '../../../core/services/order';
 import { Auth } from '../../../core/services/auth';
 import type { Order as OrderModel, OrderStatus, SellerOrderSummary } from '../../../shared/order.model';
 import { deliveryStatusLabel } from '../../../shared/order.model';
-import type { TrackingEvent, TrackingStage } from '../../../shared/tracking.model';
+import type {
+  DeliverySummary,
+  DeliverySummaryItem,
+  TrackingEvent,
+  TrackingStage,
+} from '../../../shared/tracking.model';
 import { TrackingStepper } from '../../../shared/tracking-stepper/tracking-stepper';
 import { Tracking } from '../../../core/services/tracking';
 
@@ -33,16 +38,14 @@ export class OrderTracker implements OnInit {
   protected readonly sellerBackFragment = computed(() =>
     this.auth.user()?.role === 'SUPPLIER' ? undefined : 'farmer-orders',
   );
-  protected readonly sellerOrderSubject = computed(() =>
-    this.auth.user()?.role === 'SUPPLIER' ? 'farmer' : 'buyer',
-  );
-
   protected readonly history = this.tracking.history;
   protected readonly loading = this.tracking.loading;
   protected readonly error = signal<string | null>(null);
   protected readonly detailError = signal<string | null>(null);
   protected readonly deliveryEventsError = signal<string | null>(null);
   protected readonly deliveryEvents = signal<TrackingEvent[]>([]);
+  protected readonly deliverySummary = signal<DeliverySummary | null>(null);
+  private readonly deliverySummaryLoading = signal(false);
   private readonly deliveryEventsLoading = signal(false);
   private readonly orderDetailsLoading = signal(false);
   private readonly latestOrderLoading = signal(false);
@@ -55,12 +58,7 @@ export class OrderTracker implements OnInit {
   });
   protected readonly timelineEvents = computed(() => {
     const deliveryEvents = this.deliveryEvents();
-    const deliveryLabels = new Set(
-      deliveryEvents.map((event) => `${event.stage}:${event.label?.toLowerCase() ?? ''}`),
-    );
-    const orderEvents = (this.history()?.events ?? []).filter(
-      (event) => !deliveryLabels.has(`${event.stage}:${event.label?.toLowerCase() ?? ''}`),
-    );
+    const orderEvents = this.history()?.events ?? [];
     return [...orderEvents, ...deliveryEvents].sort(
       (left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime(),
     );
@@ -94,6 +92,7 @@ export class OrderTracker implements OnInit {
         if (
           this.loading() ||
           this.sellerOrderLoading() ||
+          this.deliverySummaryLoading() ||
           this.deliveryEventsLoading() ||
           this.orderDetailsLoading() ||
           this.latestOrderLoading()
@@ -110,6 +109,7 @@ export class OrderTracker implements OnInit {
     this.detailError.set(null);
     this.deliveryEventsError.set(null);
     this.deliveryEvents.set([]);
+    this.deliverySummary.set(null);
     this.tracking.clear();
     this.sellerOrder.set(null);
     this.sellerOrderLoading.set(false);
@@ -189,7 +189,7 @@ export class OrderTracker implements OnInit {
             return;
           }
           this.order.set(response.data.order);
-          this.loadDeliveryTrackingEvents(response.data.order.logisticsJobId);
+          this.loadDeliverySummary(id, 'buyer');
         },
         error: () => this.detailError.set('Order details are temporarily unavailable.'),
       });
@@ -220,23 +220,7 @@ export class OrderTracker implements OnInit {
           ...summary,
           status: summary.status.toUpperCase() === 'PLACED' ? 'PENDING' : summary.status.toUpperCase(),
         });
-        if (summary.logisticsJobId) {
-          this.loadDeliveryTrackingEvents(summary.logisticsJobId);
-        } else {
-          this.orderDetailsLoading.set(true);
-          this.orderService.getById(id)
-            .pipe(finalize(() => this.orderDetailsLoading.set(false)))
-            .subscribe({
-              next: (details) => {
-                if (!details.success || !details.data) {
-                  this.deliveryEventsError.set(details.message || 'Detailed delivery updates are unavailable.');
-                  return;
-                }
-                this.loadDeliveryTrackingEvents(details.data.order.logisticsJobId);
-              },
-              error: () => this.deliveryEventsError.set('Detailed delivery updates could not be loaded.'),
-            });
-        }
+        this.loadDeliverySummary(id, 'seller');
         this.tracking.load(id).subscribe({
           next: (timeline) => {
             if (!timeline.success || !timeline.data) {
@@ -253,26 +237,88 @@ export class OrderTracker implements OnInit {
     });
   }
 
-  private loadDeliveryTrackingEvents(jobId?: number | null): void {
+  private loadDeliverySummary(orderId: string, perspective: 'buyer' | 'seller'): void {
     this.deliveryEventsError.set(null);
-    if (!jobId) {
+    this.deliverySummary.set(null);
+    this.deliveryEvents.set([]);
+    this.deliverySummaryLoading.set(true);
+    const request = perspective === 'seller'
+      ? this.tracking.loadSellerDeliverySummary(orderId)
+      : this.tracking.loadBuyerDeliverySummary(orderId);
+    request.pipe(finalize(() => this.deliverySummaryLoading.set(false))).subscribe({
+      next: (response) => {
+        if (!response.success || !response.data) {
+          this.deliveryEventsError.set(response.message || 'Delivery details are unavailable.');
+          return;
+        }
+        if (!Array.isArray(response.data.deliveries)) {
+          this.deliveryEventsError.set('The server returned invalid delivery details.');
+          return;
+        }
+        this.deliverySummary.set(response.data);
+        this.loadDeliveryTrackingEvents(response.data.deliveries);
+      },
+      error: () => this.deliveryEventsError.set('Delivery details could not be loaded. Please try again.'),
+    });
+  }
+
+  private loadDeliveryTrackingEvents(deliveries: DeliverySummaryItem[]): void {
+    const validDeliveries = deliveries.filter((delivery) =>
+      Number.isSafeInteger(delivery.deliveryJobId) && delivery.deliveryJobId > 0,
+    );
+    if (validDeliveries.length !== deliveries.length) {
+      this.deliveryEventsError.set('The server returned an invalid delivery reference.');
+      this.deliveryEvents.set([]);
+      return;
+    }
+    if (!validDeliveries.length) {
       this.deliveryEvents.set([]);
       this.deliveryEventsLoading.set(false);
       return;
     }
 
+    this.deliveryEvents.set([]);
     this.deliveryEventsLoading.set(true);
-    this.tracking.loadDeliveryEvents(jobId)
+    forkJoin(validDeliveries.map((delivery) =>
+      this.tracking.loadDeliveryEvents(delivery.deliveryJobId),
+    ))
       .pipe(finalize(() => this.deliveryEventsLoading.set(false)))
       .subscribe({
         next: (response) => {
-          if (!response.success) {
-            this.deliveryEventsError.set(response.message || 'Driver updates are temporarily unavailable.');
+          const failedResponse = response.find((result) => !result.success);
+          if (failedResponse) {
+            this.deliveryEventsError.set(failedResponse.message || 'Driver updates are temporarily unavailable.');
             return;
           }
-          this.deliveryEvents.set(response.data ?? []);
+          this.deliveryEvents.set(response.flatMap((result, index) =>
+            (result.data ?? []).map((event) => ({
+              ...event,
+              deliveryJobId: validDeliveries[index].deliveryJobId,
+            })),
+          ));
         },
         error: () => this.deliveryEventsError.set('Driver updates could not be loaded. Please try again.'),
       });
+  }
+
+  protected deliveryStatusText(status: string): string {
+    return deliveryStatusLabel(status) ?? status.replace(/_/g, ' ').toLowerCase();
+  }
+
+  protected destinationTypeText(destinationType: string): string {
+    return destinationType.replace(/_/g, ' ').toLowerCase();
+  }
+
+  protected eventMapUrl(event: TrackingEvent): string | null {
+    if (
+      event.latitude == null ||
+      event.longitude == null ||
+      !Number.isFinite(event.latitude) ||
+      !Number.isFinite(event.longitude) ||
+      Math.abs(event.latitude) > 90 ||
+      Math.abs(event.longitude) > 180
+    ) return null;
+
+    return `https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`;
   }
 }
