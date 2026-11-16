@@ -7,7 +7,7 @@
     <div class="dashboard__header-actions">
       <a mat-stroked-button routerLink="/inputs" class="dashboard__browse-inputs">
         <mat-icon>storefront</mat-icon>
-        Browse Supplier Products
+        Browse Inputs
       </a>
       <button mat-raised-button color="primary" (click)="addProduct()">
         <mat-icon>add</mat-icon>
@@ -230,7 +230,6 @@
                 <th>Category</th>
                 <th>Price</th>
                 <th>Stock</th>
-                <th>Rating</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -250,10 +249,6 @@
                   <td>{{ product.category }}</td>
                   <td>{{ product.price | currency:'KES' }} / {{ product.unit }}</td>
                   <td>{{ product.quantity }} {{ product.unit }}</td>
-                  <td>
-                    <mat-icon class="dashboard__rating-star">star</mat-icon>
-                    {{ product.rating }} ({{ product.reviewCount }})
-                  </td>
                   <td>
                     <span [class]="productStatusClass(product)">
                       {{ productStatusLabel(product) }}

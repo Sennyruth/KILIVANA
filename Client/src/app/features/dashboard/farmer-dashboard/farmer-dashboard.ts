@@ -89,12 +89,19 @@ export class FarmerDashboard implements OnInit, OnDestroy {
   protected readonly totalOrders = computed(() => this.orders().length);
   protected readonly pendingOrders = computed(() => this.orders().filter(o => o.status === 'PENDING').length);
 
+  private refreshInterval?: ReturnType<typeof setInterval>;
+
   ngOnInit(): void {
     this.loadData();
     this.loadFarmProfile();
+    this.refreshInterval = setInterval(() => {
+      if (!this.orderService.loading()) this.loadOrders();
+      if (!this.productService.loading()) this.refreshProducts();
+    }, 30000);
   }
 
   ngOnDestroy(): void {
+    if (this.refreshInterval) clearInterval(this.refreshInterval);
     this.clearFarmPhotoObjectUrls();
     this.clearFarmPhotoPreview();
   }

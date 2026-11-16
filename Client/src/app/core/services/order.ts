@@ -302,6 +302,12 @@ function normalizeSellerOrder(value: unknown): SellerOrderSummary | null {
   const logisticsJobId = normalizeLogisticsJobId(order['logisticsJobId']);
   return {
     id,
+    ...(typeof order['buyerName'] === 'string' ? { buyerName: order['buyerName'] } : {}),
+    ...(typeof order['buyerPhone'] === 'string'
+      ? { buyerPhone: order['buyerPhone'] }
+      : typeof order['phone'] === 'string' ? { buyerPhone: order['phone'] } : {}),
+    ...(typeof order['deliveryAddress'] === 'string' ? { deliveryAddress: order['deliveryAddress'] } : {}),
+    ...(typeof order['pickupLocation'] === 'string' ? { pickupLocation: order['pickupLocation'] } : {}),
     status: String(order['status'] ?? 'PENDING').toUpperCase(),
     ...(deliveryStatus ? { deliveryStatus } : {}),
     ...(logisticsJobId ? { logisticsJobId } : {}),

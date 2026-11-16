@@ -79,6 +79,10 @@ export interface Order {
 
 export interface SellerOrderSummary {
   id: number;
+  buyerName?: string;
+  buyerPhone?: string;
+  deliveryAddress?: string;
+  pickupLocation?: string | null;
   status: string;
   deliveryStatus?: DeliveryStatus | null;
   logisticsJobId?: number | null;

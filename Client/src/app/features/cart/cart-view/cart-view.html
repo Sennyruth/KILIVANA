@@ -22,9 +22,9 @@
       <mat-icon class="cart-view__empty-icon">shopping_cart</mat-icon>
       <h3>Your cart is empty</h3>
       <p>Looks like you haven't added any products yet.</p>
-      <a mat-raised-button color="primary" routerLink="/products">
+      <a mat-raised-button color="primary" [routerLink]="shopHref()">
         <mat-icon>shopping_basket</mat-icon>
-        Browse Products
+        {{ shopLabel() }}
       </a>
     </div>
   } @else {
@@ -36,7 +36,7 @@
           </div>
           <div class="cart-item__details">
             <h3 class="cart-item__name">{{ item.name }}</h3>
-            <p class="cart-item__farmer"><mat-icon>storefront</mat-icon>{{ item.sellerName || 'Local seller' }}</p>
+            <p class="cart-item__farmer">{{ item.sellerName || 'Local seller' }}</p>
             <div class="cart-item__price">{{ item.price | currency:'KES' }} <span>per {{ item.unit }}</span></div>
           </div>
 
@@ -79,19 +79,15 @@
         <span>Delivery Fee</span>
         <span>{{ deliveryFee() | currency:'KES' }}</span>
       </div>
-      <div class="cart-summary__row">
-        <span>Tax</span>
-        <span>{{ tax() | currency:'KES' }}</span>
-      </div>
       <div class="cart-summary__divider"></div>
       <div class="cart-summary__row cart-summary__total">
         <span>Total</span>
-        <span>{{ grandTotal() | currency:'KES' }}</span>
+        <span>{{ total() | currency:'KES' }}</span>
       </div>
     </section>
 
     <div class="cart-view__actions">
-      <button mat-stroked-button routerLink="/products">
+      <button mat-stroked-button [routerLink]="shopHref()">
         <mat-icon>arrow_back</mat-icon>
         Continue Shopping
       </button>

@@ -76,7 +76,7 @@ export class AddProduct implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.productService.categories().length === 0) {
+    if (this.productService.categories().length === 0 && !this.productService.categoriesLoading()) {
       this.productService.reloadCategories();
     }
     this.loadDispatchFarms();

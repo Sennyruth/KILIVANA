@@ -18,14 +18,11 @@ function isApiRequest(url: string): boolean {
   }
 }
 
-/** Adds the ngrok bypass header (so ngrok returns your API, not its warning page) and the auth token. */
+/** Adds the auth token to API requests. */
 function withHeaders(req: HttpRequest<unknown>, token: string | null): HttpRequest<unknown> {
   const headers: Record<string, string> = {};
 
   const isApi = isApiRequest(req.url);
-  if (isApi && API_ORIGIN.includes('ngrok')) {
-    headers['ngrok-skip-browser-warning'] = 'true';
-  }
   if (isApi && token) {
     headers['Authorization'] = `Bearer ${token}`;
   }

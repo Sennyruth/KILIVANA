@@ -52,6 +52,16 @@
               <mat-error>Category is required</mat-error>
             }
           </mat-form-field>
+          @if (productService.categoriesLoading()) {
+            <p class="add-product__hint" role="status">Loading product categories…</p>
+          } @else if (productService.categoriesError()) {
+            <div class="add-product__category-error" role="alert">
+              <p class="add-product__error">{{ productService.categoriesError() }}</p>
+              <button mat-stroked-button type="button" (click)="productService.reloadCategories()">Retry</button>
+            </div>
+          } @else if (!categories().length) {
+            <p class="add-product__hint" role="status">No farmer product categories are available.</p>
+          }
 
           <mat-form-field appearance="outline" class="add-product__field">
             <mat-label>Unit *</mat-label>

@@ -38,8 +38,6 @@ describe('Cart', () => {
     farmerName: 'Farmer One',
     farmerVerified: true,
     location: 'Nakuru',
-    rating: 4.5,
-    reviewCount: 10,
     available: true,
     createdAt: '2026-10-07T10:00:00',
   };

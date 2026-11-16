@@ -112,6 +112,7 @@ export class OrderTracker implements OnInit {
     this.deliverySummary.set(null);
     this.tracking.clear();
     this.sellerOrder.set(null);
+    this.order.set(null);
     this.sellerOrderLoading.set(false);
     this.loadCurrentStatus();
   }
@@ -219,6 +220,24 @@ export class OrderTracker implements OnInit {
         this.sellerOrder.set({
           ...summary,
           status: summary.status.toUpperCase() === 'PLACED' ? 'PENDING' : summary.status.toUpperCase(),
+        });
+        // Seller order lists often omit buyer delivery fields. The order detail
+        // endpoint applies its own access checks and supplies the saved details
+        // when the signed-in seller is allowed to view them.
+        this.orderService.getById(id).subscribe({
+          next: (details) => {
+            if (!details.success || !details.data) return;
+            const order = details.data.order;
+            this.sellerOrder.update((current) => current ? {
+              ...current,
+              buyerName: order.buyerName || current.buyerName,
+              buyerPhone: order.phone || current.buyerPhone,
+              deliveryAddress: order.deliveryAddress || current.deliveryAddress,
+              pickupLocation: order.pickupLocation || current.pickupLocation,
+            } : current);
+          },
+          // Seller order summary remains usable if detail access is unavailable.
+          error: () => undefined,
         });
         this.loadDeliverySummary(id, 'seller');
         this.tracking.load(id).subscribe({

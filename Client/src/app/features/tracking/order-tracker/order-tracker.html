@@ -159,18 +159,28 @@
 
       <aside class="order-tracker__side">
         <section class="panel order-tracker__delivery" aria-labelledby="delivery-title">
-          <h2 id="delivery-title"><mat-icon>location_on</mat-icon>{{ order()?.pickupLocation ? 'Pickup location' : 'Delivery details' }}</h2>
-          @if (sellerPerspective) {
-            <p>Delivery address and buyer contact details are not included in the seller tracking view.</p>
-          } @else if (order()?.pickupLocation || order()?.deliveryAddress) {
+          <h2 id="delivery-title"><mat-icon>location_on</mat-icon>{{ (sellerPerspective ? sellerOrder()?.pickupLocation : order()?.pickupLocation) ? 'Pickup location' : sellerPerspective ? 'Buyer & delivery details' : 'Delivery details' }}</h2>
+          @if (sellerPerspective && sellerOrder()?.buyerName) {
+            <p>Buyer: {{ sellerOrder()?.buyerName }}</p>
+          }
+          @if ((sellerPerspective ? sellerOrder()?.pickupLocation : order()?.pickupLocation) || (sellerPerspective ? sellerOrder()?.deliveryAddress : order()?.deliveryAddress)) {
+            <p>{{ (sellerPerspective ? sellerOrder()?.pickupLocation : order()?.pickupLocation) || (sellerPerspective ? sellerOrder()?.deliveryAddress : order()?.deliveryAddress) }}</p>
+            @if (sellerPerspective ? sellerOrder()?.buyerPhone : order()?.phone; as buyerPhone) {
+              <span>Buyer contact: {{ buyerPhone }}</span>
+            }
+          } @else if (!sellerPerspective && (order()?.deliveryAddress || order()?.phone)) {
             <p>{{ order()?.pickupLocation || order()?.deliveryAddress }}</p>
             @if (order()?.phone) {
               <span>Contact: {{ order()?.phone }}</span>
             }
+          } @else if (sellerPerspective && (sellerOrder()?.buyerPhone || sellerOrder()?.buyerName)) {
+            @if (sellerOrder()?.buyerPhone; as buyerPhone) {
+              <span>Buyer contact: {{ buyerPhone }}</span>
+            }
           } @else if (detailError()) {
             <p class="order-tracker__detail-error">{{ detailError() }}</p>
           } @else {
-            <p>Delivery address is not available.</p>
+            <p>{{ sellerPerspective ? 'Buyer delivery details are not available.' : 'Delivery address is not available.' }}</p>
           }
         </section>
 

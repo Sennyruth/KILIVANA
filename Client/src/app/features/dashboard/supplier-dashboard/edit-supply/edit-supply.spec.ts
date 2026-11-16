@@ -23,8 +23,6 @@ describe('EditSupply', () => {
     farmerName: 'Supplier',
     farmerVerified: false,
     location: '',
-    rating: 0,
-    reviewCount: 0,
     available: true,
     createdAt: '2026-10-07T10:00:00',
     categoryId: 13,

@@ -27,13 +27,25 @@ export class ProductCard {
     return '';
   }
 
-  get sellerLabel(): string {
-    return this.product()?.type === 'INPUT' ? 'Supplier' : 'Farmer';
+  get minOrderLabel(): string {
+    const p = this.product();
+    const min = p?.minimumOrderQty;
+    if (!p || !min || min <= 1) return '';
+    return `Min. order ${min} ${p.unit}`;
   }
 
-  get sellerName(): string {
-    const product = this.product();
-    return product?.farmerName?.trim() || `Local ${this.sellerLabel.toLowerCase()}`;
+  get categoryLabel(): string | null {
+    const item = this.product();
+    const category = item?.category.trim();
+    if (!item || !category) return null;
+    if (category.toLowerCase() !== 'other') return category;
+
+    const name = item.name.toLowerCase();
+    if (/\b(egg|eggs|chicken|poultry)\b/.test(name)) return 'Poultry & Eggs';
+    if (/\b(strawberry|strawberries|apple|apples|banana|bananas|mango|mangoes|orange|oranges|avocado|avocados|pineapple|watermelon)\b/.test(name)) return 'Fruits';
+    if (/\b(capsicum|pepper|tomato|tomatoes|onion|onions|carrot|carrots|cabbage|spinach|kale|sukuma|potato|potatoes|vegetable|vegetables)\b/.test(name)) return 'Vegetables';
+    if (/\b(maize|corn|rice|wheat|beans|peas|lentils|grain|grains|cereal|cereals)\b/.test(name)) return 'Grains & Legumes';
+    return null;
   }
 
   get stockLabel(): string {

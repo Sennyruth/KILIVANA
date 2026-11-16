@@ -270,7 +270,10 @@ describe('OrderTracker', () => {
       expect(fixture.nativeElement.textContent).toContain('YOUR SALE');
       expect(fixture.nativeElement.textContent).toContain('Delivery #24');
       expect(fixture.nativeElement.textContent).toContain('Delivery #25');
-      expect(getById).not.toHaveBeenCalled();
+      expect(getById).toHaveBeenCalledWith('42');
+      expect(fixture.nativeElement.textContent).toContain('Buyer: Buyer');
+      expect(fixture.nativeElement.textContent).toContain('Nairobi');
+      expect(fixture.nativeElement.textContent).toContain('0700000000');
     },
   );
 

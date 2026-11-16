@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CurrencyPipe } from '@angular/common';
 import { Cart } from '../../../core/services/cart';
+import { Auth } from '../../../core/services/auth';
 import { NotificationService } from '../../../shared/notification/notification.service';
 
 @Component({
@@ -27,6 +28,7 @@ import { NotificationService } from '../../../shared/notification/notification.s
 })
 export class CartView implements OnInit {
   protected readonly cart = inject(Cart);
+  protected readonly auth = inject(Auth);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
 
@@ -40,9 +42,8 @@ export class CartView implements OnInit {
 
   protected readonly deliveryFee = computed(() => (this.subtotal() > 0 ? 1 : 0));
 
-  protected readonly tax = computed(() => this.subtotal() * 0.08);
-
-  protected readonly grandTotal = computed(() => this.total() + this.tax());
+  protected readonly shopHref = computed(() => (this.auth.isFarmer() ? '/inputs' : '/products'));
+  protected readonly shopLabel = computed(() => (this.auth.isFarmer() ? 'Browse Inputs' : 'Browse Products'));
 
   ngOnInit(): void {
     this.cart.load().subscribe({

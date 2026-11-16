@@ -1,7 +1,7 @@
-export const NGROK_URL = 'https://hankering-morphing-outclass.ngrok-free.dev';
+export const API_URL = 'https://kilivana-backend-1jte.onrender.com';
 
 export const environment = {
   production: true,
-  ngrokUrl: NGROK_URL,
-  apiOrigin: NGROK_URL,
+  apiUrl: API_URL,
+  apiOrigin: API_URL,
 };

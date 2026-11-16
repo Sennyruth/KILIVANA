@@ -31,8 +31,6 @@ export interface Product {
   farmerName: string;
   farmerVerified: boolean;
   location: string;
-  rating: number;
-  reviewCount: number;
   available: boolean;
   createdAt: string;
   categoryId?: number;

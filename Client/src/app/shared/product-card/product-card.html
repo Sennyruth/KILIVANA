@@ -11,23 +11,14 @@
         </div>
       }
       <span class="product-card__stock" [class]="stockClass">{{ stockLabel }}</span>
-      @if (product(); as currentProduct) {
-        @if (currentProduct.rating && currentProduct.rating > 0) {
-          <div class="product-card__rating">
-            <mat-icon class="product-card__star">star</mat-icon>
-            <span>{{ currentProduct.rating.toFixed(1) }}</span>
-            @if (currentProduct.reviewCount && currentProduct.reviewCount > 0) {
-              <span class="product-card__reviews">({{ currentProduct.reviewCount }})</span>
-            }
-          </div>
-        }
-      }
     </div>
   </a>
 
   <div class="product-card__body">
     <div class="product-card__meta">
-      <span class="product-card__category-badge">{{ product()?.category | titlecase }}</span>
+      @if (categoryLabel; as category) {
+        <span class="product-card__category-badge">{{ category | titlecase }}</span>
+      }
       @if (product(); as item) {
         @if (item.available && item.quantity > 0) {
           <span class="product-card__quantity">{{ item.quantity }} {{ item.unit }} available</span>
@@ -42,17 +33,17 @@
       }
     </a>
 
-    <div class="product-card__seller">
-      <div class="product-card__seller-icon"><mat-icon>agriculture</mat-icon></div>
-      <div class="product-card__seller-copy">
-        <span class="product-card__seller-label">{{ sellerLabel }}</span>
-        <span class="product-card__seller-name">{{ sellerName }}</span>
-      </div>
-      @if (product()?.farmerVerified) {
-        <mat-icon class="product-card__verified" aria-label="Verified seller">verified</mat-icon>
+    <div class="product-card__perks">
+      <span class="product-card__perk">
+        <mat-icon>local_florist</mat-icon>Locally sourced
+      </span>
+      @if (minOrderLabel) {
+        <span class="product-card__perk">
+          <mat-icon>inventory_2</mat-icon>{{ minOrderLabel }}
+        </span>
       }
       @if (product()?.location) {
-        <span class="product-card__location">
+        <span class="product-card__perk product-card__perk--location">
           <mat-icon>location_on</mat-icon>{{ product()?.location }}
         </span>
       }

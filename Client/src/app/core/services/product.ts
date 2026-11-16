@@ -512,8 +512,6 @@ export class Product {
       farmerName: response.sellerName ?? response.farmerName ?? '',
       farmerVerified: response.farmerVerified ?? response.farmCertified ?? false,
       location: response.sellerLocation?.trim() ?? response.sellerCounty?.trim() ?? response.location?.trim() ?? '',
-      rating: 0,
-      reviewCount: 0,
       available: normalizedStatus === 'ACTIVE' && quantity > 0 && response.isLive !== false,
       createdAt: response.createdAt,
     };

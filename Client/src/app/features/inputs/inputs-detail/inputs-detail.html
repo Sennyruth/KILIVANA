@@ -50,14 +50,12 @@
             <span>{{ input()!.quantity }} {{ input()!.unit }} available</span>
           </div>
           <div class="inputs-detail__meta-item">
-            <mat-icon>person</mat-icon>
             <span>{{ input()!.farmerName }}</span>
             @if (input()!.farmerVerified) {
               <mat-icon class="inputs-detail__verified">verified</mat-icon>
             }
           </div>
           <div class="inputs-detail__meta-item">
-            <mat-icon>location_on</mat-icon>
             <span>{{ input()!.location }}</span>
           </div>
         </div>
@@ -65,12 +63,6 @@
         <div class="inputs-detail__description">
           <h2>Description</h2>
           <p>{{ input()!.description }}</p>
-        </div>
-
-        <div class="inputs-detail__rating">
-          <mat-icon>star</mat-icon>
-          <span>{{ input()!.rating.toFixed(1) }}</span>
-          <span class="inputs-detail__review-count">({{ input()!.reviewCount }} reviews)</span>
         </div>
 
         <div class="inputs-detail__actions">

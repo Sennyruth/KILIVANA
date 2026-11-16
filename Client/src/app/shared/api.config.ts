@@ -1,10 +1,10 @@
 import { environment } from '../../environments/environment';
 
 
-const NGROK_URL = environment.ngrokUrl || '';
+const API_URL = environment.apiUrl || '';
 
 export const API_ORIGIN = environment.apiOrigin;
-export const API_BASE = NGROK_URL ? `${NGROK_URL}/api/v1` : '/api/v1';
+export const API_BASE = API_URL ? `${API_URL}/api/v1` : '/api/v1';
 
 export const ApiEndpoints = {
   REGIONS: {

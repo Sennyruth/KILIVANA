@@ -161,19 +161,6 @@
     }
   }
 
-  &__rating {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    color: var(--text-primary);
-    font-weight: 600;
-  }
-
-  &__review-count {
-    color: var(--text-secondary);
-    font-weight: 400;
-  }
-
   &__actions {
     display: flex;
     gap: var(--space-3);
