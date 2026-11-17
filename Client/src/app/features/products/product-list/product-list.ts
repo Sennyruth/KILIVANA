@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -26,6 +27,7 @@ import type { Product as ProductModel } from '../../../shared/product.model';
 export class ProductList implements OnInit {
   protected readonly productService = inject(Product);
   protected readonly cartService = inject(Cart);
+  private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
 
   protected readonly searchQuery = signal('');
@@ -79,13 +81,13 @@ export class ProductList implements OnInit {
     this.selectedCategory.set(event.value as string);
   }
 
-  protected addToCart(product: ProductModel): void {
+  protected addToCart(product: ProductModel, quantity = 1): void {
     if (!product.available || product.quantity === 0) {
       this.notification.warning('Product is out of stock');
       return;
     }
 
-    this.cartService.addItem(product, 1).subscribe({
+    this.cartService.addItem(product, quantity).subscribe({
       next: (res) => {
         if (res.success) {
           this.notification.success('Added to cart!');
@@ -96,6 +98,24 @@ export class ProductList implements OnInit {
       error: (error) => {
         this.notification.error(error.error?.message || error.error?.error || error.message || 'Failed to add to cart');
       }
+    });
+  }
+
+  protected buyNow(product: ProductModel, quantity: number): void {
+    if (!product.available || product.quantity < quantity) {
+      this.notification.warning('The requested quantity is not available');
+      return;
+    }
+
+    this.cartService.addItem(product, quantity).subscribe({
+      next: (res) => {
+        if (!res.success) {
+          this.notification.error(res.message || 'Could not prepare this item for checkout');
+          return;
+        }
+        void this.router.navigate(['/checkout']);
+      },
+      error: (error) => this.notification.error(error.error?.message || error.message || 'Could not prepare checkout'),
     });
   }
 }

@@ -90,6 +90,8 @@ export const ApiEndpoints = {
     REFUND: (id: string) => `${API_BASE}/payments/${id}/refund`,
     WEBHOOK: `${API_BASE}/payments/webhook`,
     BY_ORDER: (orderId: string) => `${API_BASE}/payments/order/${orderId}`,
+    LATEST_BY_ORDER: (orderId: string | number) => `${API_BASE}/payments/order/${orderId}/latest`,
+    BY_SELLER: (sellerId: string | number) => `${API_BASE}/payments/seller/${sellerId}`,
   },
 
   USERS: {

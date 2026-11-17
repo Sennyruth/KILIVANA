@@ -20,7 +20,14 @@ export interface MpesaInitiateResponse {
 
 export interface PaymentStatus {
   orderId: string;
-  paymentStatus: 'PENDING' | 'PAID' | 'HELD' | 'SETTLED' | 'FAILED' | 'REFUNDED';
+  paymentStatus: 'PENDING' | 'PAID' | 'HELD' | 'SETTLED' | 'FAILED' | 'CANCELLED' | 'REFUNDED' | 'UNKNOWN';
+  paymentId?: number;
+  merchantRequestId?: string;
+  checkoutRequestId?: string;
+  phoneNumber?: string;
+  callbackStatus?: string;
+  darajaResultCode?: number;
+  darajaResultDesc?: string;
   mpesaReceipt?: string;
   transactionId?: string;
   completedAt?: string;
@@ -34,9 +41,16 @@ export interface PaymentStatusResponse {
   method: string;
   reference?: string | null;
   amount: number;
-  status: 'pending' | 'paid' | 'held' | 'settled' | 'failed' | 'refunded';
+  status: string;
   paidAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
   mpesaReceiptNumber?: string | null;
+  merchantRequestId?: string | null;
+  checkoutRequestId?: string | null;
+  phoneNumber?: string | null;
+  transactionDate?: string | null;
+  callbackStatus?: string | null;
+  darajaResultCode?: number | null;
+  darajaResultDesc?: string | null;
 }

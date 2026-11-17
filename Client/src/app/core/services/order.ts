@@ -455,6 +455,6 @@ function isOrderStatus(value: unknown): value is OrderStatus {
 }
 
 function isPaymentStatus(value: unknown): value is OrderModel['paymentStatus'] {
-  return ['PENDING', 'PAID', 'HELD', 'SETTLED', 'FAILED', 'REFUNDED']
+  return ['PENDING', 'PAID', 'HELD', 'SETTLED', 'FAILED', 'CANCELLED', 'REFUNDED']
     .includes(value as string);
 }

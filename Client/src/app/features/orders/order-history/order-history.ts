@@ -130,6 +130,12 @@ export class OrderHistory implements OnInit {
     return labels[status];
   }
 
+  protected paymentStatusLabel(status: Order['paymentStatus']): string {
+    return status === 'PAID' ? 'Paid' : status === 'CANCELLED' ? 'Cancelled'
+      : status === 'FAILED' ? 'Failed' : status === 'PENDING' ? 'Pending'
+      : status.charAt(0) + status.slice(1).toLowerCase();
+  }
+
   protected formatDate(value: string): string {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return 'Date unavailable';

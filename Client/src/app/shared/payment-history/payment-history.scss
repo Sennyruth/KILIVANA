@@ -1,0 +1,43 @@
+.payment-history {
+  display: block;
+  margin: 24px 0;
+  padding: 22px;
+  background: #fff;
+  border: 1px solid #e3ebe4;
+  border-radius: 18px;
+  box-shadow: 0 5px 18px rgba(21, 58, 37, 0.06);
+}
+
+.payment-history__header,
+.payment-history__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.payment-history__header {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.payment-history__header h2 { margin: 0; color: #183c26; font-size: 1.1rem; }
+.payment-history__header p,
+.payment-history__empty { margin: 5px 0 0; color: #66756a; font-size: 0.9rem; }
+.payment-history__item { min-height: 64px; padding: 10px 0; border-top: 1px solid #edf1ed; }
+.payment-history__icon { display: grid; width: 38px; height: 38px; flex: 0 0 38px; place-items: center; color: #247343; background: #edf6ee; border-radius: 50%; }
+.payment-history__details { display: grid; flex: 1; gap: 4px; min-width: 0; }
+.payment-history__details span { overflow: hidden; color: #66756a; font-size: 0.8rem; text-overflow: ellipsis; white-space: nowrap; }
+.payment-history__amount { white-space: nowrap; }
+.payment-history__status { padding: 5px 9px; color: #765115; background: #fff4de; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
+.payment-history__status[data-status='paid'] { color: #17653a; background: #e8f5ec; }
+.payment-history__status[data-status='failed'],
+.payment-history__status[data-status='cancelled'] { color: #8c2d24; background: #fff0ed; }
+.payment-history__message { display: flex; align-items: center; gap: 10px; color: #66756a; }
+.payment-history__message--error { color: #9b2f27; }
+
+@media (max-width: 560px) {
+  .payment-history { padding: 16px; }
+  .payment-history__item { flex-wrap: wrap; }
+  .payment-history__details { flex-basis: calc(100% - 60px); }
+  .payment-history__amount { margin-left: 52px; }
+}

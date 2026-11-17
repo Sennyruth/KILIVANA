@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { CurrencyPipe, TitleCasePipe } from '@angular/common';
@@ -12,7 +12,26 @@ import { Product } from '../product.model';
 })
 export class ProductCard {
   readonly product = input<Product | null>(null);
-  readonly onAddToCart = output<void>();
+  readonly onAddToCart = output<number>();
+  readonly onBuyNow = output<number>();
+  protected readonly selectedQuantity = signal(1);
+
+  get maxQuantity(): number {
+    const quantity = this.product()?.quantity ?? 0;
+    return Number.isFinite(quantity) ? Math.max(0, Math.floor(quantity)) : 0;
+  }
+
+  decreaseQuantity(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.selectedQuantity.update((quantity) => Math.max(1, quantity - 1));
+  }
+
+  increaseQuantity(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.selectedQuantity.update((quantity) => Math.min(this.maxQuantity, quantity + 1));
+  }
 
   get detailRoute(): string {
     return this.product()?.type === 'INPUT' ? '/inputs' : '/products';
@@ -72,6 +91,12 @@ export class ProductCard {
   addToCart(event: Event): void {
     event.preventDefault();
     event.stopPropagation();
-    this.onAddToCart.emit();
+    this.onAddToCart.emit(Math.min(this.selectedQuantity(), this.maxQuantity));
+  }
+
+  buyNow(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.onBuyNow.emit(Math.min(this.selectedQuantity(), this.maxQuantity));
   }
 }

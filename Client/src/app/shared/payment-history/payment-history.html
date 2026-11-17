@@ -1,0 +1,36 @@
+<section class="payment-history" aria-labelledby="payment-history-title">
+  <header class="payment-history__header">
+    <div>
+      <h2 id="payment-history-title">Payment history</h2>
+      <p>Recent M-Pesa payments for your listings.</p>
+    </div>
+    <button mat-stroked-button type="button" (click)="load()" [disabled]="loading()" aria-label="Refresh payment history">
+      <mat-icon>refresh</mat-icon>Refresh
+    </button>
+  </header>
+
+  @if (loading() && !payments().length) {
+    <div class="payment-history__message" role="status"><mat-spinner diameter="28" /><span>Loading payments…</span></div>
+  } @else if (error()) {
+    <div class="payment-history__message payment-history__message--error" role="alert">
+      <span>{{ error() }}</span>
+      <button mat-button type="button" (click)="load()">Try again</button>
+    </div>
+  } @else if (!payments().length) {
+    <p class="payment-history__empty">Payments for your listings will appear here.</p>
+  } @else {
+    <div class="payment-history__list">
+      @for (payment of payments(); track payment.id) {
+        <article class="payment-history__item">
+          <div class="payment-history__icon"><mat-icon>payments</mat-icon></div>
+          <div class="payment-history__details">
+            <strong>Order {{ payment.orderId }}</strong>
+            <span>{{ payment.createdAt | date:'medium' }}@if (payment.mpesaReceiptNumber) { · Receipt {{ payment.mpesaReceiptNumber }} }</span>
+          </div>
+          <strong class="payment-history__amount">{{ payment.amount | currency:'KES' }}</strong>
+          <span class="payment-history__status" [attr.data-status]="payment.status.toLowerCase()">{{ statusLabel(payment.status) }}</span>
+        </article>
+      }
+    </div>
+  }
+</section>

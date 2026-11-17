@@ -493,6 +493,28 @@
   margin: 0;
 }
 
+.checkout__payment-details {
+  display: grid;
+  gap: 8px;
+  max-width: 520px;
+  margin: 16px auto 0;
+  padding: 14px 16px;
+  color: #294331;
+  background: #f4f8f4;
+  border: 1px solid #dce9de;
+  border-radius: 12px;
+  text-align: left;
+}
+
+.checkout__payment-details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.checkout__payment-details dt { color: #647268; }
+.checkout__payment-details dd { margin: 0; font-weight: 650; text-align: right; }
+
 .checkout__result-actions {
   display: flex;
   flex-wrap: wrap;

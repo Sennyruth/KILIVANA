@@ -195,12 +195,59 @@
   }
 
   &__footer {
+    display: block;
+    margin-top: auto;
+    padding-top: 2px;
+  }
+
+  &__purchase {
     display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  &__purchase-top {
+    display: flex;
+    min-height: 42px;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-top: auto;
-    padding-top: 2px;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  &__quantity-control {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    gap: 14px;
+    padding: 2px 6px;
+    background: #f8fbf8;
+    border: 1px solid #d9e5db;
+    border-radius: 10px;
+
+    button {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      color: #155b32;
+      background: #eaf3eb;
+      border: 0;
+      border-radius: 7px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 1.2rem;
+      font-weight: 700;
+
+      &:focus-visible { outline: 3px solid rgba(26, 111, 62, 0.35); outline-offset: 2px; }
+      &:disabled { color: #8a978c; cursor: not-allowed; }
+    }
+
+    span { min-width: 18px; color: #26382b; font-size: 0.9rem; font-weight: 700; text-align: center; }
   }
 
   &__price { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
@@ -210,7 +257,7 @@
   &__add {
     display: inline-flex;
     min-height: 44px;
-    flex: 0 0 auto;
+    flex: 1 1 0;
     align-items: center;
     justify-content: center;
     gap: 7px;
@@ -232,6 +279,25 @@
     &:focus-visible { outline: 3px solid #f2b748; outline-offset: 2px; }
     &:disabled { color: #eef1ee; background: #aeb8b0; box-shadow: none; cursor: not-allowed; }
   }
+
+  &__buy {
+    min-height: 42px;
+    flex: 1 1 0;
+    color: #fff;
+    background: var(--accent);
+    border: 0;
+    border-radius: 12px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 750;
+    box-shadow: 0 4px 10px rgba(244, 157, 12, 0.24);
+    transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+
+    &:hover:not(:disabled) { background: var(--accent-dark); transform: translateY(-1px); box-shadow: 0 6px 14px rgba(244, 157, 12, 0.32); }
+    &:focus-visible { outline: 3px solid #f2b748; outline-offset: 2px; }
+    &:disabled { color: #eef1ee; background: #aeb8b0; box-shadow: none; cursor: not-allowed; }
+  }
 }
 
 @media (max-width: 480px) {
@@ -240,6 +306,10 @@
 
     &__body { gap: 11px; padding: 14px; }
     &__add { min-height: 42px; gap: 5px; padding: 0 10px; font-size: 0.73rem; }
+    &__purchase-top { gap: 6px; }
+    &__actions { gap: 6px; }
+    &__quantity-control { gap: 8px; }
+    &__buy { font-size: 0.73rem; }
     &__amount { font-size: 1.2rem; }
     &__location { max-width: 30%; }
   }

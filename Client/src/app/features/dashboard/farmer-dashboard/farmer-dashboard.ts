@@ -17,6 +17,7 @@ import type { Order as OrderRecord, SellerOrderSummary } from '../../../shared/o
 import { deliveryStatusLabel } from '../../../shared/order.model';
 import type { FarmerProfileImage } from '../../../shared/farmer.model';
 import { NotificationService } from '../../../shared/notification/notification.service';
+import { PaymentHistory } from '../../../shared/payment-history/payment-history';
 import { catchError, forkJoin, map, of } from 'rxjs';
 
 @Component({
@@ -31,6 +32,7 @@ import { catchError, forkJoin, map, of } from 'rxjs';
     CurrencyPipe,
     DatePipe,
     ReactiveFormsModule,
+    PaymentHistory,
   ],
   styleUrl: './farmer-dashboard.scss',
   templateUrl: './farmer-dashboard.html',

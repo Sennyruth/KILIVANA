@@ -1,4 +1,5 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -19,6 +20,8 @@ import { Payment } from '../../../core/services/payment';
 import { Product } from '../../../core/services/product';
 import { ApiEndpoints } from '../../../shared/api.config';
 import { NotificationService } from '../../../shared/notification/notification.service';
+import type { PaymentStatus } from '../../../shared/payment.model';
+import type { Subscription } from 'rxjs';
 
 interface PickupStation {
   id: number;
@@ -114,6 +117,7 @@ interface DeliveryQuote {
   templateUrl: './checkout.html',
 })
 export class Checkout implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly cart = inject(Cart);
   private readonly auth = inject(Auth);
   private readonly http = inject(HttpService);
@@ -122,9 +126,12 @@ export class Checkout implements OnInit {
   private readonly productService = inject(Product);
   private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
+  private paymentPolling?: Subscription;
   protected readonly submitting = signal(false);
   protected readonly paymentMessage = signal<string | null>(null);
-  protected readonly paymentState = signal<'idle' | 'pending' | 'paid' | 'failed'>('idle');
+  protected readonly paymentState = signal<'idle' | 'pending' | 'paid' | 'failed' | 'cancelled' | 'unknown'>('idle');
+  protected readonly paymentDetails = signal<PaymentStatus | null>(null);
+  protected readonly checkingPaymentStatus = signal(false);
   protected readonly pendingOrderId = signal<number | null>(null);
   protected readonly pickupStations = signal<PickupStation[]>([]);
   protected readonly selectedPickupStationId = signal<number | null>(null);
@@ -362,9 +369,53 @@ export class Checkout implements OnInit {
     this.startBuyerPayment(orderId);
   }
 
+  protected checkPaymentStatus(): void {
+    const orderId = this.pendingOrderId();
+    if (!orderId || this.checkingPaymentStatus()) return;
+    this.checkingPaymentStatus.set(true);
+    this.payment.getLatestPaymentByOrder(orderId).subscribe({
+      next: (response) => {
+        this.checkingPaymentStatus.set(false);
+        if (!response.success || !response.data) {
+          this.notification.warning(response.message || 'No payment status is available yet. We are still waiting for Daraja.');
+          return;
+        }
+        this.paymentDetails.set(response.data);
+        this.applyPaymentStatus(response.data);
+      },
+      error: () => {
+        this.checkingPaymentStatus.set(false);
+        this.notification.warning('Could not refresh payment status. Automatic checks will continue.');
+      },
+    });
+  }
+
+  private applyPaymentStatus(status: PaymentStatus): void {
+    if (status.paymentStatus === 'PAID' || status.paymentStatus === 'HELD' || status.paymentStatus === 'SETTLED') {
+      this.paymentPolling?.unsubscribe();
+      this.paymentState.set('paid');
+      this.paymentMessage.set('Payment received. Your order is confirmed.');
+      this.notification.success('M-Pesa payment received.');
+    } else if (status.paymentStatus === 'CANCELLED') {
+      this.paymentPolling?.unsubscribe();
+      this.paymentState.set('cancelled');
+      this.paymentMessage.set(status.darajaResultDesc || 'You cancelled the M-Pesa request. You can try the payment again.');
+    } else if (status.paymentStatus === 'FAILED' || status.paymentStatus === 'REFUNDED') {
+      this.paymentPolling?.unsubscribe();
+      this.paymentState.set('failed');
+      this.paymentMessage.set(status.darajaResultDesc || 'The payment was not completed. You can try again.');
+      this.notification.error(this.paymentMessage()!);
+    } else if (status.paymentStatus === 'UNKNOWN') {
+      this.paymentPolling?.unsubscribe();
+      this.paymentState.set('unknown');
+      this.paymentMessage.set('We could not recognize the payment status. Check your orders or contact support.');
+    }
+  }
+
   private startBuyerPayment(orderId: number): void {
     const phoneNumber = String(this.form.get('phone')?.value ?? '').replace(/^\+/, '');
-    this.payment.initiateMpesa('buyer', { orderId, phoneNumber }).subscribe({
+    const purchaserType = this.auth.isFarmer() ? 'farmer' : this.auth.isSupplier() ? 'supplier' : 'buyer';
+    this.payment.initiateMpesa(purchaserType, { orderId, phoneNumber }).subscribe({
       next: (response) => {
         this.submitting.set(false);
         if (!response.success || !response.data) {
@@ -386,21 +437,23 @@ export class Checkout implements OnInit {
         }
 
         this.paymentState.set('pending');
+        this.paymentDetails.set({
+          orderId: String(orderId),
+          paymentStatus: 'PENDING',
+          merchantRequestId: darajaResponse?.merchantRequestID,
+          checkoutRequestId: darajaResponse?.checkoutRequestID,
+          phoneNumber,
+        });
         this.paymentMessage.set('M-Pesa prompt sent. Enter your PIN on your phone to approve the payment.');
-        this.payment.pollStatus(response.data.paymentId).subscribe({
+        this.paymentPolling?.unsubscribe();
+        this.paymentPolling = this.payment.pollOrderStatus(orderId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (status) => {
-            if (status.paymentStatus === 'PAID' || status.paymentStatus === 'HELD' || status.paymentStatus === 'SETTLED') {
-              this.paymentState.set('paid');
-              this.paymentMessage.set('Payment received. Your order is confirmed.');
-              this.notification.success('M-Pesa payment received.');
-            } else if (status.paymentStatus === 'FAILED' || status.paymentStatus === 'REFUNDED') {
-              this.paymentState.set('failed');
-              this.paymentMessage.set('The payment was not completed. Contact the seller to retry payment for this order.');
-              this.notification.error(this.paymentMessage()!);
-            }
+            this.paymentDetails.set(status);
+            this.applyPaymentStatus(status);
           },
           error: () => {
-            this.paymentMessage.set('The M-Pesa prompt was sent. We could not refresh its status; check your orders shortly.');
+            this.paymentMessage.set('Payment confirmation timed out. Please check your M-Pesa messages or try again.');
+            this.notification.warning(this.paymentMessage()!);
           },
         });
       },

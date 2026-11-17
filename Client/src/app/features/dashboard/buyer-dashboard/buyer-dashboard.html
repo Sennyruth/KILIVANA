@@ -176,7 +176,8 @@
             @for (product of products(); track product.id) {
               <app-product-card
                 [product]="product"
-                (onAddToCart)="addToCart(product)"
+                (onAddToCart)="addToCart(product, $event)"
+                (onBuyNow)="buyNow(product, $event)"
               />
             }
           </div>

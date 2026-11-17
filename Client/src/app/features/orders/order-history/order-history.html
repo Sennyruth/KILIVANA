@@ -75,7 +75,7 @@
 					<div class="order-card__meta">
 						<span><mat-icon>calendar_today</mat-icon>{{ formatDate(order.createdAt) }}</span>
 						<span><mat-icon>inventory_2</mat-icon>{{ order.items.length }} {{ order.items.length === 1 ? 'item' : 'items' }}</span>
-						<span><mat-icon>payments</mat-icon>{{ order.paymentMethod }}</span>
+						<span><mat-icon>payments</mat-icon>{{ paymentStatusLabel(order.paymentStatus) }}</span>
 					</div>
 
 					<app-order-progress [status]="order.status" [orderId]="order.id" [deliveryStatus]="order.deliveryStatus" />

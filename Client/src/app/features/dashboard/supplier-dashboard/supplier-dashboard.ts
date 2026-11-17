@@ -20,6 +20,7 @@ import type { SellerLocation, SellerLocationRequest } from '../../../shared/sell
 import { hasSellerDispatchLocation } from '../../../shared/seller-location.model';
 import { getCurrentCoordinates } from '../../../shared/dispatch-location';
 import { NotificationService } from '../../../shared/notification/notification.service';
+import { PaymentHistory } from '../../../shared/payment-history/payment-history';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -36,6 +37,7 @@ import { finalize } from 'rxjs';
     CurrencyPipe,
     DatePipe,
     ReactiveFormsModule,
+    PaymentHistory,
   ],
   styleUrl: './supplier-dashboard.scss',
   templateUrl: './supplier-dashboard.html',

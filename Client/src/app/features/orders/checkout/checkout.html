@@ -10,11 +10,27 @@
 
   @if (paymentState() !== 'idle') {
     <section class="checkout__result" role="status" aria-live="polite">
-      <mat-icon>{{ paymentState() === 'paid' ? 'check_circle' : paymentState() === 'failed' ? 'error' : 'phone_iphone' }}</mat-icon>
-      <h2>{{ paymentState() === 'paid' ? 'Payment received' : paymentState() === 'failed' ? 'Payment not completed' : 'Approve the M-Pesa prompt' }}</h2>
+      <mat-icon>{{ paymentState() === 'paid' ? 'check_circle' : paymentState() === 'failed' ? 'error' : paymentState() === 'cancelled' ? 'cancel' : paymentState() === 'unknown' ? 'help' : 'phone_iphone' }}</mat-icon>
+      <h2>{{ paymentState() === 'paid' ? 'Payment received' : paymentState() === 'cancelled' ? 'Payment cancelled' : paymentState() === 'failed' ? 'Payment not completed' : paymentState() === 'unknown' ? 'Payment status unavailable' : 'Approve the M-Pesa prompt' }}</h2>
       <p>{{ paymentMessage() }}</p>
+      @if (paymentDetails(); as details) {
+        @if (details.mpesaReceipt || details.phoneNumber || details.checkoutRequestId || details.merchantRequestId || details.darajaResultDesc) {
+          <dl class="checkout__payment-details">
+            @if (details.mpesaReceipt) { <div><dt>M-Pesa receipt</dt><dd>{{ details.mpesaReceipt }}</dd></div> }
+            @if (details.phoneNumber) { <div><dt>Phone number</dt><dd>{{ details.phoneNumber }}</dd></div> }
+            @if (details.checkoutRequestId) { <div><dt>Checkout request</dt><dd>{{ details.checkoutRequestId }}</dd></div> }
+            @if (details.merchantRequestId) { <div><dt>Merchant request</dt><dd>{{ details.merchantRequestId }}</dd></div> }
+            @if (details.darajaResultDesc) { <div><dt>Daraja status</dt><dd>{{ details.darajaResultDesc }}</dd></div> }
+          </dl>
+        }
+      }
       <div class="checkout__result-actions">
-        @if (paymentState() === 'failed' && pendingOrderId()) {
+        @if (paymentState() === 'pending' && pendingOrderId()) {
+          <button mat-stroked-button type="button" (click)="checkPaymentStatus()" [disabled]="checkingPaymentStatus()">
+            <mat-icon>refresh</mat-icon>{{ checkingPaymentStatus() ? 'Checking…' : 'Check payment status' }}
+          </button>
+        }
+        @if ((paymentState() === 'failed' || paymentState() === 'cancelled') && pendingOrderId()) {
           <button mat-stroked-button type="button" (click)="retryPayment()" [disabled]="submitting()">
             {{ submitting() ? 'Sending prompt…' : 'Try payment again' }}
           </button>

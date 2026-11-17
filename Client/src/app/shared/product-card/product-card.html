@@ -34,9 +34,6 @@
     </a>
 
     <div class="product-card__perks">
-      <span class="product-card__perk">
-        <mat-icon>local_florist</mat-icon>Locally sourced
-      </span>
       @if (minOrderLabel) {
         <span class="product-card__perk">
           <mat-icon>inventory_2</mat-icon>{{ minOrderLabel }}
@@ -50,15 +47,33 @@
     </div>
 
     <div class="product-card__footer">
-      <div class="product-card__price">
-        <span class="product-card__amount">{{ product()?.price | currency:'KES' }}</span>
-        <span class="product-card__unit">per {{ product()?.unit }}</span>
+      <div class="product-card__purchase">
+        <div class="product-card__purchase-top">
+          <div class="product-card__price">
+            <span class="product-card__amount">{{ product()?.price | currency:'KES' }}</span>
+            <span class="product-card__unit">per {{ product()?.unit }}</span>
+          </div>
+          <div class="product-card__quantity-control" [attr.aria-label]="'Quantity for ' + product()?.name">
+            <button type="button" (click)="decreaseQuantity($event)" [disabled]="selectedQuantity() <= 1"
+                    [attr.aria-label]="'Decrease quantity for ' + product()?.name">−</button>
+            <span aria-live="polite">{{ selectedQuantity() }}</span>
+            <button type="button" (click)="increaseQuantity($event)"
+                    [disabled]="!product()?.available || selectedQuantity() >= maxQuantity"
+                    [attr.aria-label]="'Increase quantity for ' + product()?.name">+</button>
+          </div>
+        </div>
+        <div class="product-card__actions">
+          <button type="button" class="product-card__add" (click)="addToCart($event)"
+                  [disabled]="!product()?.available || maxQuantity === 0" aria-label="Add selected quantity to cart">
+            <mat-icon>add_shopping_cart</mat-icon>
+            <span>Add to cart</span>
+          </button>
+          <button type="button" class="product-card__buy" (click)="buyNow($event)"
+                  [disabled]="!product()?.available || maxQuantity === 0">
+            Buy now
+          </button>
+        </div>
       </div>
-      <button type="button" class="product-card__add" (click)="addToCart($event)"
-              [disabled]="!product()?.available || product()?.quantity === 0" aria-label="Add to cart">
-        <mat-icon>add_shopping_cart</mat-icon>
-        <span>Add to cart</span>
-      </button>
     </div>
   </div>
 </article>

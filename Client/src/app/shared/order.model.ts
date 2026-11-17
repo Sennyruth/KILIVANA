@@ -70,7 +70,7 @@ export interface Order {
   pickupLocation?: string | null;
   phone: string;
   paymentMethod: 'MPESA' | 'BANK' | 'CASH' | 'CARD' | null;
-  paymentStatus: 'PENDING' | 'PAID' | 'HELD' | 'SETTLED' | 'FAILED' | 'REFUNDED';
+  paymentStatus: 'PENDING' | 'PAID' | 'HELD' | 'SETTLED' | 'FAILED' | 'CANCELLED' | 'REFUNDED';
   createdAt: string;
   updatedAt: string;
   cancelledAt?: string;

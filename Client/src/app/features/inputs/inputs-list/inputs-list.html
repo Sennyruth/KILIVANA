@@ -65,7 +65,8 @@
       @for (input of filtered(); track input.id) {
         <app-product-card 
           [product]="input"
-          (onAddToCart)="addToCart(input)"
+          (onAddToCart)="addToCart(input, $event)"
+          (onBuyNow)="buyNow(input, $event)"
         ></app-product-card>
       }
     </div>

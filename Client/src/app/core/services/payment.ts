@@ -69,6 +69,19 @@ export class Payment {
     );
   }
 
+  getLatestPaymentByOrder(orderId: string | number): Observable<ApiResponse<PaymentStatus>> {
+    return this.http.get<PaymentStatusResponse>(ApiEndpoints.PAYMENT.LATEST_BY_ORDER(orderId)).pipe(
+      map((res) => ({
+        ...res,
+        data: res.data ? this.toPaymentStatus(res.data) : null,
+      } as ApiResponse<PaymentStatus>)),
+    );
+  }
+
+  getPaymentsBySeller(sellerId: string | number): Observable<ApiResponse<PaymentStatusResponse[]>> {
+    return this.http.get<PaymentStatusResponse[]>(ApiEndpoints.PAYMENT.BY_SELLER(sellerId));
+  }
+
   refundPayment(paymentId: string, reason?: string): Observable<ApiResponse<any>> {
     this._loading.set(true);
     return this.http.post<any>(ApiEndpoints.PAYMENT.REFUND(paymentId), { reason }).pipe(
@@ -78,47 +91,63 @@ export class Payment {
     );
   }
 
-  pollStatus(paymentId: string | number, intervalMs = 5000, maxAttempts = 12): Observable<PaymentStatus> {
+  pollOrderStatus(orderId: string | number, intervalMs = 3000, timeoutMs = 120_000): Observable<PaymentStatus> {
     return new Observable<PaymentStatus>((subscriber) => {
-      let attempts = 0;
-      const timer = setInterval(() => {
-        this.getStatus(paymentId).subscribe({
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      let deadline: ReturnType<typeof setTimeout> | undefined;
+      let active = true;
+      const schedule = () => {
+        if (active) timeout = setTimeout(poll, intervalMs);
+      };
+      const poll = () => {
+        if (!active) return;
+        this.getLatestPaymentByOrder(orderId).subscribe({
           next: (res) => {
             if (res.success && res.data) {
               this._status.set(res.data);
-              if (res.data.paymentStatus !== 'PENDING') {
-                clearInterval(timer);
+              if (['PAID', 'CANCELLED', 'FAILED', 'HELD', 'SETTLED', 'REFUNDED', 'UNKNOWN'].includes(res.data.paymentStatus)) {
                 subscriber.next(res.data);
                 subscriber.complete();
+                return;
               }
             }
+            schedule();
           },
-          error: (err) => {
-            subscriber.error(err);
-          },
+          // A temporary network failure should not abandon Daraja reconciliation.
+          error: () => schedule(),
         });
-        attempts++;
-        if (attempts >= maxAttempts) {
-          clearInterval(timer);
-          subscriber.complete();
-        }
-      }, intervalMs);
-      return () => clearInterval(timer);
+      };
+      deadline = setTimeout(() => {
+        if (active) subscriber.error(new Error('Payment confirmation timed out'));
+      }, timeoutMs);
+      poll();
+      return () => {
+        active = false;
+        if (timeout) clearTimeout(timeout);
+        if (deadline) clearTimeout(deadline);
+      };
     });
   }
 
   private toPaymentStatus(response: PaymentStatusResponse): PaymentStatus {
-    const rawStatus = response.status.toUpperCase();
+    const rawStatus = String(response.status ?? (response as PaymentStatusResponse & { paymentStatus?: string }).paymentStatus ?? 'PENDING').toUpperCase();
     const paymentStatus: PaymentStatus['paymentStatus'] =
-      ['PENDING', 'PAID', 'HELD', 'SETTLED', 'FAILED', 'REFUNDED'].includes(rawStatus)
+      ['PENDING', 'PAID', 'HELD', 'SETTLED', 'FAILED', 'CANCELLED', 'REFUNDED'].includes(rawStatus)
         ? rawStatus as PaymentStatus['paymentStatus']
-        : 'PENDING';
+        : 'UNKNOWN';
     return {
       orderId: String(response.orderId),
       paymentStatus,
+      paymentId: response.id,
+      merchantRequestId: response.merchantRequestId ?? undefined,
+      checkoutRequestId: response.checkoutRequestId ?? undefined,
+      phoneNumber: response.phoneNumber ?? undefined,
+      callbackStatus: response.callbackStatus ?? undefined,
+      darajaResultCode: response.darajaResultCode ?? undefined,
+      darajaResultDesc: response.darajaResultDesc ?? undefined,
       mpesaReceipt: response.mpesaReceiptNumber ?? undefined,
       transactionId: response.reference ?? undefined,
-      completedAt: response.paidAt ?? undefined,
+      completedAt: response.transactionDate ?? response.paidAt ?? undefined,
     };
   }
 }
