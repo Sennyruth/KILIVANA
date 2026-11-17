@@ -1,5 +1,5 @@
 import { Component, inject, computed, OnInit, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -33,6 +33,7 @@ export class Register implements OnInit {
   private readonly auth = inject(Auth);
   private readonly http = inject(HttpService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
 
@@ -51,6 +52,11 @@ export class Register implements OnInit {
   protected readonly counties = signal<string[]>([]);
 
   ngOnInit(): void {
+    const role = this.route.snapshot.queryParamMap.get('role')?.toUpperCase();
+    if (role === 'BUYER' || role === 'FARMER' || role === 'SUPPLIER') {
+      this.form.patchValue({ role });
+    }
+
     this.http.get<string[]>(ApiEndpoints.REGIONS.COUNTIES).subscribe({
       next: (response) => {
         if (response.success && response.data) this.counties.set(response.data);
@@ -71,7 +77,10 @@ export class Register implements OnInit {
       next: (res) => {
         if (res.success) {
           this.notification.success('Account created. Verify your email to continue.');
-          this.router.navigate(['/email-verification'], { queryParams: { email } });
+          const returnUrl = this.safeReturnUrl();
+          this.router.navigate(['/email-verification'], {
+            queryParams: { email, ...(returnUrl ? { returnUrl } : {}) },
+          });
         } else {
           this.notification.error(res.message || 'Registration failed');
         }
@@ -81,5 +90,10 @@ export class Register implements OnInit {
         this.notification.error(errorMessage);
       },
     });
+  }
+
+  private safeReturnUrl(): string | null {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    return returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : null;
   }
 }

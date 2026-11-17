@@ -167,23 +167,21 @@ describe('Order', () => {
 
   it('submits checkout details and reads the direct backend order response', () => {
     let createdOrderId: number | undefined;
-    service.create({
-      recipientName: 'Buyer One',
-      deliveryAddress: 'Farm Road, Nairobi',
-      phone: '+254700000001',
-      paymentMethod: 'CASH',
-    }).subscribe((response) => {
+    const payload = {
+      buyerId: 3,
+      addressId: 4,
+      items: [{ productId: 39, quantity: 2, unitPrice: 120 }],
+      deliveryFee: 150,
+      subtotal: 240,
+      total: 390,
+    };
+    service.create(payload).subscribe((response) => {
       createdOrderId = response.data.id;
     });
 
-    const request = httpTesting.expectOne(`${API_BASE}/orders/checkout`);
+    const request = httpTesting.expectOne(`${API_BASE}/orders`);
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({
-      recipientName: 'Buyer One',
-      deliveryAddress: 'Farm Road, Nairobi',
-      phone: '+254700000001',
-      paymentMethod: 'CASH',
-    });
+    expect(request.request.body).toEqual(payload);
     request.flush({
       success: true,
       message: 'Success',
@@ -193,13 +191,12 @@ describe('Order', () => {
         status: 'PENDING',
         subtotal: 240,
         deliveryFee: 150,
-        total: 409.2,
+        total: 390,
         paymentStatus: 'PENDING',
         addressId: 4,
         cancellationReason: null,
         createdAt: '2026-10-07T10:00:00',
         updatedAt: '2026-10-07T10:00:00',
-        items: [],
       },
     });
 

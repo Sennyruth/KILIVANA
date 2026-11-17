@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, provideRouter, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { Auth } from '../core/services/auth';
 import { SellerLocationService } from '../core/services/seller-location';
-import { produceCatalogGuard, shoppingGuard, supplierGuard, supplierRoleGuard } from './guards';
+import { inputsCatalogGuard, produceCatalogGuard, shoppingGuard, supplierGuard, supplierRoleGuard } from './guards';
 import { firstValueFrom, Observable, of } from 'rxjs';
 
 describe('shoppingGuard', () => {
@@ -27,9 +27,11 @@ describe('shoppingGuard', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
-  it('allows buyers and farmers to access their cart and checkout', () => {
+  it('allows buyers to access their cart and checkout', () => {
     expect(runGuard('BUYER')).toBe(true);
-    TestBed.resetTestingModule();
+  });
+
+  it('allows farmers to access their cart and checkout', () => {
     expect(runGuard('FARMER')).toBe(true);
   });
 
@@ -103,6 +105,32 @@ describe('produceCatalogGuard', () => {
     );
     expect(result).toBeInstanceOf(UrlTree);
     expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/dashboard/farmer');
+  });
+});
+
+describe('inputsCatalogGuard', () => {
+  afterEach(() => TestBed.resetTestingModule());
+
+  function runGuard(isSupplier: boolean): boolean | UrlTree {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: Auth, useValue: { isSupplier: () => isSupplier } },
+      ],
+    });
+    return TestBed.runInInjectionContext(() =>
+      inputsCatalogGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+    ) as boolean | UrlTree;
+  }
+
+  it('allows shoppers to browse farm inputs before registering', () => {
+    expect(runGuard(false)).toBe(true);
+  });
+
+  it('redirects suppliers to their dashboard', () => {
+    const result = runGuard(true);
+    expect(result).toBeInstanceOf(UrlTree);
+    expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/dashboard/supplier');
   });
 });
 

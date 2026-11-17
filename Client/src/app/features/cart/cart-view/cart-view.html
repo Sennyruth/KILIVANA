@@ -13,6 +13,13 @@
     }
   </header>
 
+  @if (!auth.isAuthenticated()) {
+    <div class="cart-view__account-banner" role="status">
+      <mat-icon>lock_open</mat-icon>
+      <span>Checkout requires a buyer account. <a routerLink="/login" [queryParams]="{ returnUrl: '/checkout' }">Sign in</a> or <a routerLink="/register" [queryParams]="{ role: 'BUYER', returnUrl: '/checkout' }">register as a buyer</a> to place your order.</span>
+    </div>
+  }
+
   @if (cart.loading()) {
     <div class="cart-view__loading">
       <mat-spinner diameter="48" />

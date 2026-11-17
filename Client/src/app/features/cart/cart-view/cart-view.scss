@@ -48,6 +48,33 @@
 
 .cart-view__subtitle { margin: 7px 0 0; color: #6b786e; font-size: 0.95rem; }
 
+.cart-view__account-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 14px 18px;
+  background: #fff8e6;
+  border: 1px solid #f0dcae;
+  border-radius: 14px;
+  color: #6b5420;
+  font-size: 0.92rem;
+
+  mat-icon {
+    color: #b07d10;
+    flex-shrink: 0;
+  }
+
+  a {
+    color: #17663a;
+    font-weight: 700;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
 .cart-view__count {
   padding: 9px 13px;
   color: #315c3e;

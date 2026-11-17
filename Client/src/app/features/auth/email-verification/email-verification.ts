@@ -82,7 +82,14 @@ export class EmailVerification {
           return;
         }
         this.notification.success('Email verified successfully. You can now log in.');
-        this.router.navigate(['/login'], { queryParams: { email, justVerified: 'true' } });
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        this.router.navigate(['/login'], {
+          queryParams: {
+            email,
+            justVerified: 'true',
+            ...(returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//') ? { returnUrl } : {}),
+          },
+        });
       },
       error: () => this.notification.error(this.auth.error() || 'Invalid or expired code. Please try again.'),
     });

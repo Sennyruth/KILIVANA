@@ -36,7 +36,8 @@ export class Navbar {
   constructor() {
     effect((onCleanup) => {
       const user = this.auth.user();
-      if (!user || (!this.auth.isBuyer() && !this.auth.isFarmer())) {
+      // Suppliers don't use the buyer basket.
+      if (user && this.auth.isSupplier()) {
         this.cart.resetAfterLogout();
         return;
       }
@@ -69,8 +70,8 @@ export class Navbar {
   protected readonly itemCount = this.cart.itemCount;
   protected readonly mobileMenuOpen = signal(false);
 
-  protected readonly canShop = computed(() => this.auth.isBuyer() || this.auth.isFarmer());
-  protected readonly showDashboardLink = computed(() => !this.auth.isSupplier());
+  protected readonly showCart = computed(() => !this.auth.isSupplier());
+  protected readonly showDashboardLink = computed(() => this.auth.isAuthenticated() && !this.auth.isSupplier());
   protected readonly navLinks = computed(() => {
     if (this.auth.isSupplier()) {
       return [
@@ -87,11 +88,21 @@ export class Navbar {
       ];
     }
 
-    const links = [{ label: 'Products', href: '/products' }];
     if (this.auth.isBuyer()) {
-      links.push({ label: 'Cart', href: '/cart' }, { label: 'Orders', href: '/orders' });
+      return [
+        { label: 'Products', href: '/products' },
+        { label: 'Inputs', href: '/inputs' },
+        { label: 'Cart', href: '/cart' },
+        { label: 'Orders', href: '/orders' },
+      ];
     }
-    return links;
+
+    return [
+      { label: 'Home', href: '/' },
+      { label: 'Shop Produce', href: '/products' },
+      { label: 'Farm Supplies', href: '/inputs' },
+      { label: 'Cart', href: '/cart' },
+    ];
   });
 
   protected readonly dashboardHref = computed(() => {
@@ -127,6 +138,11 @@ export class Navbar {
   protected login(): void {
     this.closeMobileMenu();
     this.router.navigate(['/login']);
+  }
+
+  protected register(): void {
+    this.closeMobileMenu();
+    this.router.navigate(['/register']);
   }
 
   protected logout(): void {

@@ -23,6 +23,7 @@ import { EditSupply } from './features/dashboard/supplier-dashboard/edit-supply/
 import { FarmSetup } from './features/dashboard/farmer-dashboard/farm-setup/farm-setup';
 import { InputsList } from './features/inputs/inputs-list/inputs-list';
 import { InputsDetail } from './features/inputs/inputs-detail/inputs-detail';
+import { Landing } from './features/landing/landing';
 import {
   authGuard,
   unauthGuard,
@@ -34,10 +35,11 @@ import {
   shoppingGuard,
   trackingGuard,
   produceCatalogGuard,
+  inputsCatalogGuard,
 } from './shared/guards';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'products', pathMatch: 'full' },
+  { path: '', component: Landing },
   { path: 'login', component: Login, canActivate: [unauthGuard] },
   { path: 'register', component: Register, canActivate: [unauthGuard] },
   { path: 'forgot-password', component: ForgotPassword, canActivate: [unauthGuard] },
@@ -46,9 +48,9 @@ export const routes: Routes = [
   { path: 'logout', component: Logout, canActivate: [authGuard] },
   { path: 'products', component: ProductList, canActivate: [produceCatalogGuard] },
   { path: 'products/:id', component: ProductDetail, canActivate: [produceCatalogGuard] },
-  { path: 'inputs', component: InputsList, canActivate: [farmerGuard] },
-  { path: 'inputs/:id', component: InputsDetail, canActivate: [farmerGuard] },
-  { path: 'cart', component: CartView, canActivate: [shoppingGuard] },
+  { path: 'inputs', component: InputsList, canActivate: [inputsCatalogGuard] },
+  { path: 'inputs/:id', component: InputsDetail, canActivate: [inputsCatalogGuard] },
+  { path: 'cart', component: CartView },
   { path: 'checkout', component: Checkout, canActivate: [shoppingGuard] },
   { path: 'orders', component: OrderHistory, canActivate: [shoppingGuard] },
   { path: 'dashboard/supplier/orders', component: SupplierOrders, canActivate: [supplierGuard] },

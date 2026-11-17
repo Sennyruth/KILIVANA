@@ -1,10 +1,11 @@
 <div class="navbar">
+  <div class="navbar__promo">Fresh from trusted local farms <span aria-hidden="true">·</span> Good food, grown well</div>
   <mat-toolbar class="navbar__toolbar">
     <button mat-icon-button class="navbar__menu" (click)="toggleMobileMenu()" aria-label="Menu">
       <mat-icon>menu</mat-icon>
     </button>
 
-    <a class="navbar__brand" routerLink="/products" aria-label="Kilivana">
+    <a class="navbar__brand" routerLink="/" aria-label="Kilivana">
       <img ngSrc="logo.jpeg" alt="Kilivana logo" width="40" height="40" class="navbar__logo" />
       <span class="navbar__title">Kilivana</span>
     </a>
@@ -15,6 +16,9 @@
            routerLinkActive [class.navbar__link--active]="isActive(link.href)">
           {{ link.label }}
         </a>
+      }
+      @if (!auth.isAuthenticated()) {
+        <a class="navbar__link" routerLink="/" fragment="story" (click)="closeMobileMenu()">Our Story</a>
       }
       @if (showDashboardLink()) {
         <a class="navbar__link" [routerLink]="dashboardHref()"
@@ -27,7 +31,7 @@
     </nav>
 
     <div class="navbar__actions">
-      @if (canShop()) {
+      @if (showCart()) {
         <button mat-icon-button class="navbar__cart" [routerLink]="'/cart'" aria-label="Cart">
           <mat-icon>shopping_cart</mat-icon>
           @if (itemCount() > 0) {
@@ -53,7 +57,7 @@
             <div class="user-menu__role">{{ roleLabel() }} Account</div>
             <mat-divider></mat-divider>
             <a mat-menu-item [routerLink]="dashboardHref()">Dashboard</a>
-            @if (canShop()) {
+            @if (showCart()) {
               @if (auth.isBuyer()) {
                 <a mat-menu-item routerLink="/orders">Order History</a>
                 <a mat-menu-item routerLink="/tracking/last">Track Order</a>
@@ -69,6 +73,9 @@
           </div>
         </mat-menu>
       } @else {
+        <button mat-button class="navbar__register" (click)="register()">
+          Register
+        </button>
         <button mat-raised-button class="navbar__cta" (click)="login()">
           Login
         </button>
@@ -92,6 +99,13 @@
          ariaCurrentWhenActive="page">
         Dashboard
       </a>
+    }
+    @if (!auth.isAuthenticated()) {
+      <a class="navbar__mobile-link" routerLink="/" fragment="story" (click)="closeMobileMenu()">Our Story</a>
+    }
+    @if (!auth.isAuthenticated()) {
+      <a class="navbar__mobile-link" (click)="register()">Create Account</a>
+      <a class="navbar__mobile-link" (click)="login()">Sign In</a>
     }
   </div>
 </div>

@@ -37,6 +37,10 @@ export class Login {
 
   protected readonly loading = computed(() => this.auth.loading());
   protected readonly error = computed(() => this.auth.error());
+  protected readonly registerQueryParams = {
+    role: 'BUYER',
+    ...(this.safeReturnUrl() ? { returnUrl: this.safeReturnUrl()! } : {}),
+  };
 
   constructor() {
     effect(() => {
@@ -46,7 +50,10 @@ export class Login {
 
       if (redirectToVerification === 'true' && email) {
         this.form.patchValue({ email });
-        this.router.navigate(['/email-verification'], { queryParams: { email } });
+        const returnUrl = this.safeReturnUrl();
+        this.router.navigate(['/email-verification'], {
+          queryParams: { email, ...(returnUrl ? { returnUrl } : {}) },
+        });
       }
 
       if (justVerified === 'true' && email) {
@@ -83,10 +90,13 @@ export class Login {
           if (needsVerification) {
             this.auth.logout();
             this.notification.info('Verify your email before signing in.');
-            this.router.navigate(['/email-verification'], { queryParams: { email } });
+            const returnUrl = this.safeReturnUrl();
+            this.router.navigate(['/email-verification'], {
+              queryParams: { email, ...(returnUrl ? { returnUrl } : {}) },
+            });
           } else {
             this.notification.success('Welcome back!');
-            this.router.navigate([this.getDashboardRoute()]);
+            this.router.navigateByUrl(this.safeReturnUrl() ?? this.getDashboardRoute());
           }
         } else {
           this.notification.error(res.message || 'Login failed');
@@ -96,6 +106,11 @@ export class Login {
         this.notification.error(this.auth.error() || 'An error occurred. Please try again.');
       },
     });
+  }
+
+  private safeReturnUrl(): string | null {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    return returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : null;
   }
 
   private getDashboardRoute(): string {

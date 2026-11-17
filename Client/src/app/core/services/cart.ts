@@ -10,6 +10,8 @@ import { Auth } from './auth';
 import { Product as ProductService } from './product';
 
 const CART_STORAGE_KEY = 'kilivana_mock_cart';
+const PRE_REGISTRATION_CART_KEY = `${CART_STORAGE_KEY}_pre_registration`;
+const LEGACY_GUEST_CART_KEY = `${CART_STORAGE_KEY}_guest`;
 
 @Injectable({ providedIn: 'root' })
 export class Cart {
@@ -25,8 +27,23 @@ export class Cart {
   readonly items = computed(() => this._cart()?.items ?? []);
 
   load(): Observable<ApiResponse<CartModel>> {
-    const cart = this.loadSavedCart() ?? this.emptyCart();
+    const savedCart = this.loadSavedCart();
+    const legacyPreRegistrationCart = !this.auth.user() && !this.readSavedCart(PRE_REGISTRATION_CART_KEY)
+      ? this.readSavedCart(LEGACY_GUEST_CART_KEY)
+      : null;
+    const preRegistrationCart = this.auth.user()
+      ? this.readSavedCart(PRE_REGISTRATION_CART_KEY) ?? this.readSavedCart(LEGACY_GUEST_CART_KEY)
+      : null;
+    const cart = this.mergeCarts(savedCart ?? this.emptyCart(), preRegistrationCart ?? legacyPreRegistrationCart);
     this._cart.set(cart);
+    if (preRegistrationCart) {
+      this.saveCart(cart);
+      localStorage.removeItem(PRE_REGISTRATION_CART_KEY);
+      localStorage.removeItem(LEGACY_GUEST_CART_KEY);
+    } else if (legacyPreRegistrationCart) {
+      this.saveCart(cart);
+      localStorage.removeItem(LEGACY_GUEST_CART_KEY);
+    }
     const productIds = cart.items
       .filter((item) => shouldReloadImage(item.imageUrl))
       .map((item) => item.productId);
@@ -203,7 +220,11 @@ export class Cart {
   }
 
   private loadSavedCart(): CartModel | null {
-    const key = this.storageKey();
+    const saved = this.readSavedCart(this.storageKey());
+    return saved ?? (!this.auth.user() ? this.readSavedCart(LEGACY_GUEST_CART_KEY) : null);
+  }
+
+  private readSavedCart(key: string): CartModel | null {
     const saved = localStorage.getItem(key);
     if (!saved) return null;
 
@@ -218,9 +239,32 @@ export class Cart {
     }
   }
 
+  private mergeCarts(accountCart: CartModel, preRegistrationCart: CartModel | null): CartModel {
+    if (!preRegistrationCart?.items.length) return accountCart;
+
+    const items = [...accountCart.items];
+    for (const preRegistrationItem of preRegistrationCart.items) {
+      const existingIndex = items.findIndex((item) => String(item.productId) === String(preRegistrationItem.productId));
+      if (existingIndex < 0) {
+        const maxQuantity = preRegistrationItem.availableQuantity ?? preRegistrationItem.quantity;
+        const quantity = Math.min(preRegistrationItem.quantity, maxQuantity);
+        if (quantity > 0) items.push({ ...preRegistrationItem, quantity, lineTotal: preRegistrationItem.price * quantity });
+        continue;
+      }
+
+      const existing = items[existingIndex];
+      const maxQuantity = existing.availableQuantity ?? preRegistrationItem.availableQuantity
+        ?? existing.quantity + preRegistrationItem.quantity;
+      const quantity = Math.min(existing.quantity + preRegistrationItem.quantity, maxQuantity);
+      items[existingIndex] = { ...existing, quantity, lineTotal: existing.price * quantity };
+    }
+
+    return this.withItems(accountCart, items);
+  }
+
   private storageKey(): string {
     const user = this.auth.user();
-    return user ? `${CART_STORAGE_KEY}_${user.role.toLowerCase()}_${user.id}` : `${CART_STORAGE_KEY}_guest`;
+    return user ? `${CART_STORAGE_KEY}_${user.role.toLowerCase()}_${user.id}` : PRE_REGISTRATION_CART_KEY;
   }
 }
 
