@@ -16,7 +16,18 @@
   @if (!auth.isAuthenticated()) {
     <div class="cart-view__account-banner" role="status">
       <mat-icon>lock_open</mat-icon>
-      <span>Checkout requires a buyer account. <a routerLink="/login" [queryParams]="{ returnUrl: '/checkout' }">Sign in</a> or <a routerLink="/register" [queryParams]="{ role: 'BUYER', returnUrl: '/checkout' }">register as a buyer</a> to place your order.</span>
+      <span>
+        Checkout requires a {{ registrationRole() === 'FARMER' ? 'farmer' : 'buyer' }} account.
+        <a routerLink="/login" [queryParams]="{ returnUrl: '/checkout', role: registrationRole() }">Sign in</a>
+        or <a routerLink="/register" [queryParams]="{ role: registrationRole(), returnUrl: '/checkout' }">register as a {{ registrationRole() === 'FARMER' ? 'farmer' : 'buyer' }}</a> to place your order.
+      </span>
+    </div>
+  }
+
+  @if (hasRoleRestrictedItems()) {
+    <div class="cart-view__account-banner" role="alert">
+      <mat-icon>info</mat-icon>
+      <span>{{ roleRestrictionMessage() }}</span>
     </div>
   }
 
@@ -98,7 +109,7 @@
         <mat-icon>arrow_back</mat-icon>
         Continue Shopping
       </button>
-      <button mat-raised-button color="primary" (click)="proceedToCheckout()">
+      <button mat-raised-button color="primary" (click)="proceedToCheckout()" [disabled]="hasRoleRestrictedItems()">
         Proceed to Checkout
       </button>
     </div>

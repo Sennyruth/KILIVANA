@@ -63,6 +63,15 @@
     border-radius: var(--radius-md);
   }
 
+  &__role-note {
+    margin: 0 0 var(--space-6);
+    padding: var(--space-4);
+    color: var(--primary-dark);
+    background: var(--primary-50);
+    border-inline-start: 4px solid var(--primary);
+    border-radius: var(--radius);
+  }
+
   &__search {
     flex: 1;
     min-width: 280px;

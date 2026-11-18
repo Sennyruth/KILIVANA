@@ -70,6 +70,43 @@
 	}
 }
 
+.order-payment-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #4d5650;
+  font-size: 0.82rem;
+  font-weight: 700;
+
+  mat-icon { color: currentColor; }
+}
+
+.order-payment-status[data-status='pending'] { color: #8a6500; }
+.order-payment-status[data-status='paid'],
+.order-payment-status[data-status='settled'] { color: #17653a; }
+.order-payment-status[data-status='held'] { color: #23618c; }
+.order-payment-status[data-status='cancelled'] { color: #a85b09; }
+.order-payment-status[data-status='failed'] { color: #a52c20; }
+.order-payment-status[data-status='refunded'] { color: #626d66; }
+
+.order-payment-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 0 20px 14px;
+  color: #536058;
+  font-size: 0.82rem;
+}
+
+.order-retry-payment {
+  border: 0;
+  background: transparent;
+  color: #8a4b08;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.65; cursor: wait; }
+}
+
 .orders-shop-link {
 	min-height: 42px;
 	padding: 0 14px;

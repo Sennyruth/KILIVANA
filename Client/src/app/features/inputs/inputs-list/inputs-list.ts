@@ -9,6 +9,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { ProductCard } from '../../../shared/product-card/product-card';
 import { Product } from '../../../core/services/product';
 import { Cart } from '../../../core/services/cart';
+import { Auth } from '../../../core/services/auth';
 import type { Product as ProductModel } from '../../../shared/product.model';
 import { NotificationService } from '../../../shared/notification/notification.service';
 
@@ -29,11 +30,15 @@ import { NotificationService } from '../../../shared/notification/notification.s
 export class InputsList implements OnInit {
   protected readonly productService = inject(Product);
   protected readonly cartService = inject(Cart);
+  protected readonly auth = inject(Auth);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
 
   protected readonly searchQuery = signal('');
   protected readonly selectedCategory = signal<string>('ALL');
+  protected readonly canPurchaseInputs = computed(() =>
+    !this.auth.isAuthenticated() || this.auth.isFarmer(),
+  );
 
   protected readonly categories = computed(() => {
     const cats = new Set<string>(this.productService.products().filter(p => p.type === 'INPUT').map(p => p.category));

@@ -62,17 +62,21 @@
                     [attr.aria-label]="'Increase quantity for ' + product()?.name">+</button>
           </div>
         </div>
-        <div class="product-card__actions">
-          <button type="button" class="product-card__add" (click)="addToCart($event)"
-                  [disabled]="!product()?.available || maxQuantity === 0" aria-label="Add selected quantity to cart">
-            <mat-icon>add_shopping_cart</mat-icon>
-            <span>Add to cart</span>
-          </button>
-          <button type="button" class="product-card__buy" (click)="buyNow($event)"
-                  [disabled]="!product()?.available || maxQuantity === 0">
-            Buy now
-          </button>
-        </div>
+        @if (canPurchase()) {
+          <div class="product-card__actions">
+            <button type="button" class="product-card__add" (click)="addToCart($event)"
+                    [disabled]="!product()?.available || maxQuantity === 0" aria-label="Add selected quantity to cart">
+              <mat-icon>add_shopping_cart</mat-icon>
+              <span>Add to cart</span>
+            </button>
+            <button type="button" class="product-card__buy" (click)="buyNow($event)"
+                    [disabled]="!product()?.available || maxQuantity === 0">
+              Buy now
+            </button>
+          </div>
+        } @else {
+          <p class="product-card__purchase-note">A farmer account is required to order farm inputs.</p>
+        }
       </div>
     </div>
   </div>

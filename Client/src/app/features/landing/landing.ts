@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,6 +14,7 @@ import type { Product as ProductModel } from '../../shared/product.model';
 @Component({
   selector: 'app-landing',
   imports: [
+    NgOptimizedImage,
     RouterLink,
     MatButtonModule,
     MatIconModule,

@@ -33,6 +33,17 @@ export class CartView implements OnInit {
   private readonly notification = inject(NotificationService);
 
   protected readonly subtotal = computed(() => this.cart.totalPrice());
+  protected readonly registrationRole = computed(() =>
+    this.cart.items().some((item) => item.type === 'INPUT') ? 'FARMER' : 'BUYER',
+  );
+  protected readonly hasRoleRestrictedItems = computed(() => {
+    const items = this.cart.items();
+    return (this.auth.isBuyer() && items.some((item) => item.type === 'INPUT'))
+      || (this.auth.isFarmer() && items.some((item) => item.type === 'PRODUCE'));
+  });
+  protected readonly roleRestrictionMessage = computed(() => this.auth.isFarmer()
+    ? 'Produce orders require a buyer account. Remove produce items to continue with this farmer account.'
+    : 'Farm inputs can only be ordered with a farmer account. Remove input items to continue as a buyer.');
 
   protected readonly total = computed(() => {
     const sub = this.subtotal();
@@ -95,6 +106,10 @@ export class CartView implements OnInit {
   }
 
   protected proceedToCheckout(): void {
+    if (this.hasRoleRestrictedItems()) {
+      this.notification.warning(this.roleRestrictionMessage());
+      return;
+    }
     if (this.cart.items().length === 0) {
       this.notification.warning('Your cart is empty');
       return;

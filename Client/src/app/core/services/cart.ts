@@ -66,6 +66,12 @@ export class Cart {
 
   addItem(product: Product, quantity: number): Observable<ApiResponse<CartModel>> {
     const current = this.currentCart();
+    if (product.type === 'INPUT' && this.auth.isAuthenticated() && !this.auth.isFarmer()) {
+      return of(this.response(current, 'Only a farmer account can order farm inputs.', false));
+    }
+    if (product.type === 'PRODUCE' && this.auth.isAuthenticated() && !this.auth.isBuyer()) {
+      return of(this.response(current, 'Only a buyer account can order produce.', false));
+    }
     const availableQuantity = Math.max(0, Math.floor(product.quantity));
     if (!product.available || availableQuantity < quantity || quantity < 1) {
       return of(this.response(current, 'This product is unavailable or has insufficient stock.', false));
@@ -90,6 +96,7 @@ export class Cart {
       imageUrl: image?.url ?? '',
       sellerName: product.farmerName,
       lineTotal: product.price * nextQuantity,
+      type: product.type,
     };
     const items = existing
       ? current.items.map((cartItem) => cartItem.productId === product.id ? item : cartItem)

@@ -7,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CurrencyPipe } from '@angular/common';
 import { Product } from '../../../core/services/product';
 import { Cart } from '../../../core/services/cart';
+import { Auth } from '../../../core/services/auth';
 import { NotificationService } from '../../../shared/notification/notification.service';
 
 @Component({
@@ -25,6 +26,7 @@ import { NotificationService } from '../../../shared/notification/notification.s
 export class InputsDetail implements OnInit {
   protected readonly productService = inject(Product);
   protected readonly cartService = inject(Cart);
+  protected readonly auth = inject(Auth);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);

@@ -12,6 +12,7 @@ import { Product } from '../product.model';
 })
 export class ProductCard {
   readonly product = input<Product | null>(null);
+  readonly canPurchase = input(true);
   readonly onAddToCart = output<number>();
   readonly onBuyNow = output<number>();
   protected readonly selectedQuantity = signal(1);

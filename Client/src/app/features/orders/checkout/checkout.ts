@@ -127,12 +127,21 @@ export class Checkout implements OnInit {
   private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
   private paymentPolling?: Subscription;
+  protected readonly paymentStatus = signal<PaymentStatus['paymentStatus'] | null>(null);
+  protected readonly orderPayable = signal(true);
+  protected readonly paymentRetryBlocked = signal(false);
   protected readonly submitting = signal(false);
   protected readonly paymentMessage = signal<string | null>(null);
   protected readonly paymentState = signal<'idle' | 'pending' | 'paid' | 'failed' | 'cancelled' | 'unknown'>('idle');
   protected readonly paymentDetails = signal<PaymentStatus | null>(null);
   protected readonly checkingPaymentStatus = signal(false);
   protected readonly pendingOrderId = signal<number | null>(null);
+  protected readonly canRetryPayment = computed(() =>
+    !!this.pendingOrderId()
+      && this.orderPayable()
+      && !this.paymentRetryBlocked()
+      && (this.paymentStatus() === 'CANCELLED' || this.paymentStatus() === 'FAILED'),
+  );
   protected readonly pickupStations = signal<PickupStation[]>([]);
   protected readonly selectedPickupStationId = signal<number | null>(null);
   protected readonly stationsLoading = signal(false);
@@ -164,7 +173,7 @@ export class Checkout implements OnInit {
     address: ['', [Validators.required, Validators.minLength(10)]],
     county: ['', [Validators.required]],
     pickupLocation: ['', [Validators.maxLength(500)]],
-    phone: ['', [Validators.required, Validators.pattern(/^\+254[17]\d{8}$/)]],
+    phone: [this.savedPhoneNumber(), [Validators.required, Validators.pattern(/^\+254[17]\d{8}$/)]],
   });
 
   protected readonly subtotal = computed(() => this.quotedSubtotal() ?? this.cart.totalPrice());
@@ -363,8 +372,9 @@ export class Checkout implements OnInit {
 
   protected retryPayment(): void {
     const orderId = this.pendingOrderId();
-    if (!orderId || this.submitting()) return;
+    if (!orderId || !this.orderPayable() || this.paymentRetryBlocked() || this.submitting()) return;
     this.paymentState.set('idle');
+    this.paymentRetryBlocked.set(false);
     this.submitting.set(true);
     this.startBuyerPayment(orderId);
   }
@@ -373,7 +383,11 @@ export class Checkout implements OnInit {
     const orderId = this.pendingOrderId();
     if (!orderId || this.checkingPaymentStatus()) return;
     this.checkingPaymentStatus.set(true);
-    this.payment.getLatestPaymentByOrder(orderId).subscribe({
+    const currentPaymentId = this.paymentDetails()?.paymentId;
+    const statusRequest = currentPaymentId
+      ? this.payment.getStatus(currentPaymentId)
+      : this.payment.getLatestPaymentByOrder(orderId);
+    statusRequest.subscribe({
       next: (response) => {
         this.checkingPaymentStatus.set(false);
         if (!response.success || !response.data) {
@@ -391,7 +405,8 @@ export class Checkout implements OnInit {
   }
 
   private applyPaymentStatus(status: PaymentStatus): void {
-    if (status.paymentStatus === 'PAID' || status.paymentStatus === 'HELD' || status.paymentStatus === 'SETTLED') {
+    this.paymentStatus.set(status.paymentStatus);
+    if (status.paymentStatus === 'PAID') {
       this.paymentPolling?.unsubscribe();
       this.paymentState.set('paid');
       this.paymentMessage.set('Payment received. Your order is confirmed.');
@@ -399,35 +414,88 @@ export class Checkout implements OnInit {
     } else if (status.paymentStatus === 'CANCELLED') {
       this.paymentPolling?.unsubscribe();
       this.paymentState.set('cancelled');
-      this.paymentMessage.set(status.darajaResultDesc || 'You cancelled the M-Pesa request. You can try the payment again.');
-    } else if (status.paymentStatus === 'FAILED' || status.paymentStatus === 'REFUNDED') {
+      this.paymentMessage.set('You cancelled the M-Pesa payment. Your order has not been paid. You can try again when you are ready.');
+      this.notification.warning(this.paymentMessage()!);
+    } else if (status.paymentStatus === 'FAILED') {
       this.paymentPolling?.unsubscribe();
       this.paymentState.set('failed');
-      this.paymentMessage.set(status.darajaResultDesc || 'The payment was not completed. You can try again.');
+      this.paymentMessage.set('Payment was unsuccessful. You can try again.');
       this.notification.error(this.paymentMessage()!);
+    } else if (status.paymentStatus === 'PENDING') {
+      this.paymentState.set('pending');
+      this.paymentMessage.set('M-Pesa request sent. Please enter your PIN on your phone and wait while we confirm your payment.');
+    } else if (status.paymentStatus === 'HELD') {
+      this.paymentState.set('paid');
+      this.paymentMessage.set('Payment is held securely until your order is completed.');
+      this.notification.info(this.paymentMessage()!);
+    } else if (status.paymentStatus === 'SETTLED') {
+      this.paymentState.set('paid');
+      this.paymentMessage.set('Payment has been settled to the seller.');
+      this.notification.success(this.paymentMessage()!);
+    } else if (status.paymentStatus === 'REFUNDED') {
+      this.paymentState.set('failed');
+      this.paymentMessage.set('This payment has been refunded.');
+      this.notification.info(this.paymentMessage()!);
     } else if (status.paymentStatus === 'UNKNOWN') {
       this.paymentPolling?.unsubscribe();
       this.paymentState.set('unknown');
       this.paymentMessage.set('We could not recognize the payment status. Check your orders or contact support.');
+      this.notification.warning(this.paymentMessage()!);
     }
+    if (status.paymentStatus !== 'PENDING') this.refreshOrderAfterPayment();
+  }
+
+  protected statusTitle(): string {
+    switch (this.paymentStatus()) {
+      case 'PAID': return 'Payment successful';
+      case 'PENDING': return 'Approve the M-Pesa prompt';
+      case 'CANCELLED': return 'Payment cancelled';
+      case 'FAILED': return 'Payment not completed';
+      case 'HELD': return 'Payment held';
+      case 'SETTLED': return 'Payment settled';
+      case 'REFUNDED': return 'Payment refunded';
+      case 'UNKNOWN': return 'Payment status unavailable';
+      default: return this.paymentState() === 'paid' ? 'Payment successful' : 'Payment not completed';
+    }
+  }
+
+  private refreshOrderAfterPayment(): void {
+    const orderId = this.pendingOrderId();
+    if (!orderId) return;
+    this.payment.getLatestPaymentByOrder(orderId).subscribe({
+      next: (response) => {
+        if (response.success && response.data) this.paymentDetails.set(response.data);
+      },
+    });
+    this.orderService.getById(String(orderId)).subscribe({
+      next: (response) => {
+        const order = response.success ? response.data?.order : null;
+        if (order) this.orderPayable.set(!['COMPLETED', 'CANCELLED'].includes(order.status));
+        const buyerId = this.auth.user()?.id;
+        if (buyerId) this.orderService.loadMine(buyerId).subscribe();
+      },
+    });
   }
 
   private startBuyerPayment(orderId: number): void {
     const phoneNumber = String(this.form.get('phone')?.value ?? '').replace(/^\+/, '');
-    const purchaserType = this.auth.isFarmer() ? 'farmer' : this.auth.isSupplier() ? 'supplier' : 'buyer';
-    this.payment.initiateMpesa(purchaserType, { orderId, phoneNumber }).subscribe({
+    // Checkout is the customer paying for an order they placed. Farmers buying inputs
+    // use the buyer payment endpoint; the farmer endpoint is for seller-side payments.
+    this.payment.initiateMpesa('buyer', { orderId, phoneNumber }).subscribe({
       next: (response) => {
         this.submitting.set(false);
         if (!response.success || !response.data) {
           this.paymentState.set('failed');
+          this.paymentStatus.set('FAILED');
           this.paymentMessage.set(response.message || 'Your order was placed, but the M-Pesa prompt could not be sent.');
           this.notification.error(this.paymentMessage()!);
           return;
         }
 
         const darajaResponse = response.data.darajaResponse;
-        if (darajaResponse?.responseCode !== '0') {
+        if (String(darajaResponse?.responseCode) !== '0') {
           this.paymentState.set('failed');
+          this.paymentStatus.set('FAILED');
           const message = darajaResponse?.customerMessage
             || darajaResponse?.responseDescription
             || 'Daraja did not confirm the M-Pesa prompt. Check the phone number and try again.';
@@ -437,32 +505,76 @@ export class Checkout implements OnInit {
         }
 
         this.paymentState.set('pending');
+        this.paymentStatus.set('PENDING');
         this.paymentDetails.set({
           orderId: String(orderId),
           paymentStatus: 'PENDING',
+          paymentId: response.data.paymentId,
+          amount: response.data.amount,
           merchantRequestId: darajaResponse?.merchantRequestID,
           checkoutRequestId: darajaResponse?.checkoutRequestID,
           phoneNumber,
         });
-        this.paymentMessage.set('M-Pesa prompt sent. Enter your PIN on your phone to approve the payment.');
-        this.paymentPolling?.unsubscribe();
-        this.paymentPolling = this.payment.pollOrderStatus(orderId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: (status) => {
-            this.paymentDetails.set(status);
-            this.applyPaymentStatus(status);
-          },
-          error: () => {
-            this.paymentMessage.set('Payment confirmation timed out. Please check your M-Pesa messages or try again.');
-            this.notification.warning(this.paymentMessage()!);
-          },
-        });
+        this.paymentMessage.set('M-Pesa request sent. Please enter your PIN on your phone and wait while we confirm your payment.');
+        this.watchPaymentStatus(orderId, response.data.paymentId);
       },
       error: (error) => {
         this.submitting.set(false);
-        this.paymentState.set('failed');
         const message = error?.error?.message || 'Your order was placed, but the M-Pesa prompt could not be sent. Try again.';
+        if (error?.status === 403 || /not authorized to request payment for this order/i.test(message)) {
+          this.paymentState.set('unknown');
+          this.paymentStatus.set('UNKNOWN');
+          this.paymentRetryBlocked.set(true);
+          this.paymentMessage.set('Your order was created, but the payment service denied the request. No payment was taken. Checking the order account…');
+          this.orderService.getById(String(orderId)).subscribe({
+            next: (response) => {
+              const order = response.success ? response.data?.order : null;
+              const signedInUserId = this.auth.user()?.id;
+              this.paymentMessage.set(order && signedInUserId && order.buyerId !== signedInUserId
+                ? 'This order belongs to a different account. Sign in with the account that placed the order, or contact support. No payment was taken.'
+                : 'The order belongs to this account, but the payment service rejected the farmer request. No payment was taken. The backend must authorize farmer payments for this order.');
+              this.notification.error(this.paymentMessage()!);
+            },
+            error: () => this.notification.error(this.paymentMessage()!),
+          });
+          return;
+        }
+        if (/already being processed/i.test(message)) {
+          this.paymentState.set('pending');
+          this.paymentStatus.set('PENDING');
+          this.paymentMessage.set('A payment request is already being processed. Enter your PIN if prompted while we check its status.');
+          this.watchPaymentStatus(orderId);
+          return;
+        }
+        this.paymentState.set('failed');
+        this.paymentStatus.set('FAILED');
         this.paymentMessage.set(message);
         this.notification.error(message);
+      },
+    });
+  }
+
+  private savedPhoneNumber(): string {
+    const phone = this.auth.user()?.phone?.replace(/\s+/g, '') ?? '';
+    if (/^\+254[17]\d{8}$/.test(phone)) return phone;
+    if (/^254[17]\d{8}$/.test(phone)) return `+${phone}`;
+    if (/^0[17]\d{8}$/.test(phone)) return `+254${phone.slice(1)}`;
+    return '';
+  }
+
+  private watchPaymentStatus(orderId: number, paymentId?: number): void {
+    this.paymentPolling?.unsubscribe();
+    const polling = paymentId
+      ? this.payment.pollPaymentStatus(paymentId)
+      : this.payment.pollOrderStatus(orderId);
+    this.paymentPolling = polling.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (status) => {
+        this.paymentDetails.set(status);
+        this.applyPaymentStatus(status);
+      },
+      error: () => {
+        this.paymentMessage.set('Payment confirmation timed out. Please check your M-Pesa messages or try again.');
+        this.notification.warning(this.paymentMessage()!);
       },
     });
   }

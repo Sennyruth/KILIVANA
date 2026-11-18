@@ -362,6 +362,8 @@ function normalizeOrder(value: unknown): OrderModel {
     phone: typeof order['buyerPhone'] === 'string' ? order['buyerPhone'] : typeof order['phone'] === 'string' ? order['phone'] : '',
     paymentMethod: normalizePaymentMethod(order['paymentMethod']),
     paymentStatus: normalizePaymentStatus(order['paymentStatus']),
+    paymentReference: typeof order['paymentReference'] === 'string' ? order['paymentReference'] : null,
+    paidAt: typeof order['paidAt'] === 'string' ? order['paidAt'] : null,
     createdAt: String(order['createdAt'] ?? ''),
     updatedAt: String(order['updatedAt'] ?? ''),
     cancelledAt: typeof order['cancelledAt'] === 'string' ? order['cancelledAt'] : undefined,

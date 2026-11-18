@@ -71,6 +71,8 @@ export interface Order {
   phone: string;
   paymentMethod: 'MPESA' | 'BANK' | 'CASH' | 'CARD' | null;
   paymentStatus: 'PENDING' | 'PAID' | 'HELD' | 'SETTLED' | 'FAILED' | 'CANCELLED' | 'REFUNDED';
+  paymentReference?: string | null;
+  paidAt?: string | null;
   createdAt: string;
   updatedAt: string;
   cancelledAt?: string;

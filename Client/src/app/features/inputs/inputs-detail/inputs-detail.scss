@@ -167,6 +167,12 @@
     padding-top: var(--space-6);
     border-top: 1px solid var(--border);
   }
+
+  &__purchase-note {
+    margin: 0;
+    align-self: center;
+    color: var(--text-secondary);
+  }
 }
 
 @media (min-width: 768px) {

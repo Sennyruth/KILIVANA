@@ -22,6 +22,7 @@ export interface PaymentStatus {
   orderId: string;
   paymentStatus: 'PENDING' | 'PAID' | 'HELD' | 'SETTLED' | 'FAILED' | 'CANCELLED' | 'REFUNDED' | 'UNKNOWN';
   paymentId?: number;
+  amount?: number;
   merchantRequestId?: string;
   checkoutRequestId?: string;
   phoneNumber?: string;
@@ -31,6 +32,7 @@ export interface PaymentStatus {
   mpesaReceipt?: string;
   transactionId?: string;
   completedAt?: string;
+  paidAt?: string;
 }
 
 export type MpesaSellerType = 'farmer' | 'supplier' | 'buyer';

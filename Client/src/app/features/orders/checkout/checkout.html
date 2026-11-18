@@ -9,28 +9,17 @@
   </header>
 
   @if (paymentState() !== 'idle') {
-    <section class="checkout__result" role="status" aria-live="polite">
-      <mat-icon>{{ paymentState() === 'paid' ? 'check_circle' : paymentState() === 'failed' ? 'error' : paymentState() === 'cancelled' ? 'cancel' : paymentState() === 'unknown' ? 'help' : 'phone_iphone' }}</mat-icon>
-      <h2>{{ paymentState() === 'paid' ? 'Payment received' : paymentState() === 'cancelled' ? 'Payment cancelled' : paymentState() === 'failed' ? 'Payment not completed' : paymentState() === 'unknown' ? 'Payment status unavailable' : 'Approve the M-Pesa prompt' }}</h2>
+    <section class="checkout__result" [attr.data-state]="paymentState()" role="status" aria-live="polite">
+      <mat-icon>{{ paymentState() === 'paid' ? 'check_circle' : paymentState() === 'failed' || paymentState() === 'cancelled' || paymentState() === 'unknown' ? 'cancel' : 'phone_iphone' }}</mat-icon>
+      <h2>{{ statusTitle() }}</h2>
       <p>{{ paymentMessage() }}</p>
-      @if (paymentDetails(); as details) {
-        @if (details.mpesaReceipt || details.phoneNumber || details.checkoutRequestId || details.merchantRequestId || details.darajaResultDesc) {
-          <dl class="checkout__payment-details">
-            @if (details.mpesaReceipt) { <div><dt>M-Pesa receipt</dt><dd>{{ details.mpesaReceipt }}</dd></div> }
-            @if (details.phoneNumber) { <div><dt>Phone number</dt><dd>{{ details.phoneNumber }}</dd></div> }
-            @if (details.checkoutRequestId) { <div><dt>Checkout request</dt><dd>{{ details.checkoutRequestId }}</dd></div> }
-            @if (details.merchantRequestId) { <div><dt>Merchant request</dt><dd>{{ details.merchantRequestId }}</dd></div> }
-            @if (details.darajaResultDesc) { <div><dt>Daraja status</dt><dd>{{ details.darajaResultDesc }}</dd></div> }
-          </dl>
-        }
-      }
       <div class="checkout__result-actions">
         @if (paymentState() === 'pending' && pendingOrderId()) {
           <button mat-stroked-button type="button" (click)="checkPaymentStatus()" [disabled]="checkingPaymentStatus()">
             <mat-icon>refresh</mat-icon>{{ checkingPaymentStatus() ? 'Checking…' : 'Check payment status' }}
           </button>
         }
-        @if ((paymentState() === 'failed' || paymentState() === 'cancelled') && pendingOrderId()) {
+        @if (canRetryPayment()) {
           <button mat-stroked-button type="button" (click)="retryPayment()" [disabled]="submitting()">
             {{ submitting() ? 'Sending prompt…' : 'Try payment again' }}
           </button>
@@ -179,7 +168,7 @@
             </div>
             <p class="checkout__hint"><mat-icon>info</mat-icon>Approve the payment prompt on your phone. Kilivana will never ask you to share your M-Pesa PIN.</p>
             @if (paymentMessage(); as message) {
-              <p class="checkout__availability" [class.checkout__availability--success]="paymentState() === 'paid'" role="status"><mat-icon>{{ paymentState() === 'paid' ? 'check_circle' : 'schedule' }}</mat-icon>{{ message }}</p>
+              <p class="checkout__availability" [class.checkout__availability--success]="paymentState() === 'paid'" [class.checkout__availability--error]="paymentState() === 'failed'" [class.checkout__availability--warning]="paymentState() === 'cancelled'" role="status"><mat-icon>{{ paymentState() === 'paid' ? 'check_circle' : paymentState() === 'failed' ? 'error' : paymentState() === 'cancelled' ? 'cancel' : 'schedule' }}</mat-icon>{{ message }}</p>
             }
             <button mat-flat-button color="primary" class="checkout__place-btn" type="submit" [disabled]="submitting() || paymentState() === 'pending' || paymentState() === 'paid'">
               @if (submitting()) { <mat-spinner diameter="20" /> } @else { <mat-icon>lock</mat-icon> }

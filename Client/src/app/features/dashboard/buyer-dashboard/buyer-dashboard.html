@@ -14,6 +14,15 @@
     />
   </header>
 
+  <section class="dashboard__basket" aria-live="polite" aria-label="Current basket">
+    <span class="dashboard__basket-icon"><mat-icon>shopping_basket</mat-icon></span>
+    <div class="dashboard__basket-copy">
+      <strong>Your basket</strong>
+      <span>{{ cartService.itemCount() }} {{ cartService.itemCount() === 1 ? 'item' : 'items' }} · {{ cartService.totalPrice() | currency:'KES' }}</span>
+    </div>
+    <a mat-stroked-button routerLink="/cart">View basket</a>
+  </section>
+
   @if (loading()) {
     <div class="dashboard__state" role="status" aria-label="Loading orders">
       <mat-spinner diameter="48" />

@@ -4,10 +4,15 @@ import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { Auth } from '../core/services/auth';
 import { Farmer } from '../core/services/farmer';
 import { SellerLocationService } from '../core/services/seller-location';
+import { Cart } from '../core/services/cart';
 
-function loginRedirect(router: Router, state?: RouterStateSnapshot): UrlTree {
+function loginRedirect(router: Router, state?: RouterStateSnapshot, role?: 'BUYER' | 'FARMER'): UrlTree {
   const returnUrl = state?.url;
-  return router.createUrlTree(['/login'], returnUrl ? { queryParams: { returnUrl } } : {});
+  const queryParams = {
+    ...(returnUrl ? { returnUrl } : {}),
+    ...(role ? { role } : {}),
+  };
+  return router.createUrlTree(['/login'], Object.keys(queryParams).length ? { queryParams } : {});
 }
 
 export const authGuard: CanActivateFn = (_route, state) => {
@@ -25,7 +30,25 @@ export const shoppingGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   if (auth.isBuyer() || auth.isFarmer()) return true;
   if (auth.isAuthenticated()) return router.createUrlTree(['/dashboard/supplier']);
-  return loginRedirect(router, state);
+  const cart = inject(Cart);
+  const role = state.url.startsWith('/checkout') && cart.items().some((item) => item.type === 'INPUT')
+    ? 'FARMER'
+    : undefined;
+  return loginRedirect(router, state, role);
+};
+
+/** Buyers may shop produce, while farm-input orders require a farmer account. */
+export const checkoutGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(Auth);
+  const cart = inject(Cart);
+  const router = inject(Router);
+  const items = cart.items();
+  const hasRestrictedItems = (auth.isBuyer() && items.some((item) => item.type === 'INPUT'))
+    || (auth.isFarmer() && items.some((item) => item.type === 'PRODUCE'));
+  if (!hasRestrictedItems) return true;
+  return router.createUrlTree(['/cart'], {
+    queryParams: { restriction: auth.isFarmer() ? 'buyer-produce' : 'farmer-inputs' },
+  });
 };
 
 export const trackingGuard: CanActivateFn = (route, state) => {

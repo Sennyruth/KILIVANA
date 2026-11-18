@@ -1,66 +1,39 @@
 <div class="landing">
   <section class="landing__hero">
     <div class="landing__hero-inner">
-      <p class="landing__eyebrow">Kenya's farm-to-table marketplace</p>
-      <h1 class="landing__title">Fresh from the farm,<br />straight to your table.</h1>
-      <p class="landing__subtitle">
-        Kilivana brings Kenyan farmers, buyers and suppliers together. Explore fresh produce,
-        add your picks to a basket, and create a buyer account when you are ready to order.
-      </p>
+      <div class="landing__hero-copy">
+        <p class="landing__eyebrow">Kenya's farm-to-table marketplace</p>
+        <h1 class="landing__title">Fresh from the farm,<br />straight to your table.</h1>
+        <p class="landing__subtitle">
+          Kilivana brings Kenyan farmers, buyers and suppliers together. Explore fresh produce,
+          add your picks to a basket, and create a buyer account when you are ready to order.
+        </p>
 
-      <div class="landing__cta-row">
-        @if (isAuthenticated()) {
-          <a mat-raised-button class="landing__cta landing__cta--light" [routerLink]="dashboardHref()">
-            <mat-icon>dashboard</mat-icon>
-            Go to Dashboard
-          </a>
-        } @else {
-          <a mat-raised-button class="landing__cta landing__cta--light" routerLink="/products">
-            <mat-icon>shopping_basket</mat-icon>
-            Browse Produce
-          </a>
-          <a mat-stroked-button class="landing__cta landing__cta--outline" routerLink="/inputs">
-            <mat-icon>agriculture</mat-icon>
-            Shop Farm Inputs
-          </a>
-        }
+        <div class="landing__cta-row">
+          @if (isAuthenticated()) {
+            <a mat-raised-button class="landing__cta landing__cta--light" [routerLink]="dashboardHref()">
+              <mat-icon>dashboard</mat-icon>
+              Go to Dashboard
+            </a>
+          } @else {
+            <a mat-raised-button class="landing__cta landing__cta--light" routerLink="/products">
+              <mat-icon>shopping_basket</mat-icon>
+              Browse Produce
+            </a>
+            <a mat-stroked-button class="landing__cta landing__cta--outline" routerLink="/inputs">
+              <mat-icon>agriculture</mat-icon>
+              Shop Farm Inputs
+            </a>
+          }
+        </div>
+
+        <p class="landing__basket-note">
+          <mat-icon>lock_open</mat-icon>
+          No account is needed to browse produce or build your basket. Sign in or register as a buyer at checkout.
+        </p>
       </div>
-
-      <p class="landing__basket-note">
-        <mat-icon>lock_open</mat-icon>
-        No account is needed to browse produce or build your basket. Sign in or register as a buyer at checkout.
-      </p>
-    </div>
-  </section>
-
-  <section class="landing__audience container">
-    <h2 class="landing__section-title">Join Kilivana</h2>
-    <div class="landing__cards">
-      <article class="landing__card">
-        <span class="landing__card-icon"><mat-icon>restaurant</mat-icon></span>
-        <h3>Buyer</h3>
-        <p>Shop fresh produce from local farmers. Add items to your basket before creating an account, then register to place your order.</p>
-        <div class="landing__card-actions">
-          <a mat-stroked-button color="primary" routerLink="/products">Shop Produce</a>
-          <a mat-button color="primary" [routerLink]="['/register']" [queryParams]="{ role: 'BUYER' }">Register as a buyer</a>
-        </div>
-      </article>
-
-      <article class="landing__card">
-        <span class="landing__card-icon"><mat-icon>yard</mat-icon></span>
-        <h3>Farmer</h3>
-        <p>Seeds, fertiliser, feed and tools to keep your farm productive — plus a place to sell your harvest.</p>
-        <div class="landing__card-actions">
-          <a mat-stroked-button color="primary" routerLink="/inputs">Browse Inputs</a>
-          <a mat-button color="primary" [routerLink]="['/register']" [queryParams]="{ role: 'FARMER' }">Register as a farmer</a>
-        </div>
-      </article>
-      <article class="landing__card">
-        <span class="landing__card-icon"><mat-icon>local_shipping</mat-icon></span>
-        <h3>Supplier</h3>
-        <p>Reach farmers with the seeds, fertiliser, feed and tools they need to grow.</p>
-        <a mat-stroked-button color="primary" [routerLink]="['/register']" [queryParams]="{ role: 'SUPPLIER' }">Register as a supplier</a>
-      </article>
+      <img class="landing__hero-image" ngSrc="burner.jpg" width="1920" height="1080" priority
+        alt="Fresh locally grown vegetables including carrots, peppers, aubergines and greens" />
     </div>
   </section>
 
@@ -94,6 +67,37 @@
     }
   </section>
 
+  <section class="landing__audience container">
+    <h2 class="landing__section-title">Join Kilivana</h2>
+    <div class="landing__cards">
+      <article class="landing__card">
+        <span class="landing__card-icon"><mat-icon>restaurant</mat-icon></span>
+        <h3>Buyer</h3>
+        <p>Shop fresh produce from local farmers. Add items to your basket before creating an account, then register to place your order.</p>
+        <div class="landing__card-actions">
+          <a mat-stroked-button color="primary" routerLink="/products">Shop Produce</a>
+          <a mat-button color="primary" [routerLink]="['/register']" [queryParams]="{ role: 'BUYER' }">Register as a buyer</a>
+        </div>
+      </article>
+
+      <article class="landing__card">
+        <span class="landing__card-icon"><mat-icon>yard</mat-icon></span>
+        <h3>Farmer</h3>
+        <p>Seeds, fertiliser, feed and tools to keep your farm productive — plus a place to sell your harvest.</p>
+        <div class="landing__card-actions">
+          <a mat-stroked-button color="primary" routerLink="/inputs">Browse Inputs</a>
+          <a mat-button color="primary" [routerLink]="['/register']" [queryParams]="{ role: 'FARMER' }">Register as a farmer</a>
+        </div>
+      </article>
+      <article class="landing__card">
+        <span class="landing__card-icon"><mat-icon>local_shipping</mat-icon></span>
+        <h3>Supplier</h3>
+        <p>Reach farmers with the seeds, fertiliser, feed and tools they need to grow.</p>
+        <a mat-stroked-button color="primary" [routerLink]="['/register']" [queryParams]="{ role: 'SUPPLIER' }">Register as a supplier</a>
+      </article>
+    </div>
+  </section>
+
   <section class="landing__steps container" id="story">
     <h2 class="landing__section-title">From local farms to your table</h2>
     <div class="landing__steps-grid">
@@ -121,7 +125,7 @@
       <p>Choose the account that fits you. Buyers can register when they are ready to check out.</p>
       <div class="landing__cta-row">
         <a mat-raised-button class="landing__cta landing__cta--light" routerLink="/register">
-          Create Free Account
+          Create Account
         </a>
         <a mat-stroked-button class="landing__cta landing__cta--outline" routerLink="/login">
           Sign In

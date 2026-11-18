@@ -1,3 +1,5 @@
+import type { ProductType } from './product.model';
+
 export interface CartItem {
   id: string | number;
   productId: string;
@@ -9,6 +11,7 @@ export interface CartItem {
   imageUrl: string;
   sellerName: string;
   lineTotal: number;
+  type?: ProductType;
 }
 
 export interface Cart {

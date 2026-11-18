@@ -1,5 +1,20 @@
 import { Injectable, inject, computed, signal } from '@angular/core';
-import { Observable, finalize, map, tap } from 'rxjs';
+import {
+  Observable,
+  catchError,
+  finalize,
+  filter,
+  interval,
+  map,
+  of,
+  startWith,
+  switchMap,
+  takeUntil,
+  takeWhile,
+  tap,
+  throwError,
+  timer,
+} from 'rxjs';
 
 import { HttpService } from './http';
 import { ApiEndpoints } from '../../shared/api.config';
@@ -92,45 +107,37 @@ export class Payment {
   }
 
   pollOrderStatus(orderId: string | number, intervalMs = 3000, timeoutMs = 120_000): Observable<PaymentStatus> {
-    return new Observable<PaymentStatus>((subscriber) => {
-      let timeout: ReturnType<typeof setTimeout> | undefined;
-      let deadline: ReturnType<typeof setTimeout> | undefined;
-      let active = true;
-      const schedule = () => {
-        if (active) timeout = setTimeout(poll, intervalMs);
-      };
-      const poll = () => {
-        if (!active) return;
-        this.getLatestPaymentByOrder(orderId).subscribe({
-          next: (res) => {
-            if (res.success && res.data) {
-              this._status.set(res.data);
-              if (['PAID', 'CANCELLED', 'FAILED', 'HELD', 'SETTLED', 'REFUNDED', 'UNKNOWN'].includes(res.data.paymentStatus)) {
-                subscriber.next(res.data);
-                subscriber.complete();
-                return;
-              }
-            }
-            schedule();
-          },
-          // A temporary network failure should not abandon Daraja reconciliation.
-          error: () => schedule(),
-        });
-      };
-      deadline = setTimeout(() => {
-        if (active) subscriber.error(new Error('Payment confirmation timed out'));
-      }, timeoutMs);
-      poll();
-      return () => {
-        active = false;
-        if (timeout) clearTimeout(timeout);
-        if (deadline) clearTimeout(deadline);
-      };
-    });
+    const polling = interval(intervalMs).pipe(
+      startWith(0),
+      switchMap(() => this.getLatestPaymentByOrder(orderId).pipe(catchError(() => of(null)))),
+      filter((response): response is ApiResponse<PaymentStatus> => !!response?.success && !!response.data),
+      map((response) => response.data!),
+      tap((status) => this._status.set(status)),
+      takeWhile((status) => status.paymentStatus === 'PENDING', true),
+    );
+    const deadline = timer(timeoutMs).pipe(
+      switchMap(() => throwError(() => new Error('Payment confirmation timed out'))),
+    );
+    return polling.pipe(takeUntil(deadline));
+  }
+
+  pollPaymentStatus(paymentId: string | number, intervalMs = 3000, timeoutMs = 120_000): Observable<PaymentStatus> {
+    const polling = interval(intervalMs).pipe(
+      startWith(0),
+      switchMap(() => this.getStatus(paymentId).pipe(catchError(() => of(null)))),
+      filter((response): response is ApiResponse<PaymentStatus> => !!response?.success && !!response.data),
+      map((response) => response.data!),
+      tap((status) => this._status.set(status)),
+      takeWhile((status) => status.paymentStatus === 'PENDING', true),
+    );
+    const deadline = timer(timeoutMs).pipe(
+      switchMap(() => throwError(() => new Error('Payment confirmation timed out'))),
+    );
+    return polling.pipe(takeUntil(deadline));
   }
 
   private toPaymentStatus(response: PaymentStatusResponse): PaymentStatus {
-    const rawStatus = String(response.status ?? (response as PaymentStatusResponse & { paymentStatus?: string }).paymentStatus ?? 'PENDING').toUpperCase();
+    const rawStatus = String(response.status ?? (response as PaymentStatusResponse & { paymentStatus?: string }).paymentStatus ?? 'UNKNOWN').toUpperCase();
     const paymentStatus: PaymentStatus['paymentStatus'] =
       ['PENDING', 'PAID', 'HELD', 'SETTLED', 'FAILED', 'CANCELLED', 'REFUNDED'].includes(rawStatus)
         ? rawStatus as PaymentStatus['paymentStatus']
@@ -139,6 +146,7 @@ export class Payment {
       orderId: String(response.orderId),
       paymentStatus,
       paymentId: response.id,
+      amount: response.amount,
       merchantRequestId: response.merchantRequestId ?? undefined,
       checkoutRequestId: response.checkoutRequestId ?? undefined,
       phoneNumber: response.phoneNumber ?? undefined,
@@ -148,6 +156,7 @@ export class Payment {
       mpesaReceipt: response.mpesaReceiptNumber ?? undefined,
       transactionId: response.reference ?? undefined,
       completedAt: response.transactionDate ?? response.paidAt ?? undefined,
+      paidAt: response.paidAt ?? response.transactionDate ?? undefined,
     };
   }
 }

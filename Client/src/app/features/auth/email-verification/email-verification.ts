@@ -55,7 +55,7 @@ export class EmailVerification {
         this.challengeId.set(res.data.challengeId);
         this.form.controls.code.reset();
         this.startResendCountdown(res.data.resendAfterSeconds);
-        this.notification.success('If the email belongs to an unverified account, a code has been sent.');
+        this.notification.success('A verification code has been sent to your email.');
       },
       error: (err: HttpErrorResponse) => {
         if (err.status === 429) {

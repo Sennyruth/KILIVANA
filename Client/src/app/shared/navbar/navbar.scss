@@ -202,16 +202,17 @@
   }
 
   &__register {
-    color: rgba(255, 255, 255, 0.9) !important;
+    color: var(--primary-dark) !important;
     font-weight: 600;
     border-radius: var(--radius-full);
     padding: var(--space-2) var(--space-4);
-    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    border: 1px solid var(--primary-200) !important;
+    background: var(--primary-50) !important;
     transition: all 0.2s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.12) !important;
-      color: #ffffff !important;
+      background: var(--primary-100) !important;
+      color: var(--primary-dark) !important;
     }
   }
 

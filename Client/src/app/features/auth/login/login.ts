@@ -1,5 +1,6 @@
 import { Component, inject, computed, effect } from '@angular/core';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
+import { catchError, of } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Auth } from '../../../core/services/auth';
+import { Cart } from '../../../core/services/cart';
 import { NotificationService } from '../../../shared/notification/notification.service';
 
 @Component({
@@ -25,6 +27,7 @@ import { NotificationService } from '../../../shared/notification/notification.s
 })
 export class Login {
   private readonly auth = inject(Auth);
+  private readonly cart = inject(Cart);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly notification = inject(NotificationService);
@@ -38,7 +41,7 @@ export class Login {
   protected readonly loading = computed(() => this.auth.loading());
   protected readonly error = computed(() => this.auth.error());
   protected readonly registerQueryParams = {
-    role: 'BUYER',
+    role: this.route.snapshot.queryParamMap.get('role') === 'FARMER' ? 'FARMER' : 'BUYER',
     ...(this.safeReturnUrl() ? { returnUrl: this.safeReturnUrl()! } : {}),
   };
 
@@ -95,8 +98,15 @@ export class Login {
               queryParams: { email, ...(returnUrl ? { returnUrl } : {}) },
             });
           } else {
-            this.notification.success('Welcome back!');
-            this.router.navigateByUrl(this.safeReturnUrl() ?? this.getDashboardRoute());
+            this.notification.success('Welcome!');
+            const returnUrl = this.safeReturnUrl();
+            if (returnUrl?.startsWith('/checkout')) {
+              this.cart.load().pipe(catchError(() => of(null))).subscribe(() => {
+                void this.router.navigateByUrl(returnUrl);
+              });
+            } else {
+              void this.router.navigateByUrl(returnUrl ?? this.getDashboardRoute());
+            }
           }
         } else {
           this.notification.error(res.message || 'Login failed');

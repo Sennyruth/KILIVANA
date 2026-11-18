@@ -75,8 +75,27 @@
 					<div class="order-card__meta">
 						<span><mat-icon>calendar_today</mat-icon>{{ formatDate(order.createdAt) }}</span>
 						<span><mat-icon>inventory_2</mat-icon>{{ order.items.length }} {{ order.items.length === 1 ? 'item' : 'items' }}</span>
-						<span><mat-icon>payments</mat-icon>{{ paymentStatusLabel(order.paymentStatus) }}</span>
+						<span class="order-payment-status" [attr.data-status]="paymentStatusFor(order).toLowerCase()">
+							<mat-icon>payments</mat-icon>{{ paymentStatusFor(order) }}
+						</span>
 					</div>
+
+					@if (order.paymentReference || order.paidAt) {
+						<div class="order-payment-details">
+							@if (order.paymentReference) { <span>M-Pesa receipt {{ order.paymentReference }}</span> }
+							@if (order.paidAt) { <span>Paid {{ formatDate(order.paidAt) }}</span> }
+						</div>
+					}
+
+					@if (paymentStatuses()[order.id]; as payment) {
+						@if (payment.mpesaReceipt || payment.paidAt || payment.completedAt || payment.amount !== undefined) {
+							<div class="order-payment-details">
+								@if (payment.mpesaReceipt) { <span>Receipt {{ payment.mpesaReceipt }}</span> }
+								@if (payment.amount !== undefined) { <span>{{ formatTotal(payment.amount) }}</span> }
+								@if (payment.paidAt || payment.completedAt) { <span>Paid {{ formatDate(payment.paidAt || payment.completedAt!) }}</span> }
+							</div>
+						}
+					}
 
 					<app-order-progress [status]="order.status" [orderId]="order.id" [deliveryStatus]="order.deliveryStatus" />
 
@@ -104,6 +123,19 @@
 							<span class="order-card__caption">ORDER TOTAL</span>
 							<strong class="order-card__total">{{ formatTotal(order.total) }}</strong>
 						</div>
+						@if (canRetryPayment(order)) {
+							<button type="button" class="order-track-link order-retry-payment"
+								(click)="retryPayment(order)" [disabled]="retryingOrderId() === order.id">
+								<mat-icon>{{ retryingOrderId() === order.id ? 'hourglass_top' : 'refresh' }}</mat-icon>
+								{{ retryingOrderId() === order.id ? 'Waiting for payment' : 'Retry Payment' }}
+							</button>
+						}
+						@if (paymentStatusFor(order) === 'PENDING' && retryingOrderId() !== order.id) {
+							<button type="button" class="order-track-link order-retry-payment"
+								(click)="checkPaymentStatus(order)">
+								<mat-icon>refresh</mat-icon>Check payment
+							</button>
+						}
 						@if (order.status !== 'CANCELLED' && order.status !== 'FAILED') {
 							<a class="order-track-link" [routerLink]="['/tracking', order.id]">
 								Track shipment <mat-icon>arrow_forward</mat-icon>
