@@ -73,6 +73,9 @@ export const ApiEndpoints = {
     BUYER_DELIVERY: (orderId: string | number) => `${API_BASE}/buyer/orders/${orderId}/delivery`,
     SELLER_DELIVERIES: (orderId: string | number) => `${API_BASE}/seller/orders/${orderId}/deliveries`,
   },
+  TRACKING: {
+    LATEST_LOCATION: (jobId: string | number) => `${API_BASE}/tracking/${jobId}/location`,
+  },
 
   DISPUTES: {
     CREATE: `${API_BASE}/disputes`,

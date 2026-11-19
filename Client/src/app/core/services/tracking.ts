@@ -38,6 +38,17 @@ interface LogisticsTrackingEvent {
   recordedAt: string;
 }
 
+interface LatestDriverLocation {
+  id?: string | number;
+  latitude?: number | null;
+  longitude?: number | null;
+  location?: string | null;
+  locationName?: string | null;
+  recordedAt?: string | null;
+  timestamp?: string | null;
+  updatedAt?: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class Tracking {
   private readonly http = inject(HttpService);
@@ -126,6 +137,33 @@ export class Tracking {
           };
         }),
       );
+  }
+
+  loadLatestDriverLocation(jobId: string | number): Observable<ApiResponse<TrackingEvent | null>> {
+    return this.http.get<LatestDriverLocation>(ApiEndpoints.TRACKING.LATEST_LOCATION(jobId)).pipe(
+      map((response): ApiResponse<TrackingEvent | null> => {
+        if (!response.success || !response.data) return { ...response, data: null };
+        const location = response.data;
+        const coordinates = validCoordinates(location.latitude, location.longitude);
+        if (!coordinates) return { ...response, data: null };
+        const timestamp = location.recordedAt ?? location.timestamp ?? location.updatedAt ?? new Date().toISOString();
+        return {
+          ...response,
+          data: {
+            id: `live-${jobId}-${location.id ?? timestamp}`,
+            stage: 'IN_TRANSIT',
+            status: 'IN_PROGRESS',
+            timestamp,
+            label: 'Live driver location',
+            ...coordinates,
+            ...(location.locationName ?? location.location
+              ? { location: location.locationName ?? location.location ?? undefined }
+              : {}),
+            deliveryJobId: Number(jobId),
+          },
+        };
+      }),
+    );
   }
 
   loadBuyerDeliverySummary(orderId: string | number): Observable<ApiResponse<DeliverySummary>> {

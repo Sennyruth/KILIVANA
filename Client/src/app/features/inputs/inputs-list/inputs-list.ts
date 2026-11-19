@@ -1,5 +1,6 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
 import { NgOptimizedImage } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -31,6 +32,8 @@ export class InputsList implements OnInit {
   protected readonly productService = inject(Product);
   protected readonly cartService = inject(Cart);
   protected readonly auth = inject(Auth);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
 
@@ -57,6 +60,9 @@ export class InputsList implements OnInit {
   });
 
   ngOnInit(): void {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      this.selectedCategory.set(params.get('category') ?? 'ALL');
+    });
     this.productService.loadAll().subscribe({
       error: () => {
         this.notification.error('Failed to load inputs');

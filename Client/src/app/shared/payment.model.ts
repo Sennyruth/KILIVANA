@@ -5,9 +5,9 @@ export interface MpesaInitiateRequest {
 
 export interface MpesaInitiateResponse {
   paymentId: number;
-  orderId: number;
+  orderId: number | null;
   amount: number;
-  status: string;
+  status?: string;
   darajaResponse: {
     checkoutRequestID?: string;
     merchantRequestID?: string;
@@ -18,8 +18,10 @@ export interface MpesaInitiateResponse {
   createdAt: string;
 }
 
+export type StkPushInitiateResponse = MpesaInitiateResponse;
+
 export interface PaymentStatus {
-  orderId: string;
+  orderId: string | null;
   paymentStatus: 'PENDING' | 'PAID' | 'HELD' | 'SETTLED' | 'FAILED' | 'CANCELLED' | 'REFUNDED' | 'UNKNOWN';
   paymentId?: number;
   amount?: number;
@@ -35,15 +37,25 @@ export interface PaymentStatus {
   paidAt?: string;
 }
 
+export function normalizePaymentStatus(value: unknown): PaymentStatus['paymentStatus'] {
+  const status = String(value ?? 'UNKNOWN').trim().toUpperCase();
+  if (status === 'TIMED_OUT' || status === 'TIMEOUT') return 'FAILED';
+  return ['PENDING', 'PAID', 'HELD', 'SETTLED', 'FAILED', 'CANCELLED', 'REFUNDED'].includes(status)
+    ? status as PaymentStatus['paymentStatus']
+    : 'UNKNOWN';
+}
+
 export type MpesaSellerType = 'farmer' | 'supplier' | 'buyer';
 
 export interface PaymentStatusResponse {
-  id: number;
-  orderId: number;
+  id?: number;
+  paymentId?: number;
+  orderId?: number | null;
   method: string;
   reference?: string | null;
   amount: number;
   status: string;
+  paymentStatus?: string;
   paidAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -55,4 +67,5 @@ export interface PaymentStatusResponse {
   callbackStatus?: string | null;
   darajaResultCode?: number | null;
   darajaResultDesc?: string | null;
+  darajaResponse?: MpesaInitiateResponse['darajaResponse'] | null;
 }

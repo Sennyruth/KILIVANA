@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Auth } from '../../core/services/auth';
 import { Cart } from '../../core/services/cart';
+import { Product } from '../../core/services/product';
 
 @Component({
   selector: 'app-navbar',
@@ -31,6 +32,7 @@ import { Cart } from '../../core/services/cart';
 export class Navbar {
   protected readonly auth = inject(Auth);
   protected readonly cart = inject(Cart);
+  private readonly products = inject(Product);
   private readonly router = inject(Router);
 
   constructor() {
@@ -69,6 +71,14 @@ export class Navbar {
   });
   protected readonly itemCount = this.cart.itemCount;
   protected readonly mobileMenuOpen = signal(false);
+  protected readonly produceCategories = computed(() => this.products.categories().filter((category) => category.type === 'FARMER'));
+  protected readonly inputCategories = computed(() => this.products.categories().filter((category) => category.type === 'SUPPLIER'));
+  protected readonly searchQuery = signal('');
+
+  protected readonly firstName = computed(() => {
+    const name = this.auth.user()?.name?.trim();
+    return name ? name.split(/\s+/)[0] : 'there';
+  });
 
   protected readonly showCart = computed(() => !this.auth.isSupplier());
   protected readonly showDashboardLink = computed(() => this.auth.isAuthenticated() && !this.auth.isSupplier());
@@ -111,6 +121,25 @@ export class Navbar {
     if (r === 'SUPPLIER') return '/dashboard/supplier';
     return '/dashboard/buyer';
   });
+
+  protected onSearchInput(event: Event): void {
+    const query = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(query);
+
+    // The native search-field X emits an input event with an empty value.
+    // Clear the URL filters too so the product list immediately returns to all products.
+    if (!query.trim() && this.router.url.startsWith('/products')) {
+      void this.router.navigate(['/products']);
+    }
+  }
+
+  protected search(event: SubmitEvent): void {
+    event.preventDefault();
+    const query = this.searchQuery().trim();
+    void this.router.navigate(['/products'], {
+      queryParams: query ? { q: query } : {},
+    });
+  }
 
   protected isActive(href: string): boolean {
     const currentUrl = this.router.url;

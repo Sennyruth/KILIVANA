@@ -195,6 +195,17 @@
   gap: 1.25rem;
 }
 
+.order-tracker__map {
+  margin-bottom: 1.25rem;
+  padding: 1.25rem;
+}
+
+.order-tracker__map-empty {
+  margin: 0.55rem 0 0;
+  color: var(--text-secondary, #626b63);
+  font-size: 0.78rem;
+}
+
 .order-tracker__timeline,
 .order-tracker__delivery,
 .order-tracker__order-summary {

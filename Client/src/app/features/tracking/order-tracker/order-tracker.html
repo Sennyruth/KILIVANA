@@ -62,6 +62,19 @@
       }
     </section>
 
+    <section class="panel order-tracker__map" aria-labelledby="route-map-title">
+      <div class="order-tracker__section-heading">
+        <div>
+          <h2 id="route-map-title">Delivery route</h2>
+          <p>Live driver locations · updates every 5 seconds.</p>
+        </div>
+      </div>
+      <app-live-order-map [events]="timelineEvents()" />
+      @if (!mapHasCoordinates()) {
+        <p class="order-tracker__map-empty" role="status">Waiting for the driver’s first location update. The map is centered on Nairobi.</p>
+      }
+    </section>
+
     <section class="order-tracker__progress panel" aria-labelledby="progress-title">
       <div class="order-tracker__section-heading">
         <div>

@@ -1,7 +1,19 @@
 <div class="navbar">
-  <div class="navbar__promo">Fresh from trusted local farms <span aria-hidden="true">·</span> Good food, grown well</div>
+  <div class="navbar__promo">
+    <div class="navbar__promo-inner">
+      <a class="navbar__sell" [routerLink]="['/register']" [queryParams]="{ role: 'SUPPLIER' }">
+        <mat-icon aria-hidden="true">sell</mat-icon>
+        Buy and Sell on Kilivana
+      </a>
+      <div class="navbar__promises" aria-label="Kilivana services">
+        <span>KILIVANA</span>
+        <span>FARM SUPPLY</span>
+        <span>LOCAL DELIVERY</span>
+      </div>
+    </div>
+  </div>
   <mat-toolbar class="navbar__toolbar">
-    <button mat-icon-button class="navbar__menu" (click)="toggleMobileMenu()" aria-label="Menu">
+    <button mat-icon-button class="navbar__menu" (click)="toggleMobileMenu()" aria-label="Browse categories" [attr.aria-expanded]="mobileMenuOpen()" aria-controls="navbar-category-menu">
       <mat-icon>menu</mat-icon>
     </button>
 
@@ -10,27 +22,44 @@
       <span class="navbar__title">Kilivana</span>
     </a>
 
-    <nav class="navbar__nav" [class.navbar__nav--open]="mobileMenuOpen()">
-      @for (link of navLinks(); track link.href) {
-        <a class="navbar__link" [routerLink]="link.href"
-           routerLinkActive [class.navbar__link--active]="isActive(link.href)">
-          {{ link.label }}
-        </a>
-      }
-      @if (!auth.isAuthenticated()) {
-        <a class="navbar__link" routerLink="/" fragment="story" (click)="closeMobileMenu()">Our Story</a>
-      }
-      @if (showDashboardLink()) {
-        <a class="navbar__link" [routerLink]="dashboardHref()"
-           routerLinkActive="navbar__link--active"
-           [routerLinkActiveOptions]="{ exact: true }"
-           ariaCurrentWhenActive="page">
-          Dashboard
-        </a>
-      }
-    </nav>
+    <form class="navbar__search" role="search" (submit)="search($event)">
+      <mat-icon class="navbar__search-icon" aria-hidden="true">search</mat-icon>
+      <label class="navbar__sr-only" for="navbar-product-search">Search products,inputs and categories</label>
+      <input
+        id="navbar-product-search"
+        class="navbar__search-input"
+        type="search"
+        [value]="searchQuery()"
+        (input)="onSearchInput($event)"
+        placeholder="Search products, inputs and categories"
+      />
+      <button class="navbar__search-button" type="submit">Search</button>
+    </form>
 
     <div class="navbar__actions">
+      @if (auth.isAuthenticated()) {
+        <button mat-button [matMenuTriggerFor]="userMenu" class="navbar__account">
+          <mat-icon aria-hidden="true">person_outline</mat-icon>
+          <span class="navbar__account-copy">
+            <span class="navbar__account-label">Hi, {{ firstName() }}</span>
+          </span>
+          <mat-icon class="navbar__arrow">expand_more</mat-icon>
+        </button>
+      } @else {
+        <button mat-button class="navbar__account" (click)="login()">
+          <mat-icon aria-hidden="true">person_outline</mat-icon>
+          <span class="navbar__account-copy">
+            <span class="navbar__account-label">Sign In</span>
+          </span>
+        </button>
+      }
+
+      <button mat-button class="navbar__help" [matMenuTriggerFor]="helpMenu" aria-label="Help">
+        <mat-icon aria-hidden="true">help_outline</mat-icon>
+        <span>Help</span>
+        <mat-icon class="navbar__arrow">expand_more</mat-icon>
+      </button>
+
       @if (showCart()) {
         <button mat-icon-button class="navbar__cart" [routerLink]="'/cart'" aria-label="Cart">
           <mat-icon>shopping_cart</mat-icon>
@@ -39,49 +68,69 @@
           }
         </button>
       }
-
-      @if (auth.isAuthenticated()) {
-        <button mat-button [matMenuTriggerFor]="userMenu" class="navbar__user">
-          <span class="navbar__avatar" [class.navbar__avatar--has-url]="!!user()?.avatarUrl">
-            @if (user()?.avatarUrl) {
-              <img [src]="user()?.avatarUrl" [alt]="user()?.name ?? 'User'" class="navbar__avatar-img" />
-            } @else {
-              <span class="navbar__avatar-text">{{ userInitials() }}</span>
-            }
-          </span>
-          <span class="navbar__user-name">{{ user()?.name }}</span>
-          <mat-icon class="navbar__arrow">expand_more</mat-icon>
-        </button>
-        <mat-menu #userMenu="matMenu">
-          <div class="user-menu">
-            <div class="user-menu__role">{{ roleLabel() }} Account</div>
-            <mat-divider></mat-divider>
-            <a mat-menu-item [routerLink]="dashboardHref()">Dashboard</a>
-            @if (showCart()) {
-              @if (auth.isBuyer()) {
-                <a mat-menu-item routerLink="/orders">Order History</a>
-                <a mat-menu-item routerLink="/tracking/last">Track Order</a>
-              } @else if (auth.isFarmer()) {
-                <a mat-menu-item routerLink="/dashboard/farmer" fragment="farmer-orders">Orders</a>
-              }
-            }
-            @if (auth.isSupplier()) {
-              <a mat-menu-item routerLink="/dashboard/supplier/orders">Supplier Orders</a>
-            }
-            <mat-divider></mat-divider>
-            <button mat-menu-item (click)="logout()">Logout</button>
-          </div>
-        </mat-menu>
-      } @else {
-        <button mat-button class="navbar__register" (click)="register()">
-          Register
-        </button>
-        <button mat-raised-button class="navbar__cta" (click)="login()">
-          Login
-        </button>
-      }
     </div>
   </mat-toolbar>
+
+  <nav id="navbar-category-menu" class="navbar__category-dropdown" [class.navbar__category-dropdown--open]="mobileMenuOpen()" aria-label="Shop categories">
+    @if (!auth.isSupplier()) {
+      @if (!auth.isFarmer()) {
+        <section class="navbar__category-group" aria-labelledby="produce-category-title">
+          <h2 id="produce-category-title"><mat-icon aria-hidden="true">nutrition</mat-icon>Products &amp; produce</h2>
+          <a class="navbar__category-link navbar__category-link--all" routerLink="/products" (click)="closeMobileMenu()">Shop all products <mat-icon>arrow_forward</mat-icon></a>
+          @for (category of produceCategories(); track category.id) {
+            <a class="navbar__category-link" [routerLink]="['/products']" [queryParams]="{ category: category.name }" (click)="closeMobileMenu()">
+              <mat-icon aria-hidden="true">category</mat-icon>{{ category.name }}
+            </a>
+          }
+        </section>
+        <mat-divider />
+      }
+      <section class="navbar__category-group" aria-labelledby="input-category-title">
+        <h2 id="input-category-title"><mat-icon aria-hidden="true">agriculture</mat-icon>Farm inputs</h2>
+        <a class="navbar__category-link navbar__category-link--all" routerLink="/inputs" (click)="closeMobileMenu()">Shop all farm inputs <mat-icon>arrow_forward</mat-icon></a>
+        @for (category of inputCategories(); track category.id) {
+          <a class="navbar__category-link" [routerLink]="['/inputs']" [queryParams]="{ category: category.name }" (click)="closeMobileMenu()">
+            <mat-icon aria-hidden="true">category</mat-icon>{{ category.name }}
+          </a>
+        }
+      </section>
+    } @else {
+      @for (link of navLinks(); track link.href) {
+        <a class="navbar__category-link" [routerLink]="link.href" (click)="closeMobileMenu()"><mat-icon aria-hidden="true">{{ link.label === 'Dashboard' ? 'dashboard' : 'receipt_long' }}</mat-icon>{{ link.label }}</a>
+      }
+    }
+  </nav>
+
+  <mat-menu #userMenu="matMenu">
+    <div class="user-menu">
+      <div class="user-menu__role">{{ roleLabel() }} Account</div>
+      <mat-divider></mat-divider>
+      <a mat-menu-item [routerLink]="dashboardHref()">Dashboard</a>
+      @if (showCart()) {
+        @if (auth.isBuyer()) {
+          <a mat-menu-item routerLink="/orders">Order History</a>
+          <a mat-menu-item routerLink="/tracking/last">Track Order</a>
+        } @else if (auth.isFarmer()) {
+          <a mat-menu-item routerLink="/dashboard/farmer" fragment="farmer-orders">Orders</a>
+        }
+      }
+      @if (auth.isSupplier()) {
+        <a mat-menu-item routerLink="/dashboard/supplier/orders">Supplier Orders</a>
+      }
+      <mat-divider></mat-divider>
+      <button mat-menu-item (click)="logout()">Logout</button>
+    </div>
+  </mat-menu>
+
+  <mat-menu #helpMenu="matMenu">
+    <a mat-menu-item routerLink="/" fragment="story">About Kilivana</a>
+    <a mat-menu-item routerLink="/cart">View Cart</a>
+    @if (auth.isAuthenticated()) {
+      <a mat-menu-item [routerLink]="dashboardHref()">My Account</a>
+    } @else {
+      <a mat-menu-item (click)="register()">Create Account</a>
+    }
+  </mat-menu>
 
   <div class="navbar__mobile" [class.navbar__mobile--open]="mobileMenuOpen()">
     @for (link of navLinks(); track link.href) {

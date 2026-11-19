@@ -24,6 +24,7 @@ import {
   MpesaSellerType,
   PaymentStatusResponse,
   PaymentStatus,
+  normalizePaymentStatus,
 } from '../../shared/payment.model';
 import { ApiResponse } from '../../shared/api-response';
 
@@ -128,7 +129,8 @@ export class Payment {
       filter((response): response is ApiResponse<PaymentStatus> => !!response?.success && !!response.data),
       map((response) => response.data!),
       tap((status) => this._status.set(status)),
-      takeWhile((status) => status.paymentStatus === 'PENDING', true),
+      takeWhile((status) => status.paymentStatus === 'PENDING'
+        || (['PAID', 'HELD', 'SETTLED'].includes(status.paymentStatus) && !status.orderId), true),
     );
     const deadline = timer(timeoutMs).pipe(
       switchMap(() => throwError(() => new Error('Payment confirmation timed out'))),
@@ -138,17 +140,13 @@ export class Payment {
 
   private toPaymentStatus(response: PaymentStatusResponse): PaymentStatus {
     const rawStatus = String(response.status ?? (response as PaymentStatusResponse & { paymentStatus?: string }).paymentStatus ?? 'UNKNOWN').toUpperCase();
-    const paymentStatus: PaymentStatus['paymentStatus'] =
-      ['PENDING', 'PAID', 'HELD', 'SETTLED', 'FAILED', 'CANCELLED', 'REFUNDED'].includes(rawStatus)
-        ? rawStatus as PaymentStatus['paymentStatus']
-        : 'UNKNOWN';
     return {
-      orderId: String(response.orderId),
-      paymentStatus,
-      paymentId: response.id,
+      orderId: response.orderId == null ? null : String(response.orderId),
+      paymentStatus: normalizePaymentStatus(rawStatus),
+      paymentId: response.paymentId ?? response.id,
       amount: response.amount,
-      merchantRequestId: response.merchantRequestId ?? undefined,
-      checkoutRequestId: response.checkoutRequestId ?? undefined,
+      merchantRequestId: response.merchantRequestId ?? response.darajaResponse?.merchantRequestID ?? undefined,
+      checkoutRequestId: response.checkoutRequestId ?? response.darajaResponse?.checkoutRequestID ?? undefined,
       phoneNumber: response.phoneNumber ?? undefined,
       callbackStatus: response.callbackStatus ?? undefined,
       darajaResultCode: response.darajaResultCode ?? undefined,

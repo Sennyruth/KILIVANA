@@ -4,7 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { finalize, forkJoin, interval } from 'rxjs';
+import { catchError, finalize, forkJoin, interval, of } from 'rxjs';
 import { Order as OrderService } from '../../../core/services/order';
 import { Auth } from '../../../core/services/auth';
 import type { Order as OrderModel, OrderStatus, SellerOrderSummary } from '../../../shared/order.model';
@@ -17,10 +17,11 @@ import type {
 } from '../../../shared/tracking.model';
 import { TrackingStepper } from '../../../shared/tracking-stepper/tracking-stepper';
 import { Tracking } from '../../../core/services/tracking';
+import { LiveOrderMap } from '../../../shared/live-order-map/live-order-map';
 
 @Component({
   selector: 'app-order-tracker',
-  imports: [RouterLink, MatIconModule, MatButtonModule, TrackingStepper, CurrencyPipe, DatePipe],
+  imports: [RouterLink, MatIconModule, MatButtonModule, TrackingStepper, LiveOrderMap, CurrencyPipe, DatePipe],
   styleUrl: './order-tracker.scss',
   templateUrl: './order-tracker.html',
 })
@@ -67,6 +68,7 @@ export class OrderTracker implements OnInit {
     () => (this.sellerPerspective ? this.sellerOrder()?.status as OrderStatus | undefined : this.order()?.status)
       ?? this.history()?.currentStage ?? null,
   );
+  protected readonly mapHasCoordinates = computed(() => this.timelineEvents().some((event) => this.hasCoordinates(event)));
   protected readonly terminalMessage = computed(() => {
     const status = this.terminalStatus();
     if (!status) return '';
@@ -102,6 +104,9 @@ export class OrderTracker implements OnInit {
         this.deliveryEventsError.set(null);
         this.loadCurrentStatus();
       });
+    interval(5 * 1_000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.refreshLiveLocations());
   }
 
   protected retry(): void {
@@ -296,28 +301,37 @@ export class OrderTracker implements OnInit {
       return;
     }
 
-    this.deliveryEvents.set([]);
     this.deliveryEventsLoading.set(true);
-    forkJoin(validDeliveries.map((delivery) =>
-      this.tracking.loadDeliveryEvents(delivery.deliveryJobId),
-    ))
+    forkJoin(validDeliveries.map((delivery) => forkJoin({
+      events: this.tracking.loadDeliveryEvents(delivery.deliveryJobId),
+      latest: this.tracking.loadLatestDriverLocation(delivery.deliveryJobId).pipe(catchError(() => of(null))),
+    })))
       .pipe(finalize(() => this.deliveryEventsLoading.set(false)))
       .subscribe({
         next: (response) => {
-          const failedResponse = response.find((result) => !result.success);
+          const failedResponse = response.find((result) => !result.events.success);
           if (failedResponse) {
-            this.deliveryEventsError.set(failedResponse.message || 'Driver updates are temporarily unavailable.');
+            this.deliveryEventsError.set(failedResponse.events.message || 'Driver updates are temporarily unavailable.');
             return;
           }
           this.deliveryEvents.set(response.flatMap((result, index) =>
-            (result.data ?? []).map((event) => ({
-              ...event,
-              deliveryJobId: validDeliveries[index].deliveryJobId,
-            })),
+            [
+              ...(result.events.data ?? []).map((event) => ({
+                ...event,
+                deliveryJobId: validDeliveries[index].deliveryJobId,
+              })),
+              ...(result.latest?.data ? [result.latest.data] : []),
+            ],
           ));
         },
         error: () => this.deliveryEventsError.set('Driver updates could not be loaded. Please try again.'),
       });
+  }
+
+  private refreshLiveLocations(): void {
+    if (this.deliveryEventsLoading() || this.deliverySummaryLoading()) return;
+    const deliveries = this.deliverySummary()?.deliveries ?? [];
+    if (deliveries.length) this.loadDeliveryTrackingEvents(deliveries);
   }
 
   protected deliveryStatusText(status: string): string {
@@ -340,4 +354,11 @@ export class OrderTracker implements OnInit {
 
     return `https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`;
   }
+
+  protected hasCoordinates(event: TrackingEvent): boolean {
+    return event.latitude != null && event.longitude != null
+      && Number.isFinite(event.latitude) && Number.isFinite(event.longitude)
+      && Math.abs(event.latitude) <= 90 && Math.abs(event.longitude) <= 180;
+  }
+
 }

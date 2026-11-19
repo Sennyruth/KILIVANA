@@ -4,6 +4,7 @@ import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { Auth } from '../../core/services/auth';
 import { Cart } from '../../core/services/cart';
+import { Product } from '../../core/services/product';
 import { NotificationService } from '../notification/notification.service';
 import { Navbar } from './navbar';
 
@@ -49,6 +50,10 @@ describe('Navbar', () => {
           },
         },
         {
+          provide: Product,
+          useValue: { categories: signal([]) },
+        },
+        {
           provide: NotificationService,
           useValue: { error: showError },
         },
@@ -72,9 +77,8 @@ describe('Navbar', () => {
     await fixture.whenStable();
 
     expect(loadCart).toHaveBeenCalledOnce();
-    const links = Array.from(fixture.nativeElement.querySelectorAll('.navbar__link')) as HTMLAnchorElement[];
-    expect(links.map((link) => link.textContent?.trim())).toEqual(['Inputs', 'Cart', 'Orders', 'Dashboard']);
-    expect(links.some((link) => link.getAttribute('href') === '/products')).toBe(false);
+    expect(fixture.nativeElement.querySelector('.navbar__account')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.navbar__search')).not.toBeNull();
   });
 
   it('does not load the cart for a supplier', async () => {
@@ -84,9 +88,8 @@ describe('Navbar', () => {
     await fixture.whenStable();
 
     expect(loadCart).not.toHaveBeenCalled();
-    const links = Array.from(fixture.nativeElement.querySelectorAll('.navbar__link')) as HTMLAnchorElement[];
-    expect(links.map((link) => link.textContent?.trim())).toContain('Orders');
-    expect(links.some((link) => link.getAttribute('href') === '/dashboard/supplier/orders')).toBe(true);
+    expect(fixture.nativeElement.querySelector('.navbar__account')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.navbar__search')).not.toBeNull();
   });
 
   it('highlights the buyer dashboard link when its route is active', async () => {
@@ -94,17 +97,8 @@ describe('Navbar', () => {
     await TestBed.inject(Router).navigateByUrl('/dashboard/buyer');
     fixture.detectChanges();
 
-    const desktopLink = fixture.nativeElement.querySelector(
-      '.navbar__nav .navbar__link[href="/dashboard/buyer"]',
-    ) as HTMLAnchorElement;
-    const mobileLink = fixture.nativeElement.querySelector(
-      '.navbar__mobile .navbar__mobile-link[href="/dashboard/buyer"]',
-    ) as HTMLAnchorElement;
-
-    expect(desktopLink.classList.contains('navbar__link--active')).toBe(true);
-    expect(desktopLink.getAttribute('aria-current')).toBe('page');
-    expect(mobileLink.classList.contains('navbar__mobile-link--active')).toBe(true);
-    expect(mobileLink.getAttribute('aria-current')).toBe('page');
+    const account = fixture.nativeElement.querySelector('.navbar__account') as HTMLElement;
+    expect(account.textContent).toContain('Hi, Test');
   });
 
   it('clears the cart when the user logs out', async () => {

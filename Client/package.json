@@ -3,9 +3,13 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
+    "prestart": "node scripts/configure-mapbox.cjs",
     "start": "ng serve",
+    "prebuild": "node scripts/configure-mapbox.cjs",
     "build": "ng build",
+    "prewatch": "node scripts/configure-mapbox.cjs",
     "watch": "ng build --watch --configuration development",
+    "pretest": "node scripts/configure-mapbox.cjs",
     "test": "ng test"
   },
   "private": true,

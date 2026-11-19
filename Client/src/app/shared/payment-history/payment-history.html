@@ -20,7 +20,7 @@
     <p class="payment-history__empty">Payments for your listings will appear here.</p>
   } @else {
     <div class="payment-history__list">
-      @for (payment of payments(); track payment.id) {
+      @for (payment of payments(); track payment.id ?? payment.paymentId) {
         <article class="payment-history__item">
           <div class="payment-history__icon"><mat-icon>payments</mat-icon></div>
           <div class="payment-history__details">
