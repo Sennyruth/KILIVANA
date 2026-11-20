@@ -7,6 +7,7 @@ import {
   interval,
   map,
   of,
+  retry,
   startWith,
   switchMap,
   takeUntil,
@@ -125,7 +126,10 @@ export class Payment {
   pollPaymentStatus(paymentId: string | number, intervalMs = 3000, timeoutMs = 120_000): Observable<PaymentStatus> {
     const polling = interval(intervalMs).pipe(
       startWith(0),
-      switchMap(() => this.getStatus(paymentId).pipe(catchError(() => of(null)))),
+      // Retry transient network/backend errors, then surface a persistent
+      // failure so checkout can show an actionable unknown status instead of
+      // leaving the buyer on the pending screen indefinitely.
+      switchMap(() => this.getStatus(paymentId).pipe(retry({ count: 2, delay: 3000 }))),
       filter((response): response is ApiResponse<PaymentStatus> => !!response?.success && !!response.data),
       map((response) => response.data!),
       tap((status) => this._status.set(status)),
@@ -144,11 +148,14 @@ export class Payment {
     // Daraja reports a user-dismissed STK prompt with result code 1032. Some
     // backend responses retain a generic status, so use the callback outcome
     // to ensure polling can leave the pending state and show the cancellation.
-    const rawStatus = resultCode === 1032 || resultDescription.includes('cancelled by user') || resultDescription.includes('canceled by user')
-      ? 'CANCELLED'
-      : resultCode === 1037
-        ? 'FAILED'
-        : String(response.status ?? (response as PaymentStatusResponse & { paymentStatus?: string }).paymentStatus ?? 'UNKNOWN').toUpperCase();
+    const wasCancelled = resultCode === 1032 || /cancel(?:led|ed)?|dismissed/.test(resultDescription);
+    const rawStatus = resultCode === 0
+      ? 'PAID'
+      : wasCancelled
+        ? 'CANCELLED'
+        : Number.isFinite(resultCode)
+          ? 'FAILED'
+          : String(response.status ?? (response as PaymentStatusResponse & { paymentStatus?: string }).paymentStatus ?? 'UNKNOWN').toUpperCase();
     return {
       orderId: response.orderId == null ? null : String(response.orderId),
       paymentStatus: normalizePaymentStatus(rawStatus),

@@ -470,8 +470,12 @@ export class Checkout implements OnInit {
       }
       this.paymentState.set('paid');
       this.paymentMessage.set(hasOrderId
-        ? 'Payment successful. Your order is confirmed.'
-        : 'Payment successful. We are finalizing your order now.');
+        ? this.auth.isFarmer()
+          ? 'Payment successful. Your input order is confirmed.'
+          : 'Payment successful. Your order is confirmed.'
+        : this.auth.isFarmer()
+          ? 'Payment successful. We are finalizing your input order.'
+          : 'Payment successful. We are finalizing your order.');
       if (!this.checkoutFinalized) {
         this.checkoutFinalized = true;
         this.productService.applyStockReservation(this.pendingCheckoutItems);
@@ -480,25 +484,40 @@ export class Checkout implements OnInit {
         this.refreshOrderAfterPayment();
       }
       if (hasOrderId) {
-        this.paymentMessage.set('Payment successful. Your order is confirmed.');
+        this.paymentMessage.set(this.auth.isFarmer()
+          ? 'Payment successful. Your input order is confirmed.'
+          : 'Payment successful. Your order is confirmed.');
       }
       // A paid callback may arrive before its order ID. Refresh again once the
       // backend attaches that ID; the first successful callback already caused
       // an order-list refresh above.
       if (this.checkoutFinalized && orderIdChanged && hasOrderId) this.refreshOrderAfterPayment();
-      if (orderIdChanged && hasOrderId) void this.router.navigate(['/orders']);
+      if (orderIdChanged && hasOrderId) {
+        // Farmers buy inputs as customers, but the useful landing page for
+        // their completed input checkout is the dashboard's input-order list.
+        // That dashboard reloads the buyer's orders when it initializes.
+        if (this.auth.isFarmer()) {
+          void this.router.navigate(['/dashboard/farmer'], { fragment: 'farmer-input-orders' });
+        } else {
+          void this.router.navigate(['/orders']);
+        }
+      }
     } else if (paymentAccepted) {
       this.paymentState.set('pending');
       this.paymentMessage.set('Payment received. We are waiting for order confirmation.');
     } else if (status.paymentStatus === 'CANCELLED') {
       this.paymentPolling?.unsubscribe();
       this.paymentState.set('cancelled');
-      this.paymentMessage.set('You cancelled the M-Pesa payment. No order was created. You can start checkout again when you are ready.');
+      this.paymentMessage.set(this.auth.isFarmer()
+        ? 'M-Pesa payment cancelled. Your input order was not placed, and your cart is saved so you can try again.'
+        : 'M-Pesa payment cancelled. Your order was not placed, and your cart is saved so you can try again.');
       this.notification.warning(this.paymentMessage()!);
     } else if (status.paymentStatus === 'FAILED') {
       this.paymentPolling?.unsubscribe();
       this.paymentState.set('failed');
-      this.paymentMessage.set('Payment was unsuccessful. No order was created. You can start checkout again.');
+      this.paymentMessage.set(this.auth.isFarmer()
+        ? 'Payment was unsuccessful. Your input order was not placed, and your cart is saved so you can try again.'
+        : 'Payment was unsuccessful. Your order was not placed, and your cart is saved so you can try again.');
       this.notification.error(this.paymentMessage()!);
     } else if (status.paymentStatus === 'PENDING') {
       this.paymentState.set('pending');
@@ -551,9 +570,10 @@ export class Checkout implements OnInit {
         this.applyPaymentStatus(status);
       },
       error: () => {
-        this.paymentStatus.set('FAILED');
-        this.paymentState.set('failed');
-        this.paymentMessage.set('Payment timed out after 30 minutes. No order was created. Start checkout again if you still want to buy these items.');
+        this.paymentPolling?.unsubscribe();
+        this.paymentStatus.set('UNKNOWN');
+        this.paymentState.set('unknown');
+        this.paymentMessage.set('We could not confirm the M-Pesa status. Your cart is still saved. Check the status again before starting another payment.');
         this.notification.warning(this.paymentMessage()!);
       },
     });
