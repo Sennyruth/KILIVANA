@@ -77,6 +77,7 @@ export const inputsCatalogGuard: CanActivateFn = () => {
   const auth = inject(Auth);
   const router = inject(Router);
   if (auth.isSupplier()) return router.createUrlTree(['/dashboard/supplier']);
+  if (auth.isBuyer()) return router.createUrlTree(['/products']);
   return true;
 };
 

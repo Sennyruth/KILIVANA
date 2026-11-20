@@ -89,6 +89,14 @@
 .order-payment-status[data-status='failed'] { color: #a52c20; }
 .order-payment-status[data-status='refunded'] { color: #626d66; }
 
+.order-payment-message {
+	margin: -0.4rem 20px 0.9rem;
+	color: #17653a;
+	font-size: 0.9rem;
+}
+
+.order-payment-message--cancelled { color: #a52c20; }
+
 .order-payment-details {
   display: flex;
   flex-wrap: wrap;

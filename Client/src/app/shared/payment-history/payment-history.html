@@ -29,6 +29,9 @@
           </div>
           <strong class="payment-history__amount">{{ payment.amount | currency:'KES' }}</strong>
           <span class="payment-history__status" [attr.data-status]="payment.status.toLowerCase()">{{ statusLabel(payment.status) }}</span>
+          @if (paymentMessage(payment.status); as message) {
+            <p class="payment-history__outcome" [class.payment-history__outcome--cancelled]="payment.status.toUpperCase() === 'CANCELLED'" role="status">{{ message }}</p>
+          }
         </article>
       }
     </div>

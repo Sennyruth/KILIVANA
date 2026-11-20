@@ -86,6 +86,7 @@ export interface SellerOrderSummary {
   deliveryAddress?: string;
   pickupLocation?: string | null;
   status: string;
+  paymentStatus?: 'PENDING' | 'PAID' | 'HELD' | 'SETTLED' | 'FAILED' | 'CANCELLED' | 'REFUNDED';
   deliveryStatus?: DeliveryStatus | null;
   logisticsJobId?: number | null;
   driverName?: string | null;

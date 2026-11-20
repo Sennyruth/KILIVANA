@@ -85,15 +85,17 @@
         </section>
         <mat-divider />
       }
-      <section class="navbar__category-group" aria-labelledby="input-category-title">
-        <h2 id="input-category-title"><mat-icon aria-hidden="true">agriculture</mat-icon>Farm inputs</h2>
-        <a class="navbar__category-link navbar__category-link--all" routerLink="/inputs" (click)="closeMobileMenu()">Shop all farm inputs <mat-icon>arrow_forward</mat-icon></a>
-        @for (category of inputCategories(); track category.id) {
-          <a class="navbar__category-link" [routerLink]="['/inputs']" [queryParams]="{ category: category.name }" (click)="closeMobileMenu()">
-            <mat-icon aria-hidden="true">category</mat-icon>{{ category.name }}
-          </a>
-        }
-      </section>
+      @if (!auth.isBuyer()) {
+        <section class="navbar__category-group" aria-labelledby="input-category-title">
+          <h2 id="input-category-title"><mat-icon aria-hidden="true">agriculture</mat-icon>Farm inputs</h2>
+          <a class="navbar__category-link navbar__category-link--all" routerLink="/inputs" (click)="closeMobileMenu()">Shop all farm inputs <mat-icon>arrow_forward</mat-icon></a>
+          @for (category of inputCategories(); track category.id) {
+            <a class="navbar__category-link" [routerLink]="['/inputs']" [queryParams]="{ category: category.name }" (click)="closeMobileMenu()">
+              <mat-icon aria-hidden="true">category</mat-icon>{{ category.name }}
+            </a>
+          }
+        </section>
+      }
     } @else {
       @for (link of navLinks(); track link.href) {
         <a class="navbar__category-link" [routerLink]="link.href" (click)="closeMobileMenu()"><mat-icon aria-hidden="true">{{ link.label === 'Dashboard' ? 'dashboard' : 'receipt_long' }}</mat-icon>{{ link.label }}</a>

@@ -309,6 +309,9 @@ function normalizeSellerOrder(value: unknown): SellerOrderSummary | null {
     ...(typeof order['deliveryAddress'] === 'string' ? { deliveryAddress: order['deliveryAddress'] } : {}),
     ...(typeof order['pickupLocation'] === 'string' ? { pickupLocation: order['pickupLocation'] } : {}),
     status: String(order['status'] ?? 'PENDING').toUpperCase(),
+    ...(isPaymentStatus(String(order['paymentStatus'] ?? '').toUpperCase())
+      ? { paymentStatus: String(order['paymentStatus']).toUpperCase() as OrderModel['paymentStatus'] }
+      : {}),
     ...(deliveryStatus ? { deliveryStatus } : {}),
     ...(logisticsJobId ? { logisticsJobId } : {}),
     ...(typeof order['driverName'] === 'string' ? { driverName: order['driverName'] } : {}),

@@ -98,6 +98,10 @@ export class OrderHistory implements OnInit {
         const productIds = response.data.orders.flatMap((order) =>
           order.items.map((item) => item.productId),
         );
+        const pendingPayment = response.data.orders.find((order) =>
+          order.paymentStatus === 'PENDING' && !this.paymentStatuses()[order.id],
+        );
+        if (pendingPayment && !this.retryingOrderId()) this.checkPaymentStatus(pendingPayment);
         this.productService.loadPrimaryImagesFor(productIds).subscribe((images) => {
           this.productImages.set(images);
         });

@@ -11,7 +11,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Cart } from '../../../core/services/cart';
 import { Auth } from '../../../core/services/auth';
 import { HttpService } from '../../../core/services/http';
@@ -126,6 +126,7 @@ export class Checkout implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   protected readonly cart = inject(Cart);
   private readonly auth = inject(Auth);
+  private readonly router = inject(Router);
   private readonly http = inject(HttpService);
   private readonly orderService = inject(Order);
   private readonly payment = inject(Payment);
@@ -313,23 +314,24 @@ export class Checkout implements OnInit {
               const quotedSubtotal = Number(quoteResponse.data.subtotal);
               const basketSubtotal = this.cart.totalPrice();
               if (!Number.isFinite(quotedSubtotal) || Math.abs(quotedSubtotal - basketSubtotal) > 0.01) {
-                const formatKes = (amount: number) => new Intl.NumberFormat('en-KE', {
-                  style: 'currency',
-                  currency: 'KES',
-                }).format(amount);
-                const quotedAmount = Number.isFinite(quotedSubtotal) ? formatKes(quotedSubtotal) : 'unavailable';
                 this.failCheckout(
-                  `Your basket is ${formatKes(basketSubtotal)}, but checkout quoted ${quotedAmount}. No payment was sent. Refresh your basket and try again.`,
+                  `Your basket is ${this.formatKes(basketSubtotal)}, but checkout quoted ${this.formatKes(quotedSubtotal)}. No payment was sent. Refresh your basket and try again.`,
                 );
                 return;
               }
               const quoteTotal = Number(quoteResponse.data.total);
-              if (!Number.isFinite(quoteTotal) || quoteTotal <= 0) {
-                this.failCheckout('The checkout quote did not include a valid total. Please try again.');
+              const deliveryFee = Number(quoteResponse.data.deliveryFee);
+              const expectedTotal = quotedSubtotal + deliveryFee;
+              if (!Number.isFinite(deliveryFee) || deliveryFee < 0
+                || !Number.isFinite(quoteTotal) || quoteTotal <= 0
+                || Math.abs(quoteTotal - expectedTotal) > 0.01) {
+                this.failCheckout(
+                  `The checkout quote is inconsistent: items ${this.formatKes(quotedSubtotal)} + delivery ${this.formatKes(deliveryFee)} should total ${this.formatKes(expectedTotal)}, but the server returned ${this.formatKes(quoteTotal)}. No payment prompt was sent.`,
+                );
                 return;
               }
               this.quotedSubtotal.set(quotedSubtotal);
-              this.quotedDelivery.set(Number(quoteResponse.data.deliveryFee));
+              this.quotedDelivery.set(deliveryFee);
               const productCount = this.cart.items().length;
               const formattedTotal = new Intl.NumberFormat('en-KE', {
                 style: 'currency',
@@ -406,7 +408,19 @@ export class Checkout implements OnInit {
 
   private failCheckout(message: string): void {
     this.submitting.set(false);
-    this.notification.error(formatCheckoutError(message));
+    const visibleMessage = formatCheckoutError(message);
+    this.paymentStatus.set('FAILED');
+    this.paymentState.set('failed');
+    this.paymentMessage.set(visibleMessage);
+    this.notification.error(visibleMessage);
+  }
+
+  private formatKes(amount: number): string {
+    if (!Number.isFinite(amount)) return 'unavailable';
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES',
+    }).format(amount);
   }
 
   protected retryPayment(): void {
@@ -445,21 +459,37 @@ export class Checkout implements OnInit {
   private applyPaymentStatus(status: PaymentStatus): void {
     this.paymentStatus.set(status.paymentStatus);
     const orderId = status.orderId ? Number(status.orderId) : NaN;
-    if (['PAID', 'HELD', 'SETTLED'].includes(status.paymentStatus) && Number.isSafeInteger(orderId) && orderId > 0) {
-      this.paymentPolling?.unsubscribe();
-      this.pendingOrderId.set(orderId);
+    const paymentAccepted = ['PAID', 'HELD', 'SETTLED'].includes(status.paymentStatus);
+    const successfulPayment = status.paymentStatus === 'PAID' || status.paymentStatus === 'SETTLED';
+    const hasOrderId = Number.isSafeInteger(orderId) && orderId > 0;
+    const orderIdChanged = hasOrderId && this.pendingOrderId() !== orderId;
+    if (paymentAccepted && (hasOrderId || successfulPayment)) {
+      if (hasOrderId) {
+        this.paymentPolling?.unsubscribe();
+        this.pendingOrderId.set(orderId);
+      }
       this.paymentState.set('paid');
-      this.paymentMessage.set('Payment received. Your order is confirmed.');
+      this.paymentMessage.set(hasOrderId
+        ? 'Payment successful. Your order is confirmed.'
+        : 'Payment successful. We are finalizing your order now.');
       if (!this.checkoutFinalized) {
         this.checkoutFinalized = true;
         this.productService.applyStockReservation(this.pendingCheckoutItems);
         this.cart.clear().subscribe();
+        this.notification.success(this.paymentMessage()!);
         this.refreshOrderAfterPayment();
-        this.notification.success('Payment received. Your order is confirmed.');
       }
-    } else if (['PAID', 'HELD', 'SETTLED'].includes(status.paymentStatus)) {
+      if (hasOrderId) {
+        this.paymentMessage.set('Payment successful. Your order is confirmed.');
+      }
+      // A paid callback may arrive before its order ID. Refresh again once the
+      // backend attaches that ID; the first successful callback already caused
+      // an order-list refresh above.
+      if (this.checkoutFinalized && orderIdChanged && hasOrderId) this.refreshOrderAfterPayment();
+      if (orderIdChanged && hasOrderId) void this.router.navigate(['/orders']);
+    } else if (paymentAccepted) {
       this.paymentState.set('pending');
-      this.paymentMessage.set('Payment confirmed. We are waiting for the order confirmation from Kilivana.');
+      this.paymentMessage.set('Payment received. We are waiting for order confirmation.');
     } else if (status.paymentStatus === 'CANCELLED') {
       this.paymentPolling?.unsubscribe();
       this.paymentState.set('cancelled');

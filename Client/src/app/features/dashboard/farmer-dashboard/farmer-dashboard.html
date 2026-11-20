@@ -310,6 +310,14 @@
                   <span [class]="'dashboard__status--' + order.status.toLowerCase()">
                     {{ statusLabel(order.status, order.deliveryStatus) }}
                   </span>
+                  @if (order.paymentStatus === 'PAID' || order.paymentStatus === 'SETTLED') {
+                    <small class="dashboard__payment-message" role="status">Payment successful</small>
+                  } @else if (order.paymentStatus === 'CANCELLED') {
+                    <small class="dashboard__payment-message dashboard__payment-message--cancelled" role="status">Payment cancelled</small>
+                  }
+                  @if (order.status === 'CANCELLED') {
+                    <small class="dashboard__payment-message dashboard__payment-message--cancelled" role="status">Order cancelled</small>
+                  }
                 </td>
                 <td>
                   <a mat-button [routerLink]="['/tracking', order.id]" [queryParams]="{ perspective: 'seller' }">
@@ -351,7 +359,14 @@
                 <td>{{ order.createdAt | date:'short' }}</td>
                 <td>{{ inputOrderItems(order) }}</td>
                 <td>{{ order.total | currency:'KES' }}</td>
-                <td><span [class]="'dashboard__status--' + order.status.toLowerCase()">{{ statusLabel(order.status, order.deliveryStatus) }}</span></td>
+                <td>
+                  <span [class]="'dashboard__status--' + order.status.toLowerCase()">{{ statusLabel(order.status, order.deliveryStatus) }}</span>
+                  @if (order.paymentStatus === 'PAID' || order.paymentStatus === 'SETTLED') {
+                    <small class="dashboard__payment-message" role="status">Payment successful</small>
+                  } @else if (order.paymentStatus === 'CANCELLED') {
+                    <small class="dashboard__payment-message dashboard__payment-message--cancelled" role="status">Payment cancelled</small>
+                  }
+                </td>
                 <td>
                   @if (order.status !== 'CANCELLED' && order.status !== 'FAILED') {
                     <a mat-button [routerLink]="['/tracking', order.id]">Track order</a>

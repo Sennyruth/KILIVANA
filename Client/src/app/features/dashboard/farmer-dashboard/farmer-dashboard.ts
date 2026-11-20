@@ -98,6 +98,7 @@ export class FarmerDashboard implements OnInit, OnDestroy {
     this.loadFarmProfile();
     this.refreshInterval = setInterval(() => {
       if (!this.orderService.loading()) this.loadOrders();
+      if (!this.inputOrdersLoading()) this.loadInputOrders();
       if (!this.productService.loading()) this.refreshProducts();
     }, 30000);
   }
@@ -111,6 +112,7 @@ export class FarmerDashboard implements OnInit, OnDestroy {
   @HostListener('window:focus')
   protected refreshOrdersOnFocus(): void {
     if (!this.orderService.loading()) this.loadOrders();
+    if (!this.inputOrdersLoading()) this.loadInputOrders();
     if (!this.productService.loading()) this.refreshProducts();
   }
 
@@ -285,7 +287,6 @@ export class FarmerDashboard implements OnInit, OnDestroy {
 
   protected loadInputOrders(): void {
     this.inputOrdersError.set(null);
-    this.inputOrders.set([]);
     this.inputOrdersLoading.set(true);
     this.orderService.loadMine().subscribe({
       next: (response) => {

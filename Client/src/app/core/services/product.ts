@@ -14,6 +14,7 @@ import {
   toArray,
   finalize,
   shareReplay,
+  timeout,
 } from 'rxjs';
 
 import { HttpService } from './http';
@@ -102,6 +103,16 @@ export class Product {
             return { ...res, data: { products } };
           }),
         );
+      }),
+      // A stalled backend or image request must not leave the catalog spinner running forever.
+      timeout({ first: 45_000 }),
+      catchError((error: unknown) => {
+        this._error.set(
+          error instanceof Error && error.name === 'TimeoutError'
+            ? 'The product request timed out. Check your connection and try again.'
+            : 'Could not load products from the server. Please try again.',
+        );
+        return throwError(() => error);
       }),
       finalize(() => this._loading.set(false)),
     );

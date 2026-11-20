@@ -89,7 +89,7 @@ export const ApiEndpoints = {
   PAYMENT: {
     STK_PUSH: (sellerType: 'farmer' | 'supplier' | 'buyer') => `${API_BASE}/payments/stk-push/${sellerType}`,
     CREATE: `${API_BASE}/payments`,
-    STATUS: (id: string) => `${API_BASE}/payments/${id}/status`,
+    STATUS: (id: string) => `${API_BASE}/payments/${id}`,
     REFUND: (id: string) => `${API_BASE}/payments/${id}/refund`,
     WEBHOOK: `${API_BASE}/payments/webhook`,
     BY_ORDER: (orderId: string) => `${API_BASE}/payments/order/${orderId}`,

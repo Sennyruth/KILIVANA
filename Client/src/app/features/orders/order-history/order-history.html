@@ -79,6 +79,14 @@
 							<mat-icon>payments</mat-icon>{{ paymentStatusFor(order) }}
 						</span>
 					</div>
+					@if (paymentStatusFor(order) === 'PAID' || paymentStatusFor(order) === 'SETTLED') {
+						<p class="order-payment-message" role="status">Payment successful. Your order is confirmed.</p>
+					} @else if (paymentStatusFor(order) === 'CANCELLED') {
+						<p class="order-payment-message order-payment-message--cancelled" role="status">Payment cancelled. No payment was received for this order.</p>
+					}
+					@if (order.status === 'CANCELLED') {
+						<p class="order-payment-message order-payment-message--cancelled" role="status">This order was cancelled.</p>
+					}
 
 					@if (order.paymentReference || order.paidAt) {
 						<div class="order-payment-details">

@@ -139,7 +139,16 @@ export class Payment {
   }
 
   private toPaymentStatus(response: PaymentStatusResponse): PaymentStatus {
-    const rawStatus = String(response.status ?? (response as PaymentStatusResponse & { paymentStatus?: string }).paymentStatus ?? 'UNKNOWN').toUpperCase();
+    const resultCode = response.darajaResultCode == null ? Number.NaN : Number(response.darajaResultCode);
+    const resultDescription = String(response.darajaResultDesc ?? '').toLowerCase();
+    // Daraja reports a user-dismissed STK prompt with result code 1032. Some
+    // backend responses retain a generic status, so use the callback outcome
+    // to ensure polling can leave the pending state and show the cancellation.
+    const rawStatus = resultCode === 1032 || resultDescription.includes('cancelled by user') || resultDescription.includes('canceled by user')
+      ? 'CANCELLED'
+      : resultCode === 1037
+        ? 'FAILED'
+        : String(response.status ?? (response as PaymentStatusResponse & { paymentStatus?: string }).paymentStatus ?? 'UNKNOWN').toUpperCase();
     return {
       orderId: response.orderId == null ? null : String(response.orderId),
       paymentStatus: normalizePaymentStatus(rawStatus),
@@ -149,7 +158,7 @@ export class Payment {
       checkoutRequestId: response.checkoutRequestId ?? response.darajaResponse?.checkoutRequestID ?? undefined,
       phoneNumber: response.phoneNumber ?? undefined,
       callbackStatus: response.callbackStatus ?? undefined,
-      darajaResultCode: response.darajaResultCode ?? undefined,
+      darajaResultCode: Number.isFinite(resultCode) ? resultCode : undefined,
       darajaResultDesc: response.darajaResultDesc ?? undefined,
       mpesaReceipt: response.mpesaReceiptNumber ?? undefined,
       transactionId: response.reference ?? undefined,

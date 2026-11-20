@@ -101,7 +101,6 @@ export class Navbar {
     if (this.auth.isBuyer()) {
       return [
         { label: 'Products', href: '/products' },
-        { label: 'Inputs', href: '/inputs' },
         { label: 'Cart', href: '/cart' },
         { label: 'Orders', href: '/orders' },
       ];

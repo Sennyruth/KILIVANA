@@ -32,6 +32,15 @@
 .payment-history__status[data-status='paid'] { color: #17653a; background: #e8f5ec; }
 .payment-history__status[data-status='failed'],
 .payment-history__status[data-status='cancelled'] { color: #8c2d24; background: #fff0ed; }
+
+.payment-history__outcome {
+  grid-column: 2 / -1;
+  margin: -4px 0 0;
+  color: #17653a;
+  font-size: 0.84rem;
+}
+
+.payment-history__outcome--cancelled { color: #a52c20; }
 .payment-history__message { display: flex; align-items: center; gap: 10px; color: #66756a; }
 .payment-history__message--error { color: #9b2f27; }
 
