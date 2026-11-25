@@ -1,7 +1,6 @@
 import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -17,7 +16,6 @@ import type { Order as OrderRecord, SellerOrderSummary } from '../../../shared/o
 import { deliveryStatusLabel } from '../../../shared/order.model';
 import type { FarmerProfileImage } from '../../../shared/farmer.model';
 import { NotificationService } from '../../../shared/notification/notification.service';
-import { PaymentHistory } from '../../../shared/payment-history/payment-history';
 import { catchError, forkJoin, map, of } from 'rxjs';
 
 @Component({
@@ -32,7 +30,6 @@ import { catchError, forkJoin, map, of } from 'rxjs';
     CurrencyPipe,
     DatePipe,
     ReactiveFormsModule,
-    PaymentHistory,
   ],
   styleUrl: './farmer-dashboard.scss',
   templateUrl: './farmer-dashboard.html',
@@ -42,6 +39,7 @@ export class FarmerDashboard implements OnInit, OnDestroy {
   protected readonly orderService = inject(Order);
   protected readonly farmerService = inject(Farmer);
   protected readonly auth = inject(Auth);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
@@ -290,13 +288,30 @@ export class FarmerDashboard implements OnInit, OnDestroy {
     this.inputOrdersLoading.set(true);
     this.orderService.loadMine().subscribe({
       next: (response) => {
-        if (response.success && response.data) this.inputOrders.set(response.data.orders);
-        else this.inputOrdersError.set(response.message || 'Could not load your input orders.');
+        if (response.success && response.data) {
+          this.inputOrders.set(response.data.orders);
+          this.loadConfirmedInputOrderIfMissing(response.data.orders);
+        } else this.inputOrdersError.set(response.message || 'Could not load your input orders.');
         this.inputOrdersLoading.set(false);
       },
       error: () => {
         this.inputOrdersError.set('Could not load your input orders. Please try again.');
         this.inputOrdersLoading.set(false);
+      },
+    });
+  }
+
+  private loadConfirmedInputOrderIfMissing(orders: OrderRecord[]): void {
+    const paidOrderId = this.route.snapshot.queryParamMap.get('paidOrderId');
+    if (!paidOrderId || orders.some((order) => order.id === paidOrderId)) return;
+
+    this.orderService.getById(paidOrderId).subscribe({
+      next: (response) => {
+        const order = response.success ? response.data?.order : null;
+        if (!order) return;
+        this.inputOrders.update((current) => current.some((item) => item.id === order.id)
+          ? current
+          : [order, ...current]);
       },
     });
   }

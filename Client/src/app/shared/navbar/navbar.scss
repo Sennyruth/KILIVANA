@@ -192,9 +192,11 @@
     color: var(--text-primary);
     background: transparent;
     font: inherit;
+    font-size: 0.95rem;
 
     &::placeholder {
       color: #767676;
+      font-size: 0.95rem;
     }
   }
 

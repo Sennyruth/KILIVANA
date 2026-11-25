@@ -22,19 +22,21 @@
       <span class="navbar__title">Kilivana</span>
     </a>
 
-    <form class="navbar__search" role="search" (submit)="search($event)">
-      <mat-icon class="navbar__search-icon" aria-hidden="true">search</mat-icon>
-      <label class="navbar__sr-only" for="navbar-product-search">Search products,inputs and categories</label>
-      <input
-        id="navbar-product-search"
-        class="navbar__search-input"
-        type="search"
-        [value]="searchQuery()"
-        (input)="onSearchInput($event)"
-        placeholder="Search products, inputs and categories"
-      />
-      <button class="navbar__search-button" type="submit">Search</button>
-    </form>
+    @if (showSearch()) {
+      <form class="navbar__search" role="search" (submit)="search($event)">
+        <mat-icon class="navbar__search-icon" aria-hidden="true">search</mat-icon>
+        <label class="navbar__sr-only" for="navbar-product-search">Search products and farm inputs</label>
+        <input
+          id="navbar-product-search"
+          class="navbar__search-input"
+          type="search"
+          [value]="searchQuery()"
+          (input)="onSearchInput($event)"
+          placeholder="Search products and farm inputs"
+        />
+        <button class="navbar__search-button" type="submit">Search</button>
+      </form>
+    }
 
     <div class="navbar__actions">
       @if (auth.isAuthenticated()) {
@@ -107,6 +109,7 @@
     <div class="user-menu">
       <div class="user-menu__role">{{ roleLabel() }} Account</div>
       <mat-divider></mat-divider>
+      <a mat-menu-item routerLink="/account">My Account</a>
       <a mat-menu-item [routerLink]="dashboardHref()">Dashboard</a>
       @if (showCart()) {
         @if (auth.isBuyer()) {
@@ -128,7 +131,7 @@
     <a mat-menu-item routerLink="/" fragment="story">About Kilivana</a>
     <a mat-menu-item routerLink="/cart">View Cart</a>
     @if (auth.isAuthenticated()) {
-      <a mat-menu-item [routerLink]="dashboardHref()">My Account</a>
+      <a mat-menu-item routerLink="/account">My Account</a>
     } @else {
       <a mat-menu-item (click)="register()">Create Account</a>
     }

@@ -10,20 +10,28 @@
 
   @if (paymentState() !== 'idle') {
     <section class="checkout__result" [attr.data-state]="paymentState()" role="status" aria-live="polite">
-      <mat-icon>{{ paymentState() === 'paid' ? 'check_circle' : paymentState() === 'failed' || paymentState() === 'cancelled' || paymentState() === 'unknown' ? 'cancel' : 'phone_iphone' }}</mat-icon>
+      <mat-icon>{{ paymentState() === 'paid' ? 'check_circle' : paymentState() === 'refunded' ? 'currency_exchange' : paymentState() === 'failed' || paymentState() === 'cancelled' || paymentState() === 'unknown' ? 'cancel' : 'phone_iphone' }}</mat-icon>
       <h2>{{ statusTitle() }}</h2>
       <p>{{ paymentMessage() }}</p>
+      @if (paymentState() === 'paid') {
+        @if (paymentDetails()?.mpesaReceipt; as receipt) {
+          <p class="checkout__receipt">M-Pesa receipt: {{ receipt }}</p>
+        }
+      }
       <div class="checkout__result-actions">
-        @if ((paymentState() === 'pending' || paymentState() === 'unknown') && pendingPaymentId()) {
+        @if (paymentState() === 'unknown' && canResumePaymentPolling() && pendingPaymentId()) {
           <button mat-stroked-button type="button" (click)="checkPaymentStatus()" [disabled]="checkingPaymentStatus()">
-            <mat-icon>refresh</mat-icon>{{ checkingPaymentStatus() ? 'Checking…' : 'Check payment status' }}
+            <mat-icon>refresh</mat-icon>{{ checkingPaymentStatus() ? 'Checking…' : 'Check status again' }}
           </button>
         }
         @if (pendingOrderId()) {
           <a mat-flat-button color="primary" routerLink="/orders">View your orders</a>
         }
+        @if (paymentNeedsLogin()) {
+          <a mat-stroked-button routerLink="/login" [queryParams]="{ returnUrl: '/checkout' }">Sign in to check payment</a>
+        }
         @if (canRetryPayment()) {
-          <button mat-flat-button color="primary" type="button" (click)="retryPayment()">Start checkout again</button>
+          <button mat-flat-button color="primary" type="button" (click)="retryPayment()">Try again</button>
         }
       </div>
     </section>

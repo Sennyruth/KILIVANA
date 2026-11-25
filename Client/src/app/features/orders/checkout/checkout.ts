@@ -137,13 +137,16 @@ export class Checkout implements OnInit {
   protected readonly paymentStatus = signal<PaymentStatus['paymentStatus'] | null>(null);
   protected readonly submitting = signal(false);
   protected readonly paymentMessage = signal<string | null>(null);
-  protected readonly paymentState = signal<'idle' | 'pending' | 'paid' | 'failed' | 'cancelled' | 'unknown'>('idle');
+  protected readonly paymentState = signal<'idle' | 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded' | 'unknown'>('idle');
   protected readonly paymentDetails = signal<PaymentStatus | null>(null);
   protected readonly checkingPaymentStatus = signal(false);
+  protected readonly paymentNeedsLogin = signal(false);
+  protected readonly canResumePaymentPolling = signal(false);
   protected readonly pendingOrderId = signal<number | null>(null);
   protected readonly pendingPaymentId = signal<number | null>(null);
   private pendingCheckoutItems: Array<{ productId: string; quantity: number }> = [];
   private checkoutFinalized = false;
+  private paymentSuccessNotified = false;
   protected readonly canRetryPayment = computed(() =>
     this.paymentState() === 'cancelled' || this.paymentState() === 'failed',
   );
@@ -268,6 +271,8 @@ export class Checkout implements OnInit {
 
     this.submitting.set(true);
     this.paymentMessage.set(null);
+    this.paymentNeedsLogin.set(false);
+    this.canResumePaymentPolling.set(false);
     if (!pickupSelected) {
       this.saveDoorAddressAndCheckout();
       return;
@@ -433,27 +438,20 @@ export class Checkout implements OnInit {
     this.pendingPaymentId.set(null);
     this.paymentMessage.set(null);
     this.checkoutFinalized = false;
+    this.paymentSuccessNotified = false;
+    this.paymentNeedsLogin.set(false);
+    this.canResumePaymentPolling.set(false);
   }
 
   protected checkPaymentStatus(): void {
     const paymentId = this.pendingPaymentId();
     if (!paymentId || this.checkingPaymentStatus()) return;
-    this.checkingPaymentStatus.set(true);
-    this.payment.getStatus(paymentId).subscribe({
-      next: (response) => {
-        this.checkingPaymentStatus.set(false);
-        if (!response.success || !response.data) {
-          this.notification.warning(response.message || 'No payment status is available yet. We are still waiting for Daraja.');
-          return;
-        }
-        this.paymentDetails.set(response.data);
-        this.applyPaymentStatus(response.data);
-      },
-      error: () => {
-        this.checkingPaymentStatus.set(false);
-        this.notification.warning('Could not refresh payment status. Automatic checks will continue.');
-      },
-    });
+    if (!['PAID', 'HELD', 'SETTLED'].includes(this.paymentStatus() ?? '')) {
+      this.paymentStatus.set('PENDING');
+      this.paymentState.set('pending');
+      this.paymentMessage.set('Check your phone and enter your M-Pesa PIN.');
+    }
+    this.watchPaymentStatus(paymentId);
   }
 
   private applyPaymentStatus(status: PaymentStatus): void {
@@ -466,38 +464,35 @@ export class Checkout implements OnInit {
     if (paymentAccepted && (hasOrderId || successfulPayment)) {
       if (hasOrderId) {
         this.paymentPolling?.unsubscribe();
+        this.checkingPaymentStatus.set(false);
         this.pendingOrderId.set(orderId);
       }
       this.paymentState.set('paid');
-      this.paymentMessage.set(hasOrderId
-        ? this.auth.isFarmer()
-          ? 'Payment successful. Your input order is confirmed.'
-          : 'Payment successful. Your order is confirmed.'
-        : this.auth.isFarmer()
-          ? 'Payment successful. We are finalizing your input order.'
-          : 'Payment successful. We are finalizing your order.');
-      if (!this.checkoutFinalized) {
+      this.paymentMessage.set('Payment successful.');
+      if (hasOrderId && !this.checkoutFinalized) {
         this.checkoutFinalized = true;
         this.productService.applyStockReservation(this.pendingCheckoutItems);
         this.cart.clear().subscribe();
-        this.notification.success(this.paymentMessage()!);
         this.refreshOrderAfterPayment();
       }
-      if (hasOrderId) {
-        this.paymentMessage.set(this.auth.isFarmer()
-          ? 'Payment successful. Your input order is confirmed.'
-          : 'Payment successful. Your order is confirmed.');
+      if (!this.paymentSuccessNotified) {
+        this.paymentSuccessNotified = true;
+        this.notification.success(status.mpesaReceipt
+          ? `Payment successful. M-Pesa receipt: ${status.mpesaReceipt}.`
+          : 'Payment successful.');
       }
-      // A paid callback may arrive before its order ID. Refresh again once the
-      // backend attaches that ID; the first successful callback already caused
-      // an order-list refresh above.
-      if (this.checkoutFinalized && orderIdChanged && hasOrderId) this.refreshOrderAfterPayment();
+      if (hasOrderId) {
+        this.paymentMessage.set('Payment successful.');
+      }
       if (orderIdChanged && hasOrderId) {
         // Farmers buy inputs as customers, but the useful landing page for
         // their completed input checkout is the dashboard's input-order list.
         // That dashboard reloads the buyer's orders when it initializes.
         if (this.auth.isFarmer()) {
-          void this.router.navigate(['/dashboard/farmer'], { fragment: 'farmer-input-orders' });
+          void this.router.navigate(['/dashboard/farmer'], {
+            fragment: 'farmer-input-orders',
+            queryParams: { paidOrderId: orderId },
+          });
         } else {
           void this.router.navigate(['/orders']);
         }
@@ -507,27 +502,31 @@ export class Checkout implements OnInit {
       this.paymentMessage.set('Payment received. We are waiting for order confirmation.');
     } else if (status.paymentStatus === 'CANCELLED') {
       this.paymentPolling?.unsubscribe();
+      this.checkingPaymentStatus.set(false);
       this.paymentState.set('cancelled');
-      this.paymentMessage.set(this.auth.isFarmer()
-        ? 'M-Pesa payment cancelled. Your input order was not placed, and your cart is saved so you can try again.'
-        : 'M-Pesa payment cancelled. Your order was not placed, and your cart is saved so you can try again.');
+      this.paymentMessage.set('Payment was cancelled on your phone.');
       this.notification.warning(this.paymentMessage()!);
     } else if (status.paymentStatus === 'FAILED') {
       this.paymentPolling?.unsubscribe();
+      this.checkingPaymentStatus.set(false);
       this.paymentState.set('failed');
-      this.paymentMessage.set(this.auth.isFarmer()
-        ? 'Payment was unsuccessful. Your input order was not placed, and your cart is saved so you can try again.'
-        : 'Payment was unsuccessful. Your order was not placed, and your cart is saved so you can try again.');
+      const resultDescription = status.darajaResultDesc?.trim() ?? '';
+      this.paymentMessage.set(/timed out/i.test(resultDescription)
+        ? 'Payment timed out. Please try again.'
+        : resultDescription || 'Payment failed. Please try again.');
       this.notification.error(this.paymentMessage()!);
     } else if (status.paymentStatus === 'PENDING') {
       this.paymentState.set('pending');
-      this.paymentMessage.set('M-Pesa request sent. Please enter your PIN on your phone and wait while we confirm your payment.');
+      this.paymentMessage.set('Check your phone and enter your M-Pesa PIN.');
     } else if (status.paymentStatus === 'REFUNDED') {
-      this.paymentState.set('failed');
-      this.paymentMessage.set('This payment was refunded. No order is available from this checkout.');
+      this.paymentPolling?.unsubscribe();
+      this.checkingPaymentStatus.set(false);
+      this.paymentState.set('refunded');
+      this.paymentMessage.set('This payment has been refunded.');
       this.notification.info(this.paymentMessage()!);
     } else if (status.paymentStatus === 'UNKNOWN') {
       this.paymentPolling?.unsubscribe();
+      this.checkingPaymentStatus.set(false);
       this.paymentState.set('unknown');
       this.paymentMessage.set('We could not recognize the payment status. Check your orders or contact support.');
       this.notification.warning(this.paymentMessage()!);
@@ -535,9 +534,12 @@ export class Checkout implements OnInit {
   }
 
   protected statusTitle(): string {
+    if (this.paymentState() === 'unknown' && this.paymentStatus() === 'PENDING') {
+      return 'Payment confirmation pending';
+    }
     switch (this.paymentStatus()) {
       case 'PAID': return 'Payment successful';
-      case 'PENDING': return 'Approve the M-Pesa prompt';
+      case 'PENDING': return 'Waiting for payment confirmation';
       case 'CANCELLED': return 'Payment cancelled';
       case 'FAILED': return 'Payment not completed';
       case 'HELD': return 'Payment held';
@@ -563,20 +565,59 @@ export class Checkout implements OnInit {
 
   private watchPaymentStatus(paymentId: number): void {
     this.paymentPolling?.unsubscribe();
-    this.paymentPolling = this.payment.pollPaymentStatus(paymentId, 5_000, 30 * 60 * 1_000)
+    this.checkingPaymentStatus.set(true);
+    this.canResumePaymentPolling.set(false);
+    this.paymentPolling = this.payment.pollPaymentStatus(paymentId, 3_000, 2 * 60 * 1_000)
       .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (status) => {
         this.paymentDetails.set(status);
         this.applyPaymentStatus(status);
       },
-      error: () => {
+      error: (error: unknown) => {
         this.paymentPolling?.unsubscribe();
-        this.paymentStatus.set('UNKNOWN');
-        this.paymentState.set('unknown');
-        this.paymentMessage.set('We could not confirm the M-Pesa status. Your cart is still saved. Check the status again before starting another payment.');
-        this.notification.warning(this.paymentMessage()!);
+        this.checkingPaymentStatus.set(false);
+        if ((error as Error)?.message === 'PAYMENT_CONFIRMED_WITHOUT_ORDER_ID') {
+          this.paymentState.set('unknown');
+          this.paymentMessage.set('Payment succeeded, but the order confirmation is delayed. Your cart is saved. Do not pay again; check your orders or contact support.');
+          this.canResumePaymentPolling.set(true);
+          this.notification.warning(this.paymentMessage()!);
+          return;
+        }
+        if ((error as Error)?.message === 'PAYMENT_POLL_SAFETY_TIMEOUT') {
+          // Keep the backend-reported status unchanged. The payment may still
+          // be pending; the buyer can resume polling the same payment ID.
+          this.paymentState.set('unknown');
+          this.paymentMessage.set(['PAID', 'HELD', 'SETTLED'].includes(this.paymentStatus() ?? '')
+            ? 'Payment succeeded, but the order confirmation is delayed. Do not pay again; check status again or contact support.'
+            : 'We are still waiting for payment confirmation. Please check your M-Pesa messages and check status again.');
+          this.canResumePaymentPolling.set(true);
+          return;
+        }
+        this.showPaymentStatusError(error);
       },
+      complete: () => this.checkingPaymentStatus.set(false),
     });
+  }
+
+  private showPaymentStatusError(error: unknown): void {
+    this.checkingPaymentStatus.set(false);
+    this.paymentState.set('unknown');
+    if (!['PAID', 'HELD', 'SETTLED'].includes(this.paymentStatus() ?? '')) {
+      this.paymentStatus.set('UNKNOWN');
+    }
+    this.paymentMessage.set(this.paymentStatusErrorMessage(error));
+    const status = (error as { status?: number })?.status ?? 0;
+    this.paymentNeedsLogin.set(status === 401);
+    this.canResumePaymentPolling.set(status === 0 || status >= 500);
+    this.notification.warning(this.paymentMessage()!);
+  }
+
+  private paymentStatusErrorMessage(error: unknown): string {
+    const status = (error as { status?: number })?.status ?? 0;
+    if (status === 401) return 'Your session expired. Sign in again to check this payment.';
+    if (status === 403) return 'You cannot access this payment.';
+    if (status === 404) return 'Payment not found.';
+    return 'Could not confirm payment status after retrying. Your cart is saved. Check the status before starting another payment.';
   }
 
 }

@@ -1,5 +1,5 @@
 import { HttpInterceptorFn, HttpErrorResponse, HttpRequest } from '@angular/common/http';
-import { EMPTY, from, catchError, switchMap, throwError } from 'rxjs';
+import { from, catchError, switchMap, throwError } from 'rxjs';
 import { inject } from '@angular/core';
 import { Auth } from '../services/auth';
 import { API_BASE, API_ORIGIN } from '../../shared/api.config';
@@ -49,7 +49,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           switchMap(() => next(withHeaders(req, auth.token))),
           catchError(() => {
             auth.logout();
-            return EMPTY;
+            return throwError(() => err);
           }),
         );
       }

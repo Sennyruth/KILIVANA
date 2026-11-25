@@ -118,6 +118,23 @@ export class Auth {
     );
   }
 
+  updateOwnProfile(profile: Pick<User, 'name' | 'email' | 'phone'> & { region?: string }): Observable<ApiResponse<UserResponse>> {
+    return this.http.put<UserResponse>(ApiEndpoints.USERS.UPDATE_MY_PROFILE, {
+      name: profile.name.trim(),
+      email: profile.email.trim().toLowerCase(),
+      phone: profile.phone.trim(),
+      region: profile.region?.trim() ?? '',
+    }).pipe(
+      tap((res) => {
+        if (res.success && res.data) {
+          const user = toUser(res.data);
+          this._user.set(user);
+          localStorage.setItem(USER_KEY, JSON.stringify(user));
+        }
+      }),
+    );
+  }
+
   refreshAccessToken(): Promise<string> {
     const existing = this.refreshPromise$;
     if (existing) return existing;

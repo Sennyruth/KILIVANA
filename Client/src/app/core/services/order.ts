@@ -267,13 +267,23 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
 };
 
 function extractOrders(data: unknown): OrderModel[] {
-  if (Array.isArray(data)) return data.map(normalizeOrder);
+  if (Array.isArray(data)) return sortOrdersNewestFirst(data.map(normalizeOrder));
   if (!data || typeof data !== 'object') return [];
 
   const response = data as { orders?: unknown; content?: unknown };
-  if (Array.isArray(response.orders)) return response.orders.map(normalizeOrder);
-  if (Array.isArray(response.content)) return response.content.map(normalizeOrder);
+  if (Array.isArray(response.orders)) return sortOrdersNewestFirst(response.orders.map(normalizeOrder));
+  if (Array.isArray(response.content)) return sortOrdersNewestFirst(response.content.map(normalizeOrder));
   return [];
+}
+
+function sortOrdersNewestFirst(orders: OrderModel[]): OrderModel[] {
+  return [...orders].sort((first, second) => {
+    const firstCreated = Date.parse(first.createdAt);
+    const secondCreated = Date.parse(second.createdAt);
+    const createdAtOrder = (Number.isFinite(secondCreated) ? secondCreated : 0)
+      - (Number.isFinite(firstCreated) ? firstCreated : 0);
+    return createdAtOrder || Number(second.id) - Number(first.id);
+  });
 }
 
 function extractSellerOrders(data: unknown): SellerOrderSummary[] {

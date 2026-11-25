@@ -24,6 +24,7 @@ import { FarmSetup } from './features/dashboard/farmer-dashboard/farm-setup/farm
 import { InputsList } from './features/inputs/inputs-list/inputs-list';
 import { InputsDetail } from './features/inputs/inputs-detail/inputs-detail';
 import { Landing } from './features/landing/landing';
+import { AccountPage } from './features/account/account-page';
 import {
   authGuard,
   unauthGuard,
@@ -47,6 +48,7 @@ export const routes: Routes = [
   { path: 'reset-password', component: ResetPassword },
   { path: 'email-verification', component: EmailVerification },
   { path: 'logout', component: Logout, canActivate: [authGuard] },
+  { path: 'account', component: AccountPage, canActivate: [authGuard] },
   { path: 'products', component: ProductList, canActivate: [produceCatalogGuard] },
   { path: 'products/:id', component: ProductDetail, canActivate: [produceCatalogGuard] },
   { path: 'inputs', component: InputsList, canActivate: [inputsCatalogGuard] },

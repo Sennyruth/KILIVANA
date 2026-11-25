@@ -55,8 +55,6 @@
     </div>
   </div>
 
-  <app-payment-history />
-
   <mat-card class="farm-inspection-card">
     <mat-card-title class="farm-inspection-card__title">
       <span class="farm-inspection-card__icon"><mat-icon>photo_camera</mat-icon></span>
@@ -310,9 +308,7 @@
                   <span [class]="'dashboard__status--' + order.status.toLowerCase()">
                     {{ statusLabel(order.status, order.deliveryStatus) }}
                   </span>
-                  @if (order.paymentStatus === 'PAID' || order.paymentStatus === 'SETTLED') {
-                    <small class="dashboard__payment-message" role="status">Payment successful</small>
-                  } @else if (order.paymentStatus === 'CANCELLED') {
+                  @if (order.paymentStatus === 'CANCELLED') {
                     <small class="dashboard__payment-message dashboard__payment-message--cancelled" role="status">Payment cancelled</small>
                   }
                   @if (order.status === 'CANCELLED') {
@@ -361,9 +357,7 @@
                 <td>{{ order.total | currency:'KES' }}</td>
                 <td>
                   <span [class]="'dashboard__status--' + order.status.toLowerCase()">{{ statusLabel(order.status, order.deliveryStatus) }}</span>
-                  @if (order.paymentStatus === 'PAID' || order.paymentStatus === 'SETTLED') {
-                    <small class="dashboard__payment-message" role="status">Payment successful</small>
-                  } @else if (order.paymentStatus === 'CANCELLED') {
+                  @if (order.paymentStatus === 'CANCELLED') {
                     <small class="dashboard__payment-message dashboard__payment-message--cancelled" role="status">Payment cancelled</small>
                   }
                 </td>

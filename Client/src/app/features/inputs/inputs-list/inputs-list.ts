@@ -61,6 +61,7 @@ export class InputsList implements OnInit {
 
   ngOnInit(): void {
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      this.searchQuery.set(params.get('q') ?? '');
       this.selectedCategory.set(params.get('category') ?? 'ALL');
     });
     this.productService.loadAll().subscribe({

@@ -2,6 +2,7 @@ import { Injectable, inject, computed, signal } from '@angular/core';
 import {
   Observable,
   catchError,
+  exhaustMap,
   finalize,
   filter,
   interval,
@@ -124,12 +125,30 @@ export class Payment {
   }
 
   pollPaymentStatus(paymentId: string | number, intervalMs = 3000, timeoutMs = 120_000): Observable<PaymentStatus> {
+    let paidWithoutOrderPolls = 0;
     const polling = interval(intervalMs).pipe(
       startWith(0),
-      // Retry transient network/backend errors, then surface a persistent
-      // failure so checkout can show an actionable unknown status instead of
-      // leaving the buyer on the pending screen indefinitely.
-      switchMap(() => this.getStatus(paymentId).pipe(retry({ count: 2, delay: 3000 }))),
+      exhaustMap(() => this.getStatus(paymentId).pipe(
+        retry({
+          count: 2,
+          delay: (error: { status?: number }, retryAttempt) => {
+            const status = error?.status ?? 0;
+            if (status !== 0 && status < 500) return throwError(() => error);
+            return timer(Math.min(1000 * (2 ** (retryAttempt - 1)), 3000));
+          },
+        }),
+        tap((response) => {
+          const status = response.data?.paymentStatus;
+          const successfulWithoutOrder = ['PAID', 'HELD', 'SETTLED'].includes(status ?? '')
+            && !response.data?.orderId;
+          paidWithoutOrderPolls = successfulWithoutOrder ? paidWithoutOrderPolls + 1 : 0;
+          // Allow the initial paid response plus two 3-second follow-up polls
+          // for the backend to attach the newly created order.
+          if (paidWithoutOrderPolls > 2) {
+            throw new Error('PAYMENT_CONFIRMED_WITHOUT_ORDER_ID');
+          }
+        }),
+      )),
       filter((response): response is ApiResponse<PaymentStatus> => !!response?.success && !!response.data),
       map((response) => response.data!),
       tap((status) => this._status.set(status)),
@@ -137,7 +156,7 @@ export class Payment {
         || (['PAID', 'HELD', 'SETTLED'].includes(status.paymentStatus) && !status.orderId), true),
     );
     const deadline = timer(timeoutMs).pipe(
-      switchMap(() => throwError(() => new Error('Payment confirmation timed out'))),
+      switchMap(() => throwError(() => new Error('PAYMENT_POLL_SAFETY_TIMEOUT'))),
     );
     return polling.pipe(takeUntil(deadline));
   }
@@ -145,17 +164,21 @@ export class Payment {
   private toPaymentStatus(response: PaymentStatusResponse): PaymentStatus {
     const resultCode = response.darajaResultCode == null ? Number.NaN : Number(response.darajaResultCode);
     const resultDescription = String(response.darajaResultDesc ?? '').toLowerCase();
+    const responseStatus = String(response.status ?? (response as PaymentStatusResponse & { paymentStatus?: string }).paymentStatus ?? 'UNKNOWN').toUpperCase();
+    const terminalResponseStatus = ['PAID', 'HELD', 'SETTLED', 'CANCELLED', 'FAILED', 'REFUNDED'].includes(responseStatus);
     // Daraja reports a user-dismissed STK prompt with result code 1032. Some
     // backend responses retain a generic status, so use the callback outcome
     // to ensure polling can leave the pending state and show the cancellation.
     const wasCancelled = resultCode === 1032 || /cancel(?:led|ed)?|dismissed/.test(resultDescription);
-    const rawStatus = resultCode === 0
-      ? 'PAID'
-      : wasCancelled
-        ? 'CANCELLED'
-        : Number.isFinite(resultCode)
-          ? 'FAILED'
-          : String(response.status ?? (response as PaymentStatusResponse & { paymentStatus?: string }).paymentStatus ?? 'UNKNOWN').toUpperCase();
+    const rawStatus = terminalResponseStatus
+      ? responseStatus
+      : resultCode === 0
+        ? 'PAID'
+        : wasCancelled
+          ? 'CANCELLED'
+          : Number.isFinite(resultCode)
+            ? 'FAILED'
+            : responseStatus;
     return {
       orderId: response.orderId == null ? null : String(response.orderId),
       paymentStatus: normalizePaymentStatus(rawStatus),

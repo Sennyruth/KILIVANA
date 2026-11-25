@@ -515,6 +515,15 @@
   background: #fffbf5;
 }
 .checkout__result[data-state='pending'] > mat-icon { color: #a87800; }
+.checkout__result[data-state='refunded'] > mat-icon { color: #52657a; }
+.checkout__result[data-state='refunded'] {
+  border-color: #d3dce6;
+  background: #f8fafc;
+}
+.checkout__receipt {
+  color: #17653a;
+  font-weight: 700;
+}
 
 .checkout__result p {
   margin: 0;

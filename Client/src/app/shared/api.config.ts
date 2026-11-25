@@ -89,7 +89,7 @@ export const ApiEndpoints = {
   PAYMENT: {
     STK_PUSH: (sellerType: 'farmer' | 'supplier' | 'buyer') => `${API_BASE}/payments/stk-push/${sellerType}`,
     CREATE: `${API_BASE}/payments`,
-    STATUS: (id: string) => `${API_BASE}/payments/${id}`,
+    STATUS: (id: string) => `${API_BASE}/payments/${id}/status`,
     REFUND: (id: string) => `${API_BASE}/payments/${id}/refund`,
     WEBHOOK: `${API_BASE}/payments/webhook`,
     BY_ORDER: (orderId: string) => `${API_BASE}/payments/order/${orderId}`,
@@ -98,6 +98,7 @@ export const ApiEndpoints = {
   },
 
   USERS: {
+    UPDATE_MY_PROFILE: `${API_BASE}/users/me`,
     CREATE_OWN_ADDRESS: `${API_BASE}/users/addresses`,
     SUPPLIERS: `${API_BASE}/users/suppliers`,
     PUBLIC_FARMER: (farmerId: string | number) => `${API_BASE}/users/farmers/${farmerId}`,

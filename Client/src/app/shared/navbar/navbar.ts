@@ -1,6 +1,8 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, signal } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatBadgeModule } from '@angular/material/badge';
@@ -34,8 +36,19 @@ export class Navbar {
   protected readonly cart = inject(Cart);
   private readonly products = inject(Product);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly currentUrl = signal(this.router.url);
+  protected readonly searchQuery = signal('');
 
   constructor() {
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe((event) => {
+      this.currentUrl.set(event.urlAfterRedirects);
+      this.searchQuery.set(this.router.parseUrl(event.urlAfterRedirects).queryParams['q'] ?? '');
+    });
+
     effect((onCleanup) => {
       const user = this.auth.user();
       // Suppliers don't use the buyer basket.
@@ -73,7 +86,10 @@ export class Navbar {
   protected readonly mobileMenuOpen = signal(false);
   protected readonly produceCategories = computed(() => this.products.categories().filter((category) => category.type === 'FARMER'));
   protected readonly inputCategories = computed(() => this.products.categories().filter((category) => category.type === 'SUPPLIER'));
-  protected readonly searchQuery = signal('');
+  protected readonly showSearch = computed(() => {
+    const path = this.currentUrl().split(/[?#]/, 1)[0];
+    return path === '/' || path === '/products' || path === '/inputs';
+  });
 
   protected readonly firstName = computed(() => {
     const name = this.auth.user()?.name?.trim();
@@ -124,18 +140,20 @@ export class Navbar {
   protected onSearchInput(event: Event): void {
     const query = (event.target as HTMLInputElement).value;
     this.searchQuery.set(query);
+    if (query.trim()) return;
 
-    // The native search-field X emits an input event with an empty value.
-    // Clear the URL filters too so the product list immediately returns to all products.
-    if (!query.trim() && this.router.url.startsWith('/products')) {
-      void this.router.navigate(['/products']);
+    const path = this.currentUrl().split(/[?#]/, 1)[0];
+    if ((path === '/products' || path === '/inputs') && this.router.parseUrl(this.currentUrl()).queryParams['q']) {
+      void this.router.navigate([path]);
     }
   }
 
   protected search(event: SubmitEvent): void {
     event.preventDefault();
     const query = this.searchQuery().trim();
-    void this.router.navigate(['/products'], {
+    const path = this.currentUrl().split(/[?#]/, 1)[0];
+    const catalog = path === '/inputs' ? '/inputs' : '/products';
+    void this.router.navigate([catalog], {
       queryParams: query ? { q: query } : {},
     });
   }
