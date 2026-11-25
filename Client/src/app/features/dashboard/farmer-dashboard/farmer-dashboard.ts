@@ -125,7 +125,7 @@ export class FarmerDashboard implements OnInit, OnDestroy {
       if (!this.orderService.loading()) this.loadOrders();
       if (!this.inputOrdersLoading()) this.loadInputOrders();
       if (!this.productService.loading()) this.refreshProducts();
-    }, 30000);
+    }, 15000);
   }
 
   ngOnDestroy(): void {

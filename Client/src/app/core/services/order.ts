@@ -329,7 +329,7 @@ function normalizeSellerOrder(value: unknown): SellerOrderSummary | null {
       : typeof order['phone'] === 'string' ? { buyerPhone: order['phone'] } : {}),
     ...(typeof order['deliveryAddress'] === 'string' ? { deliveryAddress: order['deliveryAddress'] } : {}),
     ...(typeof order['pickupLocation'] === 'string' ? { pickupLocation: order['pickupLocation'] } : {}),
-    status: String(order['status'] ?? 'PENDING').toUpperCase(),
+    status: normalizeSellerOrderStatus(order['status']),
     ...(isPaymentStatus(String(order['paymentStatus'] ?? '').toUpperCase())
       ? { paymentStatus: String(order['paymentStatus']).toUpperCase() as OrderModel['paymentStatus'] }
       : {}),
@@ -425,6 +425,13 @@ function normalizeOrderStatus(value: unknown): OrderStatus {
   const status = String(value).toUpperCase();
   const mapping: Record<string, OrderStatus> = { PLACED: 'PENDING', DISPUTED: 'FAILED' };
   return mapping[status] ?? (isOrderStatus(status) ? status : 'PENDING');
+}
+
+function normalizeSellerOrderStatus(value: unknown): string {
+  const status = String(value ?? 'PENDING').toUpperCase();
+  if (status === 'PLACED') return 'PENDING';
+  if (status === 'DISPUTED') return 'FAILED';
+  return status;
 }
 
 function normalizeDeliveryStatus(value: unknown): DeliveryStatus | null {

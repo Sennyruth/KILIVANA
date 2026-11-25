@@ -337,18 +337,6 @@ export class Checkout implements OnInit {
               }
               this.quotedSubtotal.set(quotedSubtotal);
               this.quotedDelivery.set(deliveryFee);
-              const productCount = this.cart.items().length;
-              const formattedTotal = new Intl.NumberFormat('en-KE', {
-                style: 'currency',
-                currency: quoteResponse.data.currency || 'KES',
-              }).format(quoteTotal);
-              const confirmed = window.confirm(
-                `The total for all ${productCount} ${productCount === 1 ? 'product' : 'products'}, including delivery, is ${formattedTotal}. Continue to M-Pesa?`,
-              );
-              if (!confirmed) {
-                this.submitting.set(false);
-                return;
-              }
               const phoneNumber = String(this.form.get('phone')?.value ?? '').replace(/\s+/g, '').replace(/^\+/, '');
               this.http.post<StkPushInitiateResponse>(ApiEndpoints.CHECKOUT.CREATE_ORDER, {
                 quoteId: quoteResponse.data.quoteId,

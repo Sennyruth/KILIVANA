@@ -21,7 +21,7 @@ import type { SellerLocation, SellerLocationRequest } from '../../../shared/sell
 import { hasSellerDispatchLocation } from '../../../shared/seller-location.model';
 import { getCurrentCoordinates } from '../../../shared/dispatch-location';
 import { NotificationService } from '../../../shared/notification/notification.service';
-import { finalize } from 'rxjs';
+import { finalize, interval } from 'rxjs';
 
 @Component({
   selector: 'app-supplier-dashboard',
@@ -135,6 +135,9 @@ export class SupplierDashboard implements OnInit {
       this.dashboardSearch.set(params.get('q') ?? '');
     });
     this.loadData();
+    interval(15_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (!this.ordersLoading()) this.loadOrders();
+    });
   }
 
   @HostListener('window:focus')

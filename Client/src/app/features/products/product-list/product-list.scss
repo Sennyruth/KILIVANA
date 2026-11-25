@@ -90,11 +90,6 @@
   border-radius: var(--radius-lg);
 }
 
-.product-list__empty-icon {
-  font-size: 4.5rem;
-  color: var(--primary-300);
-}
-
 @media (max-width: 768px) {
   .product-list-page {
     padding: var(--space-6) var(--space-4);

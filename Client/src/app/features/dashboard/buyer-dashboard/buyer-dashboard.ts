@@ -17,6 +17,7 @@ import { deliveryStatusLabel } from '../../../shared/order.model';
 import type { Product as ProductModel } from '../../../shared/product.model';
 import { NotificationService } from '../../../shared/notification/notification.service';
 import { OrderProgress } from '../../orders/order-history/order-progress/order-progress';
+import { interval } from 'rxjs';
 
 @Component({
   selector: 'app-buyer-dashboard',
@@ -115,6 +116,9 @@ export class BuyerDashboard implements OnInit {
     });
     this.loadOrders();
     this.loadProducts();
+    interval(15_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (!this.order.loading()) this.loadOrders();
+    });
   }
 
   @HostListener('window:focus')
