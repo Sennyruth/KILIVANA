@@ -285,24 +285,26 @@
         <div class="dashboard__orders-placeholder">
           <p>No recent orders yet.</p>
         </div>
+      } @else if (filteredOrders().length === 0) {
+        <div class="dashboard__orders-placeholder"><p>No orders match your search.</p></div>
       } @else {
         <table class="dashboard__table">
           <thead>
             <tr>
               <th>Order ID</th>
               <th>Date</th>
-              <th>Items</th>
+              <th>Products</th>
               <th>Total</th>
               <th>Status</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            @for (order of orders().slice(0, 5); track order.id) {
+            @for (order of filteredOrders().slice(0, 5); track order.id) {
               <tr>
                 <td>{{ orderIdLabel(order.id) }}</td>
                 <td>{{ order.createdAt | date:'short' }}</td>
-                <td>{{ order.itemCount }}</td>
+                <td>{{ sellerOrderItems(order) }}</td>
                 <td>{{ order.total | currency:'KES' }}</td>
                 <td>
                   <span [class]="'dashboard__status--' + order.status.toLowerCase()">
@@ -343,13 +345,15 @@
         <div class="dashboard__loading" role="status"><mat-spinner diameter="32" /></div>
       } @else if (inputOrders().length === 0) {
         <div class="dashboard__orders-placeholder"><p>You have not placed any input orders yet.</p></div>
+      } @else if (filteredInputOrders().length === 0) {
+        <div class="dashboard__orders-placeholder"><p>No input orders match your search.</p></div>
       } @else {
         <table class="dashboard__table">
           <thead>
             <tr><th>Order ID</th><th>Date</th><th>Inputs</th><th>Total</th><th>Status</th><th>Tracking</th></tr>
           </thead>
           <tbody>
-            @for (order of inputOrders().slice(0, 5); track order.id) {
+            @for (order of filteredInputOrders().slice(0, 5); track order.id) {
               <tr>
                 <td>{{ orderIdLabel(+order.id) }}</td>
                 <td>{{ order.createdAt | date:'short' }}</td>

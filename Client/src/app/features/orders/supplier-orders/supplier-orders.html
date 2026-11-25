@@ -70,7 +70,7 @@
               <tr>
                 <td data-label="Order">{{ orderNumber(order.id) }}</td>
                 <td data-label="Date">{{ order.createdAt | date:'mediumDate' }}</td>
-                <td data-label="Your items">{{ order.itemCount }}</td>
+                <td data-label="Your items">{{ itemNamesLabel(order) }}</td>
                 <td data-label="Order total">{{ order.total | currency:'KES' }}</td>
                 <td data-label="Status">
                   <span [class]="setStatusClass(order.status)">{{ statusLabel(order.status, order.deliveryStatus) }}</span>

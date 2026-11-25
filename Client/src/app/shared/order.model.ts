@@ -93,6 +93,7 @@ export interface SellerOrderSummary {
   total: number;
   createdAt: string;
   itemCount: number;
+  itemNames?: string[];
 }
 
 export interface CreateOrderRequest {

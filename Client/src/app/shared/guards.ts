@@ -37,6 +37,13 @@ export const shoppingGuard: CanActivateFn = (_route, state) => {
   return loginRedirect(router, state, role);
 };
 
+/** Suppliers do not shop from the cart; guests, buyers and farmers may still use it. */
+export const cartGuard: CanActivateFn = () => {
+  const auth = inject(Auth);
+  const router = inject(Router);
+  return auth.isSupplier() ? router.createUrlTree(['/dashboard/supplier']) : true;
+};
+
 /** Buyers may shop produce, while farm-input orders require a farmer account. */
 export const checkoutGuard: CanActivateFn = (_route, state) => {
   const auth = inject(Auth);

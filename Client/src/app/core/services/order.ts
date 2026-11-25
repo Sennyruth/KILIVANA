@@ -308,6 +308,17 @@ function normalizeSellerOrder(value: unknown): SellerOrderSummary | null {
     if (!item || typeof item !== 'object') return total;
     return total + Number((item as Record<string, unknown>)['quantity'] ?? 1);
   }, 0));
+  const itemNames = Array.isArray(order['itemNames'])
+    ? order['itemNames'].filter((name): name is string => typeof name === 'string')
+    : items.flatMap((item) => {
+      if (!item || typeof item !== 'object') return [];
+      const line = item as Record<string, unknown>;
+      const product = line['product'] && typeof line['product'] === 'object'
+        ? line['product'] as Record<string, unknown>
+        : null;
+      const name = line['productName'] ?? line['name'] ?? product?.['name'];
+      return typeof name === 'string' && name.trim() ? [name.trim()] : [];
+    });
   const deliveryStatus = normalizeDeliveryStatus(order['deliveryStatus']);
   const logisticsJobId = normalizeLogisticsJobId(order['logisticsJobId']);
   return {
@@ -328,6 +339,7 @@ function normalizeSellerOrder(value: unknown): SellerOrderSummary | null {
     total: Number(order['total'] ?? 0),
     createdAt: String(order['createdAt'] ?? ''),
     itemCount: Number.isFinite(itemCount) ? itemCount : 0,
+    ...(itemNames.length ? { itemNames } : {}),
   };
 }
 

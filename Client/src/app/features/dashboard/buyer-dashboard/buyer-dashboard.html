@@ -101,6 +101,9 @@
 
     <div class="dashboard__section">
       <h2 class="dashboard__section-title">Recent Orders</h2>
+      @if (recentOrders().length === 0) {
+        <div class="dashboard__state dashboard__state--empty" role="status">No recent orders match your search.</div>
+      }
       <div class="order-list">
         @for (order of recentOrders(); track order.id) {
           <div class="order-card">
@@ -121,6 +124,14 @@
                 {{ order.items.length }} item(s)
               </span>
             </div>
+            @if (order.items.length > 0) {
+              <p class="order-card__products" aria-label="Products in this order">
+                <strong>Products:</strong>
+                @for (item of order.items; track item.id; let last = $last) {
+                  <span>{{ item.name }} × {{ item.quantity }}@if (!last) {, }</span>
+                }
+              </p>
+            }
             <app-order-progress
               [status]="order.status"
               [orderId]="order.id"

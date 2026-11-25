@@ -230,8 +230,8 @@
         
         @if (products().length === 0) {
           <div class="dashboard__empty">
-            <h3>No supplies in this category</h3>
-            <p>Select a different category or add more supplies.</p>
+            <h3>No matching supplies</h3>
+            <p>Try another search or category.</p>
           </div>
         } @else {
           <table class="dashboard__table">
@@ -297,24 +297,26 @@
           <h3>No orders yet</h3>
           <p>Orders containing your supplies will appear here once customers place them.</p>
         </div>
+      } @else if (filteredOrders().length === 0) {
+        <div class="dashboard__empty"><p>No recent orders match your search.</p></div>
       } @else {
         <table class="dashboard__table">
           <thead>
             <tr>
               <th>Order ID</th>
               <th>Date</th>
-              <th>Items</th>
+              <th>Products</th>
               <th>Total</th>
               <th>Status</th>
               <th>Tracking</th>
             </tr>
           </thead>
           <tbody>
-            @for (order of orders().slice(0, 5); track order.id) {
+            @for (order of filteredOrders().slice(0, 5); track order.id) {
               <tr>
                 <td>{{ orderIdLabel(order.id) }}</td>
                 <td>{{ order.createdAt | date:'short' }}</td>
-                <td>{{ order.itemCount }}</td>
+                <td>{{ orderItemsLabel(order) }}</td>
                 <td>{{ order.total | currency:'KES' }}</td>
                 <td>
                   <span [class]="'dashboard__status--' + order.status.toLowerCase()">

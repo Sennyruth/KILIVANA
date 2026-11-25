@@ -353,6 +353,16 @@
   white-space: nowrap;
 }
 
+.order-card__products {
+  margin: 0 0 var(--space-4);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.order-card__products strong { color: var(--text-primary); }
+
 .order-card__link {
   color: var(--primary);
   text-decoration: none;

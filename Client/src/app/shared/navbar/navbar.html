@@ -32,7 +32,7 @@
           type="search"
           [value]="searchQuery()"
           (input)="onSearchInput($event)"
-          placeholder="Search products and farm inputs"
+          [placeholder]="searchPlaceholder()"
         />
         <button class="navbar__search-button" type="submit">Search</button>
       </form>
@@ -129,7 +129,9 @@
 
   <mat-menu #helpMenu="matMenu">
     <a mat-menu-item routerLink="/" fragment="story">About Kilivana</a>
-    <a mat-menu-item routerLink="/cart">View Cart</a>
+    @if (!auth.isSupplier()) {
+      <a mat-menu-item routerLink="/cart">View Cart</a>
+    }
     @if (auth.isAuthenticated()) {
       <a mat-menu-item routerLink="/account">My Account</a>
     } @else {

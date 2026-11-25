@@ -1,5 +1,6 @@
-import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -45,6 +46,8 @@ export class SupplierDashboard implements OnInit {
   protected readonly orderService = inject(Order);
   protected readonly productService = inject(Product);
   protected readonly locationService = inject(SellerLocationService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
@@ -69,6 +72,7 @@ export class SupplierDashboard implements OnInit {
     operatingHours: ['', Validators.maxLength(255)],
   });
   private readonly _selectedCategory = signal<string>('ALL');
+  protected readonly dashboardSearch = signal('');
 
   protected readonly userName = this.auth.name;
   protected readonly orders = this._orders.asReadonly();
@@ -83,10 +87,20 @@ export class SupplierDashboard implements OnInit {
   
   protected readonly products = computed(() => {
     const category = this._selectedCategory();
+    const query = this.dashboardSearch().trim().toLowerCase();
     if (category === 'ALL') {
-      return this.allProducts();
+      return this.allProducts().filter((product) => this.matchesProduct(product, query));
     }
-    return this.allProducts().filter(p => p.category === category);
+    return this.allProducts().filter(p => p.category === category && this.matchesProduct(p, query));
+  });
+
+  protected readonly filteredOrders = computed(() => {
+    const query = this.dashboardSearch().trim().toLowerCase();
+    return this.orders().filter((order) => !query ||
+      String(order.id).toLowerCase().includes(query) ||
+      order.status.toLowerCase().includes(query) ||
+      (order.itemNames ?? []).some((name) => name.toLowerCase().includes(query)),
+    );
   });
   
   protected readonly productsLoading = computed(() => this.productService.loading());
@@ -106,9 +120,20 @@ export class SupplierDashboard implements OnInit {
   protected readonly activeSupplies = computed(() => this.allProducts().filter(p => p.available).length);
   protected readonly filteredSuppliesCount = computed(() => this.products().length);
 
+  private matchesProduct(product: ProductModel, query: string): boolean {
+    return !query || [product.name, product.description, product.category].some((value) => value.toLowerCase().includes(query));
+  }
+
+  protected orderItemsLabel(order: SellerOrderSummary): string {
+    return order.itemNames?.join(', ') || `${order.itemCount} ${order.itemCount === 1 ? 'item' : 'items'}`;
+  }
+
   protected hasSellerDispatchLocation = hasSellerDispatchLocation;
 
   ngOnInit(): void {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      this.dashboardSearch.set(params.get('q') ?? '');
+    });
     this.loadData();
   }
 

@@ -1,4 +1,5 @@
-import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -40,12 +41,14 @@ export class FarmerDashboard implements OnInit, OnDestroy {
   protected readonly farmerService = inject(Farmer);
   protected readonly auth = inject(Auth);
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
   private readonly _orders = signal<SellerOrderSummary[]>([]);
   protected readonly ordersError = signal<string | null>(null);
   protected readonly inputOrders = signal<OrderRecord[]>([]);
+  protected readonly dashboardSearch = signal('');
   protected readonly inputOrdersLoading = signal(false);
   protected readonly inputOrdersError = signal<string | null>(null);
   protected readonly farmProfileLoading = signal(false);
@@ -70,14 +73,31 @@ export class FarmerDashboard implements OnInit, OnDestroy {
   
   protected readonly products = computed(() => {
     const category = this._selectedCategory();
+    const query = this.dashboardSearch().trim().toLowerCase();
     if (category === 'ALL') {
-      return this.allProducts();
+      return this.allProducts().filter((product) => this.matchesProduct(product, query));
     }
-    return this.allProducts().filter(p => p.category === category);
+    return this.allProducts().filter(p => p.category === category && this.matchesProduct(p, query));
   });
   
   protected readonly loading = computed(() => this.productService.loading());
   protected readonly orders = this._orders.asReadonly();
+  protected readonly filteredOrders = computed(() => {
+    const query = this.dashboardSearch().trim().toLowerCase();
+    return this.orders().filter((order) => !query ||
+      String(order.id).toLowerCase().includes(query) ||
+      order.status.toLowerCase().includes(query) ||
+      (order.itemNames ?? []).some((name) => name.toLowerCase().includes(query)),
+    );
+  });
+  protected readonly filteredInputOrders = computed(() => {
+    const query = this.dashboardSearch().trim().toLowerCase();
+    return this.inputOrders().filter((order) => !query ||
+      order.id.toLowerCase().includes(query) ||
+      order.status.toLowerCase().includes(query) ||
+      order.items.some((item) => item.name.toLowerCase().includes(query)),
+    );
+  });
   
   protected readonly categories = computed(() => {
     const cats = new Set<string>(this.allProducts().map(p => p.category));
@@ -89,9 +109,16 @@ export class FarmerDashboard implements OnInit, OnDestroy {
   protected readonly totalOrders = computed(() => this.orders().length);
   protected readonly pendingOrders = computed(() => this.orders().filter(o => o.status === 'PENDING').length);
 
+  private matchesProduct(product: ProductModel, query: string): boolean {
+    return !query || [product.name, product.description, product.category].some((value) => value.toLowerCase().includes(query));
+  }
+
   private refreshInterval?: ReturnType<typeof setInterval>;
 
   ngOnInit(): void {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      this.dashboardSearch.set(params.get('q') ?? '');
+    });
     this.loadData();
     this.loadFarmProfile();
     this.refreshInterval = setInterval(() => {
@@ -420,6 +447,10 @@ export class FarmerDashboard implements OnInit, OnDestroy {
 
   protected inputOrderItems(order: OrderRecord): string {
     return order.items.map((item) => `${item.name} × ${item.quantity}`).join(', ');
+  }
+
+  protected sellerOrderItems(order: SellerOrderSummary): string {
+    return order.itemNames?.join(', ') || `${order.itemCount} ${order.itemCount === 1 ? 'item' : 'items'}`;
   }
 
   protected selectCategory(category: string): void {

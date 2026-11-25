@@ -1,5 +1,6 @@
-import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -40,10 +41,13 @@ export class BuyerDashboard implements OnInit {
   protected readonly order = inject(Order);
   protected readonly productService = inject(Product);
   protected readonly cartService = inject(Cart);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
 
   protected readonly userName = this.auth.name;
+  protected readonly dashboardSearch = signal('');
   protected readonly orders = this.order.orders;
   protected readonly loading = this.order.loading;
   protected readonly error = this.order.error;
@@ -56,10 +60,11 @@ export class BuyerDashboard implements OnInit {
   
   protected readonly products = computed(() => {
     const category = this._selectedCategory();
+    const query = this.dashboardSearch().trim().toLowerCase();
     if (category === 'ALL') {
-      return this.allProducts();
+      return this.allProducts().filter((product) => this.matchesProduct(product, query));
     }
-    return this.allProducts().filter(p => p.category === category);
+    return this.allProducts().filter(p => p.category === category && this.matchesProduct(p, query));
   });
   
   protected readonly productsLoading = computed(() => this.productService.loading());
@@ -85,7 +90,14 @@ export class BuyerDashboard implements OnInit {
     };
   });
 
-  protected readonly recentOrders = computed(() => this.orders().slice(0, 5));
+  protected readonly recentOrders = computed(() => {
+    const query = this.dashboardSearch().trim().toLowerCase();
+    return this.orders().filter((order) => !query ||
+      order.id.toLowerCase().includes(query) ||
+      order.status.toLowerCase().includes(query) ||
+      order.items.some((item) => item.name.toLowerCase().includes(query)),
+    ).slice(0, 5);
+  });
 
   protected readonly hasOrders = computed(() => this.orders().length > 0);
 
@@ -93,7 +105,14 @@ export class BuyerDashboard implements OnInit {
     () => !this.loading() && !this.error(),
   );
 
+  private matchesProduct(product: ProductModel, query: string): boolean {
+    return !query || [product.name, product.description, product.category].some((value) => value.toLowerCase().includes(query));
+  }
+
   ngOnInit(): void {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      this.dashboardSearch.set(params.get('q') ?? '');
+    });
     this.loadOrders();
     this.loadProducts();
   }

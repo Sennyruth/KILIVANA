@@ -88,8 +88,14 @@ export class Navbar {
   protected readonly inputCategories = computed(() => this.products.categories().filter((category) => category.type === 'SUPPLIER'));
   protected readonly showSearch = computed(() => {
     const path = this.currentUrl().split(/[?#]/, 1)[0];
-    return path === '/' || path === '/products' || path === '/inputs';
+    return path === '/' || path === '/products' || path === '/inputs' ||
+      path === '/dashboard/farmer' || path === '/dashboard/buyer' || path === '/dashboard/supplier';
   });
+  protected readonly searchPlaceholder = computed(() =>
+    this.currentUrl().includes('/dashboard/')
+      ? 'Search dashboard products and orders'
+      : 'Search products and farm inputs',
+  );
 
   protected readonly firstName = computed(() => {
     const name = this.auth.user()?.name?.trim();
@@ -143,7 +149,8 @@ export class Navbar {
     if (query.trim()) return;
 
     const path = this.currentUrl().split(/[?#]/, 1)[0];
-    if ((path === '/products' || path === '/inputs') && this.router.parseUrl(this.currentUrl()).queryParams['q']) {
+    if ((path === '/products' || path === '/inputs' || path.startsWith('/dashboard/')) &&
+        this.router.parseUrl(this.currentUrl()).queryParams['q']) {
       void this.router.navigate([path]);
     }
   }
@@ -152,8 +159,8 @@ export class Navbar {
     event.preventDefault();
     const query = this.searchQuery().trim();
     const path = this.currentUrl().split(/[?#]/, 1)[0];
-    const catalog = path === '/inputs' ? '/inputs' : '/products';
-    void this.router.navigate([catalog], {
+    const target = path.startsWith('/dashboard/') ? path : path === '/inputs' ? '/inputs' : '/products';
+    void this.router.navigate([target], {
       queryParams: query ? { q: query } : {},
     });
   }

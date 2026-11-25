@@ -86,6 +86,10 @@ export class SupplierOrders implements OnInit {
     return `KV-${String(id).slice(-8).toUpperCase()}`;
   }
 
+  protected itemNamesLabel(order: SellerOrderSummary): string {
+    return order.itemNames?.length ? order.itemNames.join(', ') : `${order.itemCount} ${order.itemCount === 1 ? 'item' : 'items'}`;
+  }
+
   protected statusLabel(status: string, deliveryStatus?: string | null): string {
     const dispatchLabel = deliveryStatusLabel(deliveryStatus);
     if (dispatchLabel) return dispatchLabel;
