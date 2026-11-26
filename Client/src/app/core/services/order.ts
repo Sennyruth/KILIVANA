@@ -329,7 +329,7 @@ function normalizeSellerOrder(value: unknown): SellerOrderSummary | null {
       : typeof order['phone'] === 'string' ? { buyerPhone: order['phone'] } : {}),
     ...(typeof order['deliveryAddress'] === 'string' ? { deliveryAddress: order['deliveryAddress'] } : {}),
     ...(typeof order['pickupLocation'] === 'string' ? { pickupLocation: order['pickupLocation'] } : {}),
-    status: normalizeSellerOrderStatus(order['status']),
+    status: normalizeSellerOrderStatus(order['status'], deliveryStatus),
     ...(isPaymentStatus(String(order['paymentStatus'] ?? '').toUpperCase())
       ? { paymentStatus: String(order['paymentStatus']).toUpperCase() as OrderModel['paymentStatus'] }
       : {}),
@@ -373,7 +373,7 @@ function normalizeOrder(value: unknown): OrderModel {
     buyerId: String(order['buyerId']),
     buyerName: typeof order['buyerName'] === 'string' ? order['buyerName'] : '',
     items: items.map(normalizeOrderItem),
-    status: normalizeOrderStatus(order['status']),
+    status: normalizeCompletedOrderStatus(order['status'], deliveryStatus),
     ...(deliveryStatus ? { deliveryStatus } : {}),
     ...(logisticsJobId ? { logisticsJobId } : {}),
     ...(typeof order['driverName'] === 'string' ? { driverName: order['driverName'] } : {}),
@@ -427,8 +427,14 @@ function normalizeOrderStatus(value: unknown): OrderStatus {
   return mapping[status] ?? (isOrderStatus(status) ? status : 'PENDING');
 }
 
-function normalizeSellerOrderStatus(value: unknown): string {
+function normalizeCompletedOrderStatus(value: unknown, deliveryStatus: DeliveryStatus | null): OrderStatus {
+  const status = normalizeOrderStatus(value);
+  return status === 'DELIVERED' || deliveryStatus === 'DELIVERED' ? 'COMPLETED' : status;
+}
+
+function normalizeSellerOrderStatus(value: unknown, deliveryStatus: DeliveryStatus | null): string {
   const status = String(value ?? 'PENDING').toUpperCase();
+  if (status === 'DELIVERED' || deliveryStatus === 'DELIVERED') return 'COMPLETED';
   if (status === 'PLACED') return 'PENDING';
   if (status === 'DISPUTED') return 'FAILED';
   return status;
