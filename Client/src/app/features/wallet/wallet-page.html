@@ -1,0 +1,107 @@
+<main class="wallet" aria-labelledby="wallet-title">
+  <header class="wallet__header">
+    <div>
+      <p class="wallet__eyebrow">{{ accountType() }} wallet</p>
+      <h1 id="wallet-title">Your earnings</h1>
+      <p class="wallet__intro">Track seller payments and order settlements.</p>
+    </div>
+    <button type="button" class="wallet__refresh" (click)="loadOrders()" [disabled]="loading()">
+      <mat-icon>refresh</mat-icon> Refresh
+    </button>
+  </header>
+
+  <section class="wallet__metrics" aria-label="Earnings summary">
+    <article class="wallet-card">
+      <div class="wallet-card__label">Released to seller <span class="wallet-card__icon wallet-card__icon--green"><mat-icon>check</mat-icon></span></div>
+      <strong>{{ releasedAmount() | currency:'KES':'symbol':'1.0-2' }}</strong><small>Orders marked settled</small>
+    </article>
+    <article class="wallet-card">
+      <div class="wallet-card__label">Held in escrow <span class="wallet-card__icon wallet-card__icon--amber"><mat-icon>schedule</mat-icon></span></div>
+      <strong>{{ heldAmount() | currency:'KES':'symbol':'1.0-2' }}</strong><small>Paid orders awaiting completion</small>
+    </article>
+    <article class="wallet-card">
+      <div class="wallet-card__label">Lifetime earnings <span class="wallet-card__icon wallet-card__icon--blue"><mat-icon>bar_chart</mat-icon></span></div>
+      <strong>{{ lifetimeAmount() | currency:'KES':'symbol':'1.0-2' }}</strong><small>Net seller share of successful payments</small>
+    </article>
+    <article class="wallet-card">
+      <div class="wallet-card__label">Paid seller orders <span class="wallet-card__icon wallet-card__icon--gray"><mat-icon>receipt_long</mat-icon></span></div>
+      <strong>{{ eligibleOrderCount() }}</strong><small>Paid, held or settled</small>
+    </article>
+  </section>
+
+  <section class="wallet__middle" aria-label="Withdrawal availability and settlement information">
+    <article class="wallet-balance wallet-balance--unavailable">
+      <div class="wallet-balance__top"><span>Wallet withdrawals</span><mat-icon aria-hidden="true">account_balance_wallet</mat-icon></div>
+      <strong>Not available yet</strong>
+      <div class="wallet-balance__bottom">
+        <div><span>Backend status</span><b><mat-icon>info</mat-icon> No withdrawal endpoint</b></div>
+        <button type="button" class="wallet-balance__button" disabled title="Seller withdrawals are not supported by the backend yet">Withdraw to M-Pesa</button>
+      </div>
+      <div class="wallet-balance__updated">Your order settlements are shown below. No payout request can be submitted yet.</div>
+    </article>
+
+    <aside class="wallet-explainer">
+      <div class="wallet-explainer__icon"><mat-icon>schedule</mat-icon></div>
+      <div>
+        <h2>How seller settlement works</h2>
+        <p>Successful buyer payments are held while an order is in progress. When delivery is confirmed and the order is completed, the backend marks the payment as settled.</p>
+        <div class="wallet-explainer__steps"><b>Buyer pays</b><i></i><b>Held</b><i></i><b>Settled</b></div>
+        <p class="wallet-explainer__fee">Earnings use the backend payout rule: seller item subtotal less the 3% platform fee.</p>
+      </div>
+    </aside>
+  </section>
+
+  <section class="wallet-table" aria-labelledby="wallet-table-title">
+    <div class="wallet-table__header">
+      <div><h2 id="wallet-table-title">Seller order settlements</h2><p>Payment status and your item-level earnings from each order.</p></div>
+      <span class="wallet-table__all">{{ entries().length }} orders <mat-icon>receipt_long</mat-icon></span>
+    </div>
+
+    @if (loading()) {
+      <div class="wallet-state" role="status"><mat-icon class="wallet-state__spin">progress_activity</mat-icon><p>Loading wallet activity…</p></div>
+    } @else if (error()) {
+      <div class="wallet-state wallet-state--error" role="alert"><mat-icon>cloud_off</mat-icon><h3>Wallet activity could not be loaded</h3><p>{{ error() }}</p><button type="button" (click)="loadOrders()">Try again</button></div>
+    } @else if (entries().length === 0) {
+      <div class="wallet-state"><mat-icon>account_balance_wallet</mat-icon><h3>No seller orders yet</h3><p>Payments and settlements for your orders will appear here.</p></div>
+    } @else {
+      <div class="wallet-table__scroll">
+        <table>
+          <thead><tr><th>Order</th><th>Your products</th><th>Gross</th><th>Platform fee (3%)</th><th>Seller share</th><th>Payment</th><th>Settlement</th></tr></thead>
+          <tbody>
+            @for (entry of entries(); track entry.order.id) {
+              <tr (click)="openDetails(entry)" tabindex="0" (keydown.enter)="openDetails(entry)" (keydown.space)="openDetails(entry); $event.preventDefault()">
+                <td data-label="Order"><button type="button" class="wallet-table__order" (click)="openDetails(entry); $event.stopPropagation()">{{ orderNumber(entry.order) }}</button><small>{{ entry.order.createdAt | date:'mediumDate' }}</small></td>
+                <td data-label="Your products"><b>{{ itemLabel(entry) }}</b><small>{{ itemCountLabel(entry) }}</small></td>
+                <td data-label="Gross">{{ entry.gross | currency:'KES':'symbol':'1.2-2' }}</td>
+                <td data-label="Platform fee (3%)" class="wallet-table__fee">{{ entry.fee | currency:'KES':'symbol':'1.2-2' }}</td>
+                <td data-label="Seller share"><b>{{ entry.net | currency:'KES':'symbol':'1.2-2' }}</b></td>
+                <td data-label="Payment"><span [class]="statusClass(entry.order.paymentStatus)">{{ paymentStatusLabel(entry.order.paymentStatus) }}</span></td>
+                <td data-label="Settlement" class="wallet-table__release">{{ releaseLabel(entry) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  @if (selectedEntry(); as entry) {
+    <div class="wallet-modal-backdrop" (click)="closeDetails()">
+      <section class="wallet-modal wallet-modal--details" role="dialog" aria-modal="true" aria-labelledby="transaction-title" (click)="$event.stopPropagation()">
+        <button type="button" class="wallet-modal__close" aria-label="Close details" (click)="closeDetails()"><mat-icon>close</mat-icon></button>
+        <p class="wallet__eyebrow">SELLER SETTLEMENT</p><h2 id="transaction-title">{{ orderNumber(entry.order) }}</h2>
+        <div class="wallet-details__amount"><span>{{ paymentStatusLabel(entry.order.paymentStatus) }}</span><strong>{{ entry.net | currency:'KES':'symbol':'1.2-2' }}</strong><small>Your seller share</small></div>
+        <dl class="wallet-modal__summary">
+          <div><dt>Products</dt><dd>{{ itemLabel(entry) }}</dd></div>
+          <div><dt>Item subtotal</dt><dd>{{ entry.gross | currency:'KES':'symbol':'1.2-2' }}</dd></div>
+          <div><dt>Platform fee (3%)</dt><dd>{{ entry.fee | currency:'KES':'symbol':'1.2-2' }}</dd></div>
+          <div><dt>Seller share</dt><dd>{{ entry.net | currency:'KES':'symbol':'1.2-2' }}</dd></div>
+          <div><dt>Payment reference</dt><dd>{{ entry.order.paymentReference || 'Not provided' }}</dd></div>
+          <div><dt>Paid at</dt><dd>{{ entry.order.paidAt ? (entry.order.paidAt | date:'medium') : 'Not recorded' }}</dd></div>
+          <div><dt>Settlement</dt><dd>{{ releaseLabel(entry) }}</dd></div>
+        </dl>
+        <button type="button" class="wallet-modal__primary" (click)="closeDetails()">Done</button>
+      </section>
+    </div>
+  }
+</main>

@@ -25,6 +25,15 @@ export const authGuard: CanActivateFn = (_route, state) => {
   return loginRedirect(router, state);
 };
 
+/** Wallet access is available to farmers and suppliers only. */
+export const walletGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(Auth);
+  const router = inject(Router);
+  if (auth.isFarmer() || auth.isSupplier()) return true;
+  if (auth.isAuthenticated()) return router.createUrlTree(['/dashboard/buyer']);
+  return loginRedirect(router, state);
+};
+
 export const shoppingGuard: CanActivateFn = (_route, state) => {
   const auth = inject(Auth);
   const router = inject(Router);

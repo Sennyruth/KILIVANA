@@ -65,6 +65,8 @@ export const ApiEndpoints = {
     SELLER: (sellerId: string) => `${API_BASE}/orders/seller/${sellerId}`,
     FARMER: (farmerId: string) => `${API_BASE}/orders/seller/${farmerId}`,
     SUPPLIER: (supplierId: string) => `${API_BASE}/orders/seller/${supplierId}`,
+    FARMER_WALLET: (farmerId: string | number) => `${API_BASE}/farmers/${farmerId}/orders`,
+    SUPPLIER_WALLET: (supplierId: string | number) => `${API_BASE}/suppliers/${supplierId}/orders`,
     TIMELINE: (id: string) => `${API_BASE}/orders/${id}/timeline`,
     SEARCH: `${API_BASE}/orders/search`,
   },

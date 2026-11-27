@@ -25,8 +25,10 @@ import { InputsList } from './features/inputs/inputs-list/inputs-list';
 import { InputsDetail } from './features/inputs/inputs-detail/inputs-detail';
 import { Landing } from './features/landing/landing';
 import { AccountPage } from './features/account/account-page';
+import { WalletPage } from './features/wallet/wallet-page';
 import {
   authGuard,
+  walletGuard,
   unauthGuard,
   farmerGuard,
   buyerGuard,
@@ -50,6 +52,7 @@ export const routes: Routes = [
   { path: 'email-verification', component: EmailVerification },
   { path: 'logout', component: Logout, canActivate: [authGuard] },
   { path: 'account', component: AccountPage, canActivate: [authGuard] },
+  { path: 'wallet', component: WalletPage, canActivate: [walletGuard] },
   { path: 'products', component: ProductList, canActivate: [produceCatalogGuard] },
   { path: 'products/:id', component: ProductDetail, canActivate: [produceCatalogGuard] },
   { path: 'inputs', component: InputsList, canActivate: [inputsCatalogGuard] },

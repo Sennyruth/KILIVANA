@@ -111,6 +111,9 @@
       <mat-divider></mat-divider>
       <a mat-menu-item routerLink="/account">My Account</a>
       <a mat-menu-item [routerLink]="dashboardHref()">Dashboard</a>
+      @if (auth.isFarmer() || auth.isSupplier()) {
+        <a mat-menu-item routerLink="/wallet">Wallet</a>
+      }
       @if (showCart()) {
         @if (auth.isBuyer()) {
           <a mat-menu-item routerLink="/orders">Order History</a>
