@@ -1,141 +1,241 @@
 import { Injectable, inject } from '@angular/core';
-import { EMPTY, Observable, expand, map, throwError, toArray } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Observable, catchError, forkJoin, map, of, throwError } from 'rxjs';
 import { ApiEndpoints } from '../../shared/api.config';
+import { ApiResponse } from '../../shared/api-response';
 import { HttpService } from './http';
-import { Auth } from './auth';
 
-export interface WalletSellerOrderItem {
-  sellerId: number | null;
-  productName: string;
-  quantity: number;
-  unit: string;
-  unitPrice: number;
-  subtotal: number;
-}
-
-export interface WalletSellerOrder {
-  id: number;
-  code: string;
+export interface WalletSummary {
+  pendingBalance: number;
+  availableBalance: number;
+  processingBalance: number;
+  totalBalance: number;
+  totalPaid: number;
+  totalEarned: number;
   status: string;
-  paymentStatus: string;
-  deliveryStatus: string | null;
-  paymentReference: string | null;
-  paidAt: string | null;
-  createdAt: string;
-  items: WalletSellerOrderItem[];
+  transactionCount: number;
 }
 
-interface OrderPage {
-  orders: WalletSellerOrder[];
-  page: number;
-  totalPages: number;
-  size: number;
+export interface WalletTransaction {
+  id: number;
+  orderId: number | null;
+  transactionType: string;
+  amount: number;
+  status: string;
+  reference: string | null;
+  description: string | null;
+  balanceAfter: number;
+  pendingBalanceAfter: number;
+  availableBalanceAfter: number;
+  processingBalanceAfter: number;
+  createdAt: string;
+}
+
+export interface PayoutAccount {
+  id: number;
+  payoutMethod: string;
+  accountName: string;
+  mpesaPhone: string | null;
+  maskedMpesaPhone: string | null;
+  isDefault: boolean;
+  verificationStatus: string;
+  verifiedAt: string | null;
+}
+
+export interface WithdrawalRecord {
+  id: number;
+  amount: number;
+  payoutAccountId: number | null;
+  payoutMethod: string;
+  destinationSnapshot: string | null;
+  status: string;
+  reference: string | null;
+  mpesaReceiptNumber: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  paidAt: string | null;
+}
+
+export interface WithdrawalEligibility {
+  available_balance: number;
+  min_withdrawal: number;
+  max_withdrawal: number;
+  has_verified_account: boolean;
+  can_withdraw: boolean;
+}
+
+export interface WalletDashboard {
+  summary: WalletSummary;
+  transactions: WalletTransaction[];
+  payoutAccounts: PayoutAccount[];
+  withdrawals: WithdrawalRecord[];
+  eligibility: WithdrawalEligibility;
+}
+
+export interface PayoutAccountRequest {
+  payoutMethod: 'MPESA';
+  accountName: string;
+  mpesaPhone: string;
+  isDefault: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
 export class WalletService {
   private readonly http = inject(HttpService);
-  private readonly auth = inject(Auth);
-  private readonly pageSize = 100;
 
-  loadSellerOrders(): Observable<WalletSellerOrder[]> {
-    const user = this.auth.user();
-    const sellerId = user?.id;
-    if (!sellerId || (user.role !== 'FARMER' && user.role !== 'SUPPLIER')) {
-      return throwError(() => new Error('Sign in with a farmer or supplier account to view wallet earnings.'));
-    }
+  loadDashboard(): Observable<WalletDashboard> {
+    return forkJoin({
+      summary: this.getOrDefault<WalletSummary>(ApiEndpoints.WALLET.SUMMARY, emptySummary()),
+      transactions: this.getOrDefault<WalletTransaction[]>(ApiEndpoints.WALLET.TRANSACTIONS, []),
+      payoutAccounts: this.http.get<PayoutAccount[]>(ApiEndpoints.WALLET.PAYOUT_ACCOUNTS),
+      withdrawals: this.http.get<WithdrawalRecord[]>(ApiEndpoints.WALLET.WITHDRAWALS),
+      eligibility: this.getOrDefault<WithdrawalEligibility>(ApiEndpoints.WALLET.WITHDRAWAL_ELIGIBILITY, emptyEligibility()),
+    }).pipe(
+      map(({ summary, transactions, payoutAccounts, withdrawals, eligibility }) => ({
+        summary: normalizeSummary(summary.data),
+        transactions: normalizeList(transactions.data, normalizeTransaction),
+        payoutAccounts: normalizeList(payoutAccounts.data, normalizePayoutAccount),
+        withdrawals: normalizeList(withdrawals.data, normalizeWithdrawal),
+        eligibility: normalizeEligibility(eligibility.data),
+      })),
+    );
+  }
 
-    const endpoint = user.role === 'FARMER'
-      ? ApiEndpoints.ORDERS.FARMER_WALLET(sellerId)
-      : ApiEndpoints.ORDERS.SUPPLIER_WALLET(sellerId);
-    const loadPage = (page: number) => this.http.get<unknown>(endpoint, { page, size: this.pageSize }).pipe(
+  addPayoutAccount(request: PayoutAccountRequest): Observable<PayoutAccount> {
+    return this.http.post<unknown>(ApiEndpoints.WALLET.CREATE_PAYOUT_ACCOUNT, request).pipe(
       map((response) => {
-        if (!response.success) {
-          throw new Error(response.message || 'The backend could not load seller orders.');
-        }
-        const parsed = parsePage(response.data, page, this.pageSize);
-        return { ...parsed, orders: parsed.orders.map((order) => ({
-          ...order,
-          items: order.items.filter((item) => item.sellerId === Number(sellerId)),
-        })).filter((order) => order.items.length > 0) };
+        if (!response.success || !response.data) throw new Error(response.message || 'Could not add the payout account.');
+        const account = normalizePayoutAccount(response.data);
+        if (!account) throw new Error('The backend returned an invalid payout account.');
+        return account;
       }),
     );
+  }
 
-    return loadPage(0).pipe(
-      expand((page) => page.page + 1 < page.totalPages ? loadPage(page.page + 1) : EMPTY),
-      toArray(),
-      map((pages) => pages.flatMap((page) => page.orders)),
+  requestWithdrawal(amount: number, payoutAccountId: number): Observable<WithdrawalRecord> {
+    return this.http.post<unknown>(ApiEndpoints.WALLET.CREATE_WITHDRAWAL, { amount, payoutAccountId }).pipe(
+      map((response) => {
+        if (!response.success || !response.data) throw new Error(response.message || 'Could not submit the withdrawal request.');
+        const payout = normalizeWithdrawal(response.data);
+        if (!payout) throw new Error('The backend returned an invalid withdrawal request.');
+        return payout;
+      }),
     );
   }
+
+  private getOrDefault<T>(url: string, fallback: T): Observable<ApiResponse<T>> {
+    return this.http.get<T>(url).pipe(catchError((error: unknown) => {
+      if (error instanceof HttpErrorResponse && error.status === 404) {
+        return of({ success: true, data: fallback } as ApiResponse<T>);
+      }
+      return throwError(() => error);
+    }));
+  }
 }
 
-function parsePage(value: unknown, fallbackPage: number, fallbackSize: number): OrderPage {
-  if (Array.isArray(value)) {
-    return { orders: value.map(normalizeOrder).filter(isWalletOrder), page: fallbackPage, totalPages: 1, size: fallbackSize };
-  }
-  if (!value || typeof value !== 'object') {
-    return { orders: [], page: fallbackPage, totalPages: 1, size: fallbackSize };
-  }
+function emptySummary(): WalletSummary {
+  return { pendingBalance: 0, availableBalance: 0, processingBalance: 0, totalBalance: 0, totalPaid: 0, totalEarned: 0, status: 'ACTIVE', transactionCount: 0 };
+}
 
-  const page = value as Record<string, unknown>;
-  const content = Array.isArray(page['content']) ? page['content'] : Array.isArray(page['orders']) ? page['orders'] : [];
-  const currentPage = numeric(page['number']) ?? numeric(page['page']) ?? fallbackPage;
-  const size = numeric(page['size']) ?? fallbackSize;
-  const totalElements = numeric(page['totalElements']);
-  const totalPages = numeric(page['totalPages']) ?? (totalElements === null ? 1 : Math.ceil(totalElements / Math.max(size, 1)));
+function emptyEligibility(): WithdrawalEligibility {
+  return { available_balance: 0, min_withdrawal: 100, max_withdrawal: 70_000, has_verified_account: false, can_withdraw: false };
+}
+
+function normalizeSummary(value: unknown): WalletSummary {
+  const source = asRecord(value);
   return {
-    orders: content.map(normalizeOrder).filter(isWalletOrder),
-    page: currentPage,
-    totalPages: Math.max(totalPages, 1),
-    size,
+    pendingBalance: numberValue(source['pendingBalance']),
+    availableBalance: numberValue(source['availableBalance']),
+    processingBalance: numberValue(source['processingBalance']),
+    totalBalance: numberValue(source['totalBalance']),
+    totalPaid: numberValue(source['totalPaid']),
+    totalEarned: numberValue(source['totalEarned']),
+    status: stringValue(source['status']) || 'ACTIVE',
+    transactionCount: numberValue(source['transactionCount']),
   };
 }
 
-function normalizeOrder(value: unknown): WalletSellerOrder | null {
-  if (!value || typeof value !== 'object') return null;
-  const order = value as Record<string, unknown>;
-  const id = numeric(order['id']);
-  if (id === null || id <= 0) return null;
-  const items = Array.isArray(order['items']) ? order['items'].map(normalizeItem).filter(isWalletItem) : [];
+function normalizeEligibility(value: unknown): WithdrawalEligibility {
+  const source = asRecord(value);
+  return {
+    available_balance: numberValue(source['available_balance']),
+    min_withdrawal: numberValue(source['min_withdrawal'], 100),
+    max_withdrawal: numberValue(source['max_withdrawal'], 70_000),
+    has_verified_account: source['has_verified_account'] === true,
+    can_withdraw: source['can_withdraw'] === true,
+  };
+}
+
+function normalizeTransaction(value: unknown): WalletTransaction | null {
+  const source = asRecord(value);
+  const id = numberOrNull(source['id']);
+  if (id === null) return null;
   return {
     id,
-    code: stringValue(order['code']) || `ORD-${id}`,
-    status: stringValue(order['status']).toUpperCase() || 'PENDING',
-    paymentStatus: stringValue(order['paymentStatus']).toUpperCase() || 'PENDING',
-    deliveryStatus: nullableString(order['deliveryStatus'])?.toUpperCase() ?? null,
-    paymentReference: nullableString(order['paymentReference']),
-    paidAt: nullableString(order['paidAt']),
-    createdAt: stringValue(order['createdAt']),
-    items,
+    orderId: numberOrNull(source['orderId']),
+    transactionType: stringValue(source['transactionType']).toUpperCase(),
+    amount: numberValue(source['amount']),
+    status: stringValue(source['status']).toUpperCase(),
+    reference: nullableString(source['reference']),
+    description: nullableString(source['description']),
+    balanceAfter: numberValue(source['balanceAfter']),
+    pendingBalanceAfter: numberValue(source['pendingBalanceAfter']),
+    availableBalanceAfter: numberValue(source['availableBalanceAfter']),
+    processingBalanceAfter: numberValue(source['processingBalanceAfter']),
+    createdAt: stringValue(source['createdAt']),
   };
 }
 
-function normalizeItem(value: unknown): WalletSellerOrderItem | null {
-  if (!value || typeof value !== 'object') return null;
-  const item = value as Record<string, unknown>;
-  const subtotal = numeric(item['subtotal'] ?? item['lineTotal']);
-  if (subtotal === null) return null;
+function normalizePayoutAccount(value: unknown): PayoutAccount | null {
+  const source = asRecord(value);
+  const id = numberOrNull(source['id']);
+  if (id === null) return null;
   return {
-    sellerId: numeric(item['sellerId']),
-    productName: stringValue(item['productName'] ?? item['name']) || 'Order item',
-    quantity: numeric(item['quantity']) ?? 0,
-    unit: stringValue(item['unit']),
-    unitPrice: numeric(item['unitPrice'] ?? item['price']) ?? 0,
-    subtotal,
+    id,
+    payoutMethod: stringValue(source['payoutMethod']).toUpperCase(),
+    accountName: stringValue(source['accountName']),
+    mpesaPhone: nullableString(source['mpesaPhone']),
+    maskedMpesaPhone: nullableString(source['maskedMpesaPhone']),
+    isDefault: source['isDefault'] === true || source['default'] === true,
+    verificationStatus: stringValue(source['verificationStatus']).toUpperCase(),
+    verifiedAt: nullableString(source['verifiedAt']),
   };
 }
 
-function isWalletOrder(value: WalletSellerOrder | null): value is WalletSellerOrder {
-  return value !== null;
+function normalizeWithdrawal(value: unknown): WithdrawalRecord | null {
+  const source = asRecord(value);
+  const id = numberOrNull(source['id']);
+  if (id === null) return null;
+  return {
+    id,
+    amount: numberValue(source['amount']),
+    payoutAccountId: numberOrNull(source['payoutAccountId']),
+    payoutMethod: stringValue(source['payoutMethod']).toUpperCase(),
+    destinationSnapshot: nullableString(source['destinationSnapshot']),
+    status: stringValue(source['status']).toUpperCase(),
+    reference: nullableString(source['reference']),
+    mpesaReceiptNumber: nullableString(source['mpesaReceiptNumber']),
+    rejectionReason: nullableString(source['rejectionReason']),
+    createdAt: stringValue(source['createdAt']),
+    paidAt: nullableString(source['paidAt']),
+  };
 }
 
-function isWalletItem(value: WalletSellerOrderItem | null): value is WalletSellerOrderItem {
-  return value !== null;
+function normalizeList<T>(value: unknown, normalize: (item: unknown) => T | null): T[] {
+  return Array.isArray(value) ? value.map(normalize).filter((item): item is T => item !== null) : [];
 }
 
-function numeric(value: unknown): number | null {
-  if (typeof value !== 'number' && typeof value !== 'string') return null;
-  const parsed = Number(value);
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function numberValue(value: unknown, fallback = 0): number {
+  const parsed = typeof value === 'number' || typeof value === 'string' ? Number(value) : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function numberOrNull(value: unknown): number | null {
+  const parsed = numberValue(value, Number.NaN);
   return Number.isFinite(parsed) ? parsed : null;
 }
 

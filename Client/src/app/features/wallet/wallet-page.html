@@ -3,80 +3,116 @@
     <div>
       <p class="wallet__eyebrow">{{ accountType() }} wallet</p>
       <h1 id="wallet-title">Your earnings</h1>
-      <p class="wallet__intro">Track seller payments and order settlements.</p>
+      <p class="wallet__intro">Track seller payments, settlements and withdrawals.</p>
     </div>
-    <button type="button" class="wallet__refresh" (click)="loadOrders()" [disabled]="loading()">
+    <button type="button" class="wallet__refresh" (click)="loadWallet()" [disabled]="loading()">
       <mat-icon>refresh</mat-icon> Refresh
     </button>
   </header>
 
+  @if (actionMessage()) {
+    <div class="wallet-notice" role="status"><mat-icon>check_circle</mat-icon><span>{{ actionMessage() }}</span><button type="button" aria-label="Dismiss message" (click)="actionMessage.set(null)"><mat-icon>close</mat-icon></button></div>
+  }
+
   <section class="wallet__metrics" aria-label="Earnings summary">
     <article class="wallet-card">
-      <div class="wallet-card__label">Released to seller <span class="wallet-card__icon wallet-card__icon--green"><mat-icon>check</mat-icon></span></div>
-      <strong>{{ releasedAmount() | currency:'KES':'symbol':'1.0-2' }}</strong><small>Orders marked settled</small>
+      <div class="wallet-card__label">Available balance <span class="wallet-card__icon wallet-card__icon--green"><mat-icon>check</mat-icon></span></div>
+      <strong>{{ summary()?.availableBalance ?? 0 | currency:'KES':'symbol':'1.0-2' }}</strong><small>Ready for eligible withdrawal</small>
     </article>
     <article class="wallet-card">
-      <div class="wallet-card__label">Held in escrow <span class="wallet-card__icon wallet-card__icon--amber"><mat-icon>schedule</mat-icon></span></div>
-      <strong>{{ heldAmount() | currency:'KES':'symbol':'1.0-2' }}</strong><small>Paid orders awaiting completion</small>
+      <div class="wallet-card__label">Pending earnings <span class="wallet-card__icon wallet-card__icon--amber"><mat-icon>schedule</mat-icon></span></div>
+      <strong>{{ summary()?.pendingBalance ?? 0 | currency:'KES':'symbol':'1.0-2' }}</strong><small>Awaiting delivery confirmation</small>
     </article>
     <article class="wallet-card">
       <div class="wallet-card__label">Lifetime earnings <span class="wallet-card__icon wallet-card__icon--blue"><mat-icon>bar_chart</mat-icon></span></div>
-      <strong>{{ lifetimeAmount() | currency:'KES':'symbol':'1.0-2' }}</strong><small>Net seller share of successful payments</small>
+      <strong>{{ summary()?.totalEarned ?? 0 | currency:'KES':'symbol':'1.0-2' }}</strong><small>Net seller credits</small>
     </article>
     <article class="wallet-card">
-      <div class="wallet-card__label">Paid seller orders <span class="wallet-card__icon wallet-card__icon--gray"><mat-icon>receipt_long</mat-icon></span></div>
-      <strong>{{ eligibleOrderCount() }}</strong><small>Paid, held or settled</small>
+      <div class="wallet-card__label">Total paid out <span class="wallet-card__icon wallet-card__icon--gray"><mat-icon>north_east</mat-icon></span></div>
+      <strong>{{ summary()?.totalPaid ?? 0 | currency:'KES':'symbol':'1.0-2' }}</strong><small>Completed withdrawals</small>
     </article>
   </section>
 
-  <section class="wallet__middle" aria-label="Withdrawal availability and settlement information">
-    <article class="wallet-balance wallet-balance--unavailable">
-      <div class="wallet-balance__top"><span>Wallet withdrawals</span><mat-icon aria-hidden="true">account_balance_wallet</mat-icon></div>
-      <strong>Not available yet</strong>
+  <section class="wallet__middle" aria-label="Wallet balance and payout status">
+    <article class="wallet-balance">
+      <div class="wallet-balance__top"><span>Available to withdraw</span><mat-icon aria-hidden="true">account_balance_wallet</mat-icon></div>
+      <strong>{{ summary()?.availableBalance ?? 0 | currency:'KES':'symbol':'1.0-2' }}</strong>
       <div class="wallet-balance__bottom">
-        <div><span>Backend status</span><b><mat-icon>info</mat-icon> No withdrawal endpoint</b></div>
-        <button type="button" class="wallet-balance__button" disabled title="Seller withdrawals are not supported by the backend yet">Withdraw to M-Pesa</button>
+        <div><span>Wallet status</span><b><mat-icon>verified_user</mat-icon> {{ summary()?.status || 'ACTIVE' }}</b></div>
+        <button type="button" class="wallet-balance__button" [disabled]="!canWithdraw()" (click)="openWithdrawalDialog()">
+          Withdraw to M-Pesa <mat-icon>arrow_forward</mat-icon>
+        </button>
       </div>
-      <div class="wallet-balance__updated">Your order settlements are shown below. No payout request can be submitted yet.</div>
+      <div class="wallet-balance__updated">
+        @if (pendingWithdrawal()) {
+          A withdrawal is already being processed.
+        } @else if (!defaultPayoutAccount()) {
+          Add a payout account to request a withdrawal.
+        } @else if (defaultPayoutAccount()?.verificationStatus !== 'VERIFIED') {
+          Your default M-Pesa account must be verified before withdrawal.
+        } @else {
+          Minimum {{ eligibility()?.min_withdrawal ?? 100 | currency:'KES':'symbol':'1.0-0' }} · Maximum {{ eligibility()?.max_withdrawal ?? 70000 | currency:'KES':'symbol':'1.0-0' }} per request
+        }
+      </div>
     </article>
 
     <aside class="wallet-explainer">
       <div class="wallet-explainer__icon"><mat-icon>schedule</mat-icon></div>
       <div>
         <h2>How seller settlement works</h2>
-        <p>Successful buyer payments are held while an order is in progress. When delivery is confirmed and the order is completed, the backend marks the payment as settled.</p>
-        <div class="wallet-explainer__steps"><b>Buyer pays</b><i></i><b>Held</b><i></i><b>Settled</b></div>
-        <p class="wallet-explainer__fee">Earnings use the backend payout rule: seller item subtotal less the 3% platform fee.</p>
+        <p>Sales are credited to pending balance. After delivery is confirmed, the backend moves the seller’s net earnings to available balance.</p>
+        <div class="wallet-explainer__steps"><b>Sale credited</b><i></i><b>Delivery confirmed</b><i></i><b>Available</b></div>
+        <p class="wallet-explainer__fee">Balances and fees come from the wallet ledger.</p>
       </div>
     </aside>
   </section>
 
+  <section class="wallet-accounts" aria-labelledby="payout-account-title">
+    <div class="wallet-accounts__heading">
+      <div><h2 id="payout-account-title">Payout account</h2><p>Manage the account used for M-Pesa withdrawals.</p></div>
+      <button type="button" class="wallet__refresh" (click)="openPayoutAccountDialog()"><mat-icon>add</mat-icon> Add M-Pesa account</button>
+    </div>
+    @if (payoutAccounts().length === 0) {
+      <div class="wallet-accounts__empty"><mat-icon>phone_android</mat-icon><span>No payout account added yet.</span></div>
+    } @else {
+      <div class="wallet-accounts__list">
+        @for (account of payoutAccounts(); track account.id) {
+          <div class="wallet-account">
+            <span class="wallet-account__icon"><mat-icon>phone_android</mat-icon></span>
+            <div class="wallet-account__info"><strong>{{ account.accountName }}</strong><span>{{ account.payoutMethod === 'MPESA' ? 'M-Pesa' : account.payoutMethod }} · {{ accountLabel(account) }}</span></div>
+            @if (account.isDefault) { <span class="wallet-account__default">Default</span> }
+            <span [class]="statusClass(account.verificationStatus)">{{ account.verificationStatus || 'UNVERIFIED' }}</span>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
   <section class="wallet-table" aria-labelledby="wallet-table-title">
     <div class="wallet-table__header">
-      <div><h2 id="wallet-table-title">Seller order settlements</h2><p>Payment status and your item-level earnings from each order.</p></div>
-      <span class="wallet-table__all">{{ entries().length }} orders <mat-icon>receipt_long</mat-icon></span>
+      <div><h2 id="wallet-table-title">Wallet transactions</h2><p>Credits, releases, fees and withdrawals recorded in your wallet.</p></div>
+      <span class="wallet-table__all">{{ transactions().length }} transactions <mat-icon>receipt_long</mat-icon></span>
     </div>
 
     @if (loading()) {
       <div class="wallet-state" role="status"><mat-icon class="wallet-state__spin">progress_activity</mat-icon><p>Loading wallet activity…</p></div>
     } @else if (error()) {
-      <div class="wallet-state wallet-state--error" role="alert"><mat-icon>cloud_off</mat-icon><h3>Wallet activity could not be loaded</h3><p>{{ error() }}</p><button type="button" (click)="loadOrders()">Try again</button></div>
-    } @else if (entries().length === 0) {
-      <div class="wallet-state"><mat-icon>account_balance_wallet</mat-icon><h3>No seller orders yet</h3><p>Payments and settlements for your orders will appear here.</p></div>
+      <div class="wallet-state wallet-state--error" role="alert"><mat-icon>cloud_off</mat-icon><h3>Wallet activity could not be loaded</h3><p>{{ error() }}</p><button type="button" (click)="loadWallet()">Try again</button></div>
+    } @else if (transactions().length === 0) {
+      <div class="wallet-state"><mat-icon>account_balance_wallet</mat-icon><h3>No wallet transactions yet</h3><p>Your earnings and withdrawals will appear here when recorded by the backend.</p></div>
     } @else {
       <div class="wallet-table__scroll">
         <table>
-          <thead><tr><th>Order</th><th>Your products</th><th>Gross</th><th>Platform fee (3%)</th><th>Seller share</th><th>Payment</th><th>Settlement</th></tr></thead>
+          <thead><tr><th>Activity</th><th>Order</th><th>Date</th><th>Status</th><th>Amount</th><th>Available balance</th></tr></thead>
           <tbody>
-            @for (entry of entries(); track entry.order.id) {
-              <tr (click)="openDetails(entry)" tabindex="0" (keydown.enter)="openDetails(entry)" (keydown.space)="openDetails(entry); $event.preventDefault()">
-                <td data-label="Order"><button type="button" class="wallet-table__order" (click)="openDetails(entry); $event.stopPropagation()">{{ orderNumber(entry.order) }}</button><small>{{ entry.order.createdAt | date:'mediumDate' }}</small></td>
-                <td data-label="Your products"><b>{{ itemLabel(entry) }}</b><small>{{ itemCountLabel(entry) }}</small></td>
-                <td data-label="Gross">{{ entry.gross | currency:'KES':'symbol':'1.2-2' }}</td>
-                <td data-label="Platform fee (3%)" class="wallet-table__fee">{{ entry.fee | currency:'KES':'symbol':'1.2-2' }}</td>
-                <td data-label="Seller share"><b>{{ entry.net | currency:'KES':'symbol':'1.2-2' }}</b></td>
-                <td data-label="Payment"><span [class]="statusClass(entry.order.paymentStatus)">{{ paymentStatusLabel(entry.order.paymentStatus) }}</span></td>
-                <td data-label="Settlement" class="wallet-table__release">{{ releaseLabel(entry) }}</td>
+            @for (transaction of transactions(); track transaction.id) {
+              <tr (click)="showTransaction(transaction)" tabindex="0" (keydown.enter)="showTransaction(transaction)" (keydown.space)="showTransaction(transaction); $event.preventDefault()">
+                <td data-label="Activity"><b>{{ transactionLabel(transaction) }}</b><small>{{ transaction.description || transaction.reference || 'Wallet activity' }}</small></td>
+                <td data-label="Order">{{ transaction.orderId ? 'ORD-' + transaction.orderId : '—' }}</td>
+                <td data-label="Date">{{ transaction.createdAt | date:'mediumDate' }}</td>
+                <td data-label="Status"><span [class]="statusClass(transaction.status)">{{ transaction.status }}</span></td>
+                <td data-label="Amount" [class.wallet-table__fee]="transactionIsDebit(transaction)">{{ transactionIsDebit(transaction) ? '− ' : '+ ' }}{{ transaction.amount | currency:'KES':'symbol':'1.2-2' }}</td>
+                <td data-label="Available balance"><b>{{ transaction.availableBalanceAfter | currency:'KES':'symbol':'1.2-2' }}</b></td>
               </tr>
             }
           </tbody>
@@ -85,22 +121,83 @@
     }
   </section>
 
-  @if (selectedEntry(); as entry) {
-    <div class="wallet-modal-backdrop" (click)="closeDetails()">
-      <section class="wallet-modal wallet-modal--details" role="dialog" aria-modal="true" aria-labelledby="transaction-title" (click)="$event.stopPropagation()">
-        <button type="button" class="wallet-modal__close" aria-label="Close details" (click)="closeDetails()"><mat-icon>close</mat-icon></button>
-        <p class="wallet__eyebrow">SELLER SETTLEMENT</p><h2 id="transaction-title">{{ orderNumber(entry.order) }}</h2>
-        <div class="wallet-details__amount"><span>{{ paymentStatusLabel(entry.order.paymentStatus) }}</span><strong>{{ entry.net | currency:'KES':'symbol':'1.2-2' }}</strong><small>Your seller share</small></div>
-        <dl class="wallet-modal__summary">
-          <div><dt>Products</dt><dd>{{ itemLabel(entry) }}</dd></div>
-          <div><dt>Item subtotal</dt><dd>{{ entry.gross | currency:'KES':'symbol':'1.2-2' }}</dd></div>
-          <div><dt>Platform fee (3%)</dt><dd>{{ entry.fee | currency:'KES':'symbol':'1.2-2' }}</dd></div>
-          <div><dt>Seller share</dt><dd>{{ entry.net | currency:'KES':'symbol':'1.2-2' }}</dd></div>
-          <div><dt>Payment reference</dt><dd>{{ entry.order.paymentReference || 'Not provided' }}</dd></div>
-          <div><dt>Paid at</dt><dd>{{ entry.order.paidAt ? (entry.order.paidAt | date:'medium') : 'Not recorded' }}</dd></div>
-          <div><dt>Settlement</dt><dd>{{ releaseLabel(entry) }}</dd></div>
-        </dl>
-        <button type="button" class="wallet-modal__primary" (click)="closeDetails()">Done</button>
+  <section class="wallet-table wallet-table--withdrawals" aria-labelledby="withdrawals-title">
+    <div class="wallet-table__header">
+      <div><h2 id="withdrawals-title">Withdrawal history</h2><p>Track approval and M-Pesa disbursement status.</p></div>
+      <span class="wallet-table__all">{{ withdrawals().length }} requests <mat-icon>payments</mat-icon></span>
+    </div>
+    @if (withdrawals().length === 0) {
+      <div class="wallet-state wallet-state--compact"><mat-icon>payments</mat-icon><p>No withdrawal requests yet.</p></div>
+    } @else {
+      <div class="wallet-table__scroll">
+        <table>
+          <thead><tr><th>Reference</th><th>Requested</th><th>Destination</th><th>Status</th><th>Receipt</th><th>Amount</th></tr></thead>
+          <tbody>
+            @for (payout of withdrawals(); track payout.id) {
+              <tr>
+                <td data-label="Reference">{{ payout.reference || 'PO-' + payout.id }}</td>
+                <td data-label="Requested">{{ payout.createdAt | date:'mediumDate' }}</td>
+                <td data-label="Destination">{{ payout.destinationSnapshot || payout.payoutMethod }}</td>
+                <td data-label="Status"><span [class]="statusClass(payout.status)">{{ withdrawalStatusLabel(payout.status) }}</span></td>
+                <td data-label="Receipt">{{ payout.mpesaReceiptNumber || '—' }}</td>
+                <td data-label="Amount"><b>{{ payout.amount | currency:'KES':'symbol':'1.2-2' }}</b></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  @if (payoutAccountDialog()) {
+    <div class="wallet-modal-backdrop" (click)="closeDialogs()">
+      <section class="wallet-modal" role="dialog" aria-modal="true" aria-labelledby="payout-dialog-title" (click)="$event.stopPropagation()">
+        <button type="button" class="wallet-modal__close" aria-label="Close" (click)="closeDialogs()"><mat-icon>close</mat-icon></button>
+        <p class="wallet__eyebrow">PAYOUT DETAILS</p><h2 id="payout-dialog-title">Add M-Pesa account</h2>
+        <p class="wallet-modal__copy">Enter the Safaricom number that should receive seller withdrawals. New payout accounts need verification before they can be used.</p>
+        <label for="payout-account-name">Account name</label><input class="wallet-modal__field" id="payout-account-name" autocomplete="name" [value]="accountName()" (input)="setAccountName($event)" />
+        <label for="payout-phone">M-Pesa number</label><input class="wallet-modal__field" id="payout-phone" type="tel" autocomplete="tel" placeholder="07xx xxx xxx or 2547xxxxxxxx" [value]="mpesaPhone()" (input)="setMpesaPhone($event)" />
+        @if (actionError()) { <p class="wallet-modal__error" role="alert">{{ actionError() }}</p> }
+        <button type="button" class="wallet-modal__primary" [disabled]="submittingAccount()" (click)="savePayoutAccount()">{{ submittingAccount() ? 'Saving…' : 'Save payout account' }}</button>
+      </section>
+    </div>
+  }
+
+  @if (withdrawalDialog()) {
+    <div class="wallet-modal-backdrop" (click)="closeDialogs()">
+      <section class="wallet-modal" role="dialog" aria-modal="true" aria-labelledby="withdraw-title" (click)="$event.stopPropagation()">
+        <button type="button" class="wallet-modal__close" aria-label="Close" (click)="closeDialogs()"><mat-icon>close</mat-icon></button>
+        @if (withdrawalStage() === 'form') {
+          <p class="wallet__eyebrow">WITHDRAWAL</p><h2 id="withdraw-title">Withdraw to M-Pesa</h2>
+          <p class="wallet-modal__copy">Available balance: <b>{{ summary()?.availableBalance ?? 0 | currency:'KES':'symbol':'1.2-2' }}</b></p>
+          <div class="wallet-modal__account"><mat-icon>phone_android</mat-icon><span>{{ defaultPayoutAccount()?.accountName }} · {{ defaultPayoutAccount() ? accountLabel(defaultPayoutAccount()!) : '' }}</span></div>
+          <label for="withdraw-amount">Amount (KES)</label><div class="wallet-modal__input"><span>KSh</span><input id="withdraw-amount" type="number" min="{{ eligibility()?.min_withdrawal ?? 100 }}" [max]="summary()?.availableBalance ?? 0" [value]="withdrawalAmount()" (input)="setWithdrawalAmount($event)" placeholder="Enter amount" /></div>
+          <p class="wallet-modal__fine">Minimum {{ eligibility()?.min_withdrawal ?? 100 | currency:'KES':'symbol':'1.0-0' }} · Maximum {{ eligibility()?.max_withdrawal ?? 70000 | currency:'KES':'symbol':'1.0-0' }} per request</p>
+          @if (actionError()) { <p class="wallet-modal__error" role="alert">{{ actionError() }}</p> }
+          <button type="button" class="wallet-modal__primary" [disabled]="!validWithdrawalAmount()" (click)="reviewWithdrawal()">Review withdrawal <mat-icon>arrow_forward</mat-icon></button>
+        } @else if (withdrawalStage() === 'review') {
+          <p class="wallet__eyebrow">FINAL CHECK</p><h2 id="withdraw-title">Confirm withdrawal</h2>
+          <p class="wallet-modal__copy">The backend will create a withdrawal request for approval. M-Pesa payment happens after the request is approved and processed.</p>
+          <dl class="wallet-modal__summary"><div><dt>Amount</dt><dd>{{ withdrawalAmount() | currency:'KES':'symbol':'1.2-2' }}</dd></div><div><dt>Destination</dt><dd>{{ defaultPayoutAccount()?.maskedMpesaPhone || defaultPayoutAccount()?.mpesaPhone }}</dd></div><div><dt>Account status</dt><dd>{{ defaultPayoutAccount()?.verificationStatus }}</dd></div></dl>
+          @if (actionError()) { <p class="wallet-modal__error" role="alert">{{ actionError() }}</p> }
+          <button type="button" class="wallet-modal__primary" [disabled]="submittingWithdrawal()" (click)="submitWithdrawal()">{{ submittingWithdrawal() ? 'Submitting…' : 'Submit withdrawal request' }}</button>
+          <button type="button" class="wallet-modal__cancel" (click)="withdrawalStage.set('form')">Back</button>
+        } @else {
+          <p class="wallet__eyebrow">REQUEST SENT</p><h2 id="withdraw-title">Withdrawal submitted</h2><p class="wallet-modal__copy">{{ actionMessage() }}</p>
+          <button type="button" class="wallet-modal__primary" (click)="closeDialogs()">Done</button>
+        }
+      </section>
+    </div>
+  }
+
+  @if (selectedTransaction(); as transaction) {
+    <div class="wallet-modal-backdrop" (click)="closeTransaction()">
+      <section class="wallet-modal" role="dialog" aria-modal="true" aria-labelledby="transaction-title" (click)="$event.stopPropagation()">
+        <button type="button" class="wallet-modal__close" aria-label="Close details" (click)="closeTransaction()"><mat-icon>close</mat-icon></button>
+        <p class="wallet__eyebrow">WALLET TRANSACTION</p><h2 id="transaction-title">{{ transactionLabel(transaction) }}</h2>
+        <div class="wallet-details__amount"><span>{{ transaction.status }}</span><strong>{{ transactionIsDebit(transaction) ? '− ' : '+ ' }}{{ transaction.amount | currency:'KES':'symbol':'1.2-2' }}</strong><small>{{ transaction.description || 'Wallet transaction' }}</small></div>
+        <dl class="wallet-modal__summary"><div><dt>Order</dt><dd>{{ transaction.orderId ? 'ORD-' + transaction.orderId : '—' }}</dd></div><div><dt>Reference</dt><dd>{{ transaction.reference || '—' }}</dd></div><div><dt>Pending balance after</dt><dd>{{ transaction.pendingBalanceAfter | currency:'KES':'symbol':'1.2-2' }}</dd></div><div><dt>Available balance after</dt><dd>{{ transaction.availableBalanceAfter | currency:'KES':'symbol':'1.2-2' }}</dd></div><div><dt>Processing balance after</dt><dd>{{ transaction.processingBalanceAfter | currency:'KES':'symbol':'1.2-2' }}</dd></div><div><dt>Recorded</dt><dd>{{ transaction.createdAt | date:'medium' }}</dd></div></dl>
+        <button type="button" class="wallet-modal__primary" (click)="closeTransaction()">Done</button>
       </section>
     </div>
   }
